@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "clyzio",
+    "slug": "clyzio",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "clyzio",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#10B981"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.clyzio.app",
+      "config": {
+        "googleMapsApiKey": "AIzaSyAaQG2TsYZO_Ibp9sohoNS1XS-1DZ7UPwg"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#10B981"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.clyzio.app",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCRyIfMk8bJeoeLIGkRUqmdTpSc8dnTXbY"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
