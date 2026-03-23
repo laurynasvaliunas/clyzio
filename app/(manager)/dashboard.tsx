@@ -187,19 +187,23 @@ export default function ManagerDashboardScreen() {
                 {sustainabilityReport.executive_summary}
               </Text>
 
-              {sustainabilityReport.top_insights.slice(0, 3).map((insight, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.insightCard,
-                    insight.priority === "high" && styles.insightHigh,
-                  ]}
-                >
-                  <Text style={styles.insightTitle}>{insight.title}</Text>
-                  <Text style={styles.insightMetric}>{insight.metric}</Text>
-                  <Text style={styles.insightDesc}>{insight.description}</Text>
-                </View>
-              ))}
+              {sustainabilityReport.top_insights.slice(0, 3).map((insight, i) => {
+                const borderColor = insight.priority === "high"
+                  ? COLORS.red
+                  : insight.priority === "medium"
+                  ? COLORS.accent
+                  : COLORS.green;
+                return (
+                  <View
+                    key={i}
+                    style={[styles.insightCard, { borderLeftColor: borderColor }]}
+                  >
+                    <Text style={styles.insightTitle}>{insight.title}</Text>
+                    <Text style={styles.insightMetric}>{insight.metric}</Text>
+                    <Text style={styles.insightDesc}>{insight.description}</Text>
+                  </View>
+                );
+              })}
 
               <TouchableOpacity
                 style={styles.viewFullBtn}
@@ -331,18 +335,23 @@ const styles = StyleSheet.create({
   gaugeBox: { alignItems: "center", flexDirection: "row", gap: 4 },
   gaugeScore: { fontSize: 64, fontWeight: "900" },
   gaugeLabel: { fontSize: 20, fontWeight: "600", marginTop: 24 },
-  trendRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12 },
-  trendText: { fontSize: 13, color: "rgba(255,255,255,0.85)" },
+  trendRow: {
+    flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12,
+    backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 50,
+    paddingHorizontal: 14, paddingVertical: 7,
+  },
+  trendText: { fontSize: 13, color: "rgba(255,255,255,0.9)", fontWeight: "600" },
 
   // Stats row
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
   statCard: {
-    flex: 1, backgroundColor: COLORS.white, borderRadius: 16,
+    flex: 1, backgroundColor: COLORS.white, borderRadius: 20,
     padding: 14, alignItems: "center", gap: 6,
-    shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 3,
+    shadowColor: COLORS.primary, shadowOpacity: 0.12,
+    shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
-  statValue: { fontSize: 15, fontWeight: "bold", color: COLORS.dark },
-  statLabel: { fontSize: 11, color: COLORS.gray },
+  statValue: { fontSize: 15, fontWeight: "800", color: COLORS.dark },
+  statLabel: { fontSize: 11, color: COLORS.gray, textAlign: "center" },
 
   // Section
   section: {
@@ -356,7 +365,7 @@ const styles = StyleSheet.create({
   // AI report
   centeredRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
   loadingText: { fontSize: 14, color: COLORS.gray },
-  generateBtn: { borderRadius: 14, overflow: "hidden" },
+  generateBtn: { borderRadius: 28, overflow: "hidden" },
   generateGradient: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     paddingVertical: 14, gap: 8,
@@ -368,8 +377,8 @@ const styles = StyleSheet.create({
   },
   insightCard: {
     backgroundColor: COLORS.grayLight, borderRadius: 14, padding: 14, marginBottom: 10,
+    borderLeftWidth: 3, borderLeftColor: COLORS.gray,
   },
-  insightHigh: { borderLeftWidth: 3, borderLeftColor: COLORS.primary },
   insightTitle: { fontSize: 13, fontWeight: "bold", color: COLORS.dark, marginBottom: 2 },
   insightMetric: { fontSize: 13, color: COLORS.primary, fontWeight: "600", marginBottom: 4 },
   insightDesc: { fontSize: 12, color: COLORS.gray, lineHeight: 17 },

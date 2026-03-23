@@ -21,6 +21,8 @@ import {
   Leaf,
   X,
   ChevronRight,
+  Filter,
+  CheckCircle2,
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import TripCompletionModal from "../../components/TripCompletionModal";
@@ -32,13 +34,14 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 
 const COLORS = {
   primary: "#26C6DA",
-  primaryDark: "#00ACC1",
+  primaryDark: "#006064",
   accent: "#FDD835",
   dark: "#006064",
   light: "#E0F7FA",
   background: "#F5FAFA",
   white: "#FFFFFF",
   gray: "#90A4AE",
+  textSecondary: "#546E7A",
   red: "#EF4444",
   green: "#4CAF50",
   black: "#000000",
@@ -114,7 +117,7 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel }: UpcomingC
   const formatScheduledTime = (dateStr: string) => {
     const date = parseISO(dateStr);
     const time = format(date, "h:mm a");
-    
+
     if (isToday(date)) return { time, day: "Today" };
     if (isTomorrow(date)) return { time, day: "Tomorrow" };
     return { time, day: format(date, "MMM d") };
@@ -127,41 +130,69 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel }: UpcomingC
     return null;
   };
 
+  const getModeEmoji = (mode?: string) => {
+    switch (mode) {
+      case "walking": return "🚶";
+      case "bike": return "🚲";
+      case "ebike": return "⚡";
+      case "motorbike": return "🏍️";
+      case "public": return "🚌";
+      default: return "🚗";
+    }
+  };
+
   const { time, day } = formatScheduledTime(item.scheduled_at);
   const role = getRoleBadge();
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.cardLeft}>
-        <Text style={styles.cardTime}>{time}</Text>
-        <Text style={styles.cardDay}>{day}</Text>
+      {/* Date badge */}
+      <View style={styles.dateBadge}>
+        <Text style={styles.dateBadgeText}>{day}</Text>
       </View>
 
-      <View style={styles.cardCenter}>
-        <View style={styles.routeRow}>
-          <View style={styles.routeDot} />
-          <Text style={styles.routeText} numberOfLines={1}>
-            {item.origin_address || "Origin"}
-          </Text>
+      {/* Route connector */}
+      <View style={styles.routeConnector}>
+        <View style={styles.routeDots}>
+          <View style={styles.routeDotOrigin} />
+          <View style={styles.routeDotLine} />
+          <View style={styles.routeDotDest} />
         </View>
-        <View style={styles.routeLine} />
-        <View style={styles.routeRow}>
-          <View style={[styles.routeDot, { backgroundColor: COLORS.primary }]} />
+        <View style={styles.routeAddresses}>
+          <Text style={styles.routeText} numberOfLines={1}>
+            {item.origin_address || "Pickup location"}
+          </Text>
           <Text style={styles.routeText} numberOfLines={1}>
             {item.dest_address || "Destination"}
           </Text>
         </View>
-        {item.transport_label && (
-          <Text style={styles.transportMode}>🚗 {item.transport_label}</Text>
-        )}
       </View>
 
-      <View style={styles.cardRight}>
+      {/* Details row */}
+      <View style={styles.cardDetailsRow}>
+        <View style={styles.modeCircle}>
+          <Text style={{ fontSize: 16 }}>{getModeEmoji(item.transport_mode)}</Text>
+        </View>
+        <View style={styles.timeChip}>
+          <Clock size={14} color={COLORS.textSecondary} />
+          <Text style={styles.timeText}>{time}</Text>
+        </View>
+        {item.co2_saved && item.co2_saved > 0 && (
+          <View style={styles.co2Chip}>
+            <Leaf size={14} color={COLORS.green} />
+            <Text style={styles.co2ChipText}>–{item.co2_saved.toFixed(2)} kg</Text>
+          </View>
+        )}
+        <View style={{ flex: 1 }} />
         {role && (
           <View style={[styles.roleBadge, { backgroundColor: role.color + "20" }]}>
             <Text style={[styles.roleBadgeText, { color: role.color }]}>{role.label}</Text>
           </View>
         )}
+      </View>
+
+      {/* Action buttons */}
+      <View style={styles.cardActions}>
         <TouchableOpacity style={styles.completeBtn} onPress={onComplete}>
           <Text style={styles.completeBtnText}>✓ Complete</Text>
         </TouchableOpacity>
@@ -210,39 +241,45 @@ function HistoryCard({ item, onPress }: HistoryCardProps) {
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={styles.historyLeft}>
-        <View style={[styles.modeIcon, isCancelled && { opacity: 0.4 }]}>
-          <Car size={24} color={COLORS.primary} />
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={styles.historyLeft}>
+          <View style={[styles.modeIcon, isCancelled && { opacity: 0.4 }]}>
+            {item.status === "completed" ? (
+              <CheckCircle2 size={20} color={COLORS.white} />
+            ) : (
+              <Car size={20} color={COLORS.white} />
+            )}
+          </View>
         </View>
-      </View>
 
-      <View style={styles.historyCenter}>
-        <Text style={[styles.historyDate, isCancelled && styles.textCancelled]}>
-          {day} • {time}
-        </Text>
-        <Text style={[styles.historyRoute, isCancelled && styles.textCancelled]} numberOfLines={1}>
-          {item.origin_address?.split(',')[0] || "Origin"} → {item.dest_address?.split(',')[0] || "Destination"}
-        </Text>
-        <View style={styles.statusRow}>
-          <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+        <View style={styles.historyCenter}>
+          <Text style={[styles.historyDate, isCancelled && styles.textCancelled]}>
+            {day} • {time}
           </Text>
-          {item.transport_label && (
-            <Text style={styles.transportModeSmall}> • {item.transport_label}</Text>
+          <Text style={[styles.historyRoute, isCancelled && styles.textCancelled]} numberOfLines={1}>
+            {item.origin_address?.split(",")[0] || "Origin"} → {item.dest_address?.split(",")[0] || "Destination"}
+          </Text>
+          <View style={styles.statusRow}>
+            <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
+            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+            </Text>
+            {item.transport_label && (
+              <Text style={styles.transportModeSmall}> • {item.transport_label}</Text>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.historyRight}>
+          {item.co2_saved && item.co2_saved > 0 && !isCancelled ? (
+            <View style={styles.co2Badge}>
+              <Leaf size={13} color={COLORS.green} />
+              <Text style={styles.co2Text}>–{item.co2_saved.toFixed(1)}kg</Text>
+            </View>
+          ) : (
+            <ChevronRight size={20} color={COLORS.gray} />
           )}
         </View>
-      </View>
-
-      <View style={styles.historyRight}>
-        {item.co2_saved && item.co2_saved > 0 && !isCancelled ? (
-          <View style={styles.co2Badge}>
-            <Leaf size={14} color={COLORS.green} />
-            <Text style={styles.co2Text}>+{item.co2_saved.toFixed(1)}kg</Text>
-          </View>
-        ) : (
-          <ChevronRight size={20} color={COLORS.gray} />
-        )}
       </View>
     </TouchableOpacity>
   );
@@ -531,8 +568,10 @@ export default function ActivityScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Calendar size={24} color={COLORS.dark} />
-        <Text style={styles.headerTitle}>My Commutes</Text>
+        <Text style={styles.headerTitle}>Activity</Text>
+        <TouchableOpacity style={styles.filterBtn}>
+          <Filter size={22} color={COLORS.textSecondary} />
+        </TouchableOpacity>
       </View>
 
       {/* Tab Switcher */}
@@ -542,7 +581,6 @@ export default function ActivityScreen() {
             style={[styles.tab, activeTab === "upcoming" && styles.tabActive]}
             onPress={() => handleTabChange("upcoming")}
           >
-            <Clock size={16} color={activeTab === "upcoming" ? COLORS.white : COLORS.gray} />
             <Text style={[styles.tabText, activeTab === "upcoming" && styles.tabTextActive]}>
               Upcoming
             </Text>
@@ -551,7 +589,6 @@ export default function ActivityScreen() {
             style={[styles.tab, activeTab === "history" && styles.tabActive]}
             onPress={() => handleTabChange("history")}
           >
-            <Leaf size={16} color={activeTab === "history" ? COLORS.white : COLORS.gray} />
             <Text style={[styles.tabText, activeTab === "history" && styles.tabTextActive]}>
               History
             </Text>
@@ -598,33 +635,37 @@ export default function ActivityScreen() {
 
 const styles = StyleSheet.create({
   // ===== CONTAINER & HEADER =====
-  container: { 
-    flex: 1, 
-    backgroundColor: COLORS.background 
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 8,
   },
-  headerTitle: { 
-    fontSize: 28, 
-    fontWeight: "bold", 
-    color: COLORS.dark 
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: "700",
+    color: COLORS.dark
   },
-  
+  filterBtn: {
+    padding: 8,
+    borderRadius: 10,
+  },
+
   // ===== TAB SWITCHER =====
-  tabContainer: { 
-    paddingHorizontal: 16, 
-    paddingVertical: 12 
+  tabContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   tabSwitcher: {
     flexDirection: "row",
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 50,
     padding: 4,
     shadowColor: COLORS.black,
     shadowOpacity: 0.05,
@@ -633,23 +674,21 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 12,
+    borderRadius: 50,
   },
-  tabActive: { 
-    backgroundColor: COLORS.primary 
+  tabActive: {
+    backgroundColor: COLORS.primary
   },
-  tabText: { 
-    fontSize: 15, 
-    fontWeight: "600", 
-    color: COLORS.gray 
+  tabText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.gray
   },
-  tabTextActive: { 
-    color: COLORS.white 
+  tabTextActive: {
+    color: COLORS.white
   },
   
   // ===== LOADING & LIST =====
@@ -665,159 +704,283 @@ const styles = StyleSheet.create({
   
   // ===== CARD SHARED =====
   card: {
-    flexDirection: "row",
     backgroundColor: COLORS.white,
     borderRadius: 20,
     padding: 16,
     shadowColor: COLORS.black,
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
-  cardCancelled: { 
-    opacity: 0.5 
+  cardCancelled: {
+    opacity: 0.5
   },
-  // ===== UPCOMING CARD =====
-  cardLeft: { 
-    width: 70, 
-    alignItems: "center" 
-  },
-  cardTime: { 
-    fontSize: 16, 
-    fontWeight: "bold", 
-    color: COLORS.dark 
-  },
-  cardDay: { 
-    fontSize: 12, 
-    color: COLORS.gray, 
-    marginTop: 2 
-  },
-  cardCenter: { 
-    flex: 1, 
-    paddingHorizontal: 12 
-  },
-  routeRow: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 8 
-  },
-  routeDot: { 
-    width: 10, 
-    height: 10, 
-    borderRadius: 5, 
-    backgroundColor: COLORS.gray 
-  },
-  routeLine: { 
-    width: 2, 
-    height: 16, 
-    backgroundColor: COLORS.light, 
-    marginLeft: 4, 
-    marginVertical: 2 
-  },
-  routeText: { 
-    fontSize: 14, 
-    color: COLORS.dark, 
-    flex: 1 
-  },
-  transportMode: { 
-    fontSize: 12, 
-    color: COLORS.gray, 
-    marginTop: 4, 
-    fontWeight: "500" 
-  },
-  cardRight: { 
-    alignItems: "flex-end", 
-    justifyContent: "space-between" 
-  },
-  roleBadge: { 
-    paddingHorizontal: 10, 
-    paddingVertical: 4, 
-    borderRadius: 8 
-  },
-  roleBadgeText: { 
-    fontSize: 11, 
-    fontWeight: "bold" 
-  },
-  completeBtn: { 
-    backgroundColor: COLORS.primary, 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
-    borderRadius: 10, 
-    marginTop: 8 
-  },
-  completeBtnText: { 
-    fontSize: 12, 
-    color: COLORS.white, 
-    fontWeight: "bold" 
-  },
-  cancelBtn: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 4, 
-    marginTop: 8 
-  },
-  cancelText: { 
-    fontSize: 12, 
-    color: COLORS.red, 
-    fontWeight: "500" 
-  },
-  
-  // ===== HISTORY CARD =====
-  historyLeft: { 
-    width: 50, 
-    alignItems: "center", 
-    justifyContent: "center" 
-  },
-  modeIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+
+  // Date badge (shown at top of card)
+  dateBadge: {
+    alignSelf: "flex-start",
     backgroundColor: COLORS.light,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 50,
+    marginBottom: 10,
+  },
+  dateBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.primary,
+  },
+
+  // ===== UPCOMING CARD =====
+  cardLeft: {
+    width: 70,
+    alignItems: "center"
+  },
+  cardTime: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: COLORS.dark
+  },
+  cardDay: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 2
+  },
+  cardCenter: {
+    flex: 1,
+    paddingHorizontal: 12
+  },
+
+  // Route connector (dots + line)
+  routeConnector: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+  },
+  routeDots: {
+    alignItems: "center",
+    paddingTop: 2,
+  },
+  routeDotOrigin: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
+  },
+  routeDotLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 3,
+    minHeight: 14,
+  },
+  routeDotDest: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.accent,
+  },
+  routeAddresses: {
+    flex: 1,
+    gap: 10,
+  },
+  routeText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.dark,
+  },
+
+  routeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  routeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.gray
+  },
+  routeLine: {
+    width: 2,
+    height: 16,
+    backgroundColor: COLORS.light,
+    marginLeft: 4,
+    marginVertical: 2
+  },
+  transportMode: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 4,
+    fontWeight: "500"
+  },
+
+  // Details row (mode icon + time + co2)
+  cardDetailsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginTop: 4,
+  },
+  modeCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  historyCenter: { 
-    flex: 1, 
-    paddingHorizontal: 12, 
-    justifyContent: "center" 
+  timeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
-  historyDate: { 
-    fontSize: 14, 
-    color: COLORS.dark, 
-    fontWeight: "500" 
+  timeText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
   },
-  historyRoute: { 
-    fontSize: 13, 
-    color: COLORS.gray, 
-    marginTop: 2 
+  co2Chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
-  textCancelled: { 
-    textDecorationLine: "line-through", 
-    color: COLORS.gray 
+  co2ChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.green,
   },
-  statusRow: { 
-    flexDirection: "row", 
-    alignItems: "center", 
-    gap: 6, 
-    marginTop: 4 
+
+  cardRight: {
+    alignItems: "flex-end",
+    justifyContent: "space-between"
   },
-  statusDot: { 
-    width: 8, 
-    height: 8, 
-    borderRadius: 4 
+  roleBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8
   },
-  statusText: { 
-    fontSize: 12, 
-    fontWeight: "500" 
+  roleBadgeText: {
+    fontSize: 11,
+    fontWeight: "bold"
   },
-  transportModeSmall: { 
-    fontSize: 12, 
-    color: COLORS.gray, 
-    fontWeight: "400" 
+  completeBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginTop: 8
   },
-  historyRight: { 
-    alignItems: "flex-end", 
-    justifyContent: "center" 
+  completeBtnText: {
+    fontSize: 12,
+    color: COLORS.white,
+    fontWeight: "bold"
+  },
+  cancelBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  cancelText: {
+    fontSize: 12,
+    color: COLORS.red,
+    fontWeight: "500"
+  },
+  cardActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+
+  // Partner row
+  partnerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  partnerAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  partnerAvatarText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
+  partnerName: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontWeight: "500",
+  },
+
+  // ===== HISTORY CARD =====
+  historyLeft: {
+    width: 50,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  modeIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  historyCenter: {
+    flex: 1,
+    paddingHorizontal: 12,
+    justifyContent: "center"
+  },
+  historyDate: {
+    fontSize: 14,
+    color: COLORS.dark,
+    fontWeight: "500"
+  },
+  historyRoute: {
+    fontSize: 13,
+    color: COLORS.gray,
+    marginTop: 2
+  },
+  textCancelled: {
+    textDecorationLine: "line-through",
+    color: COLORS.gray
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "500"
+  },
+  transportModeSmall: {
+    fontSize: 12,
+    color: COLORS.gray,
+    fontWeight: "400"
+  },
+  historyRight: {
+    alignItems: "flex-end",
+    justifyContent: "center"
   },
   co2Badge: {
     flexDirection: "row",
@@ -828,10 +991,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 10,
   },
-  co2Text: { 
-    fontSize: 14, 
-    fontWeight: "bold", 
-    color: COLORS.green 
+  co2Text: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: COLORS.green
   },
   
   // ===== EMPTY STATE =====

@@ -646,8 +646,8 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: "relative",
   },
-  userAvatar: { width: 56, height: 56, borderRadius: 18 },
-  userAvatarPlaceholder: { width: 56, height: 56, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  userAvatar: { width: 64, height: 64, borderRadius: 14 },
+  userAvatarPlaceholder: { width: 64, height: 64, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   cameraButton: {
     position: "absolute",
     bottom: -4,
@@ -749,19 +749,21 @@ const styles = StyleSheet.create({
   dayText: { fontSize: 14, fontWeight: "600", color: COLORS.gray },
   
   // ===== SAVE BUTTON =====
-  saveButton: { marginHorizontal: 16, marginBottom: 12, borderRadius: 16, overflow: "hidden" },
+  saveButton: { marginHorizontal: 16, marginBottom: 12, borderRadius: 28, overflow: "hidden" },
   saveButtonDisabled: { opacity: 0.7 },
-  saveButtonGradient: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 16, gap: 10 },
+  saveButtonGradient: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 18, gap: 10 },
   saveButtonText: { color: COLORS.white, fontSize: 17, fontWeight: "bold" },
-  
+
   // ===== SIGN OUT BUTTON =====
   signOutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: COLORS.redLight,
-    borderRadius: 14,
+    backgroundColor: COLORS.transparent,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    borderColor: COLORS.red,
     paddingVertical: 14,
     marginHorizontal: 16,
   },

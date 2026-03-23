@@ -92,15 +92,22 @@ function SuggestionCard({
 
   return isTop ? (
     <LinearGradient
-      colors={[COLORS.primary, COLORS.primaryDark]}
+      colors={[COLORS.primary, COLORS.dark]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={[styles.card, styles.topCard]}
     >
+      {/* Best Pick badge */}
+      <View style={styles.bestPickBadge}>
+        <Text style={styles.bestPickText}>✨ Best Pick</Text>
+      </View>
+
       <View style={styles.cardHeader}>
         <View style={[styles.modeIconBg, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
           {getModeIcon(suggestion.mode_icon, iconColor, 20)}
         </View>
         <View style={styles.cardHeaderText}>
-          <Text style={[styles.modeName, { color: COLORS.white }]}>{suggestion.mode}</Text>
+          <Text style={[styles.modeName, { color: COLORS.white, fontSize: 22 }]}>{suggestion.mode}</Text>
           <View style={[styles.difficultyPill, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
             <Text style={[styles.difficultyText, { color: COLORS.white }]}>
               {suggestion.difficulty_level}
@@ -109,11 +116,11 @@ function SuggestionCard({
         </View>
         <View style={styles.co2Badge}>
           <TrendingDown size={14} color={COLORS.white} />
-          <Text style={styles.co2BadgeText}>{suggestion.co2_reduction_pct}%</Text>
+          <Text style={styles.co2BadgeText}>–{suggestion.co2_reduction_pct}%</Text>
         </View>
       </View>
 
-      <View style={styles.statsRow}>
+      <View style={[styles.statsRow, { backgroundColor: "rgba(255,255,255,0.15)" }]}>
         <View style={styles.stat}>
           <Text style={[styles.statValue, { color: COLORS.white }]}>
             {suggestion.estimated_co2_kg.toFixed(2)} kg
@@ -144,8 +151,7 @@ function SuggestionCard({
       ))}
 
       <TouchableOpacity style={styles.ctaButtonTop} onPress={() => onPlanIt(suggestion.mode)}>
-        <Text style={styles.ctaButtonTopText}>{suggestion.cta_label}</Text>
-        <ChevronRight size={16} color={COLORS.primary} />
+        <Text style={styles.ctaButtonTopText}>{suggestion.cta_label} →</Text>
       </TouchableOpacity>
     </LinearGradient>
   ) : (
@@ -165,26 +171,26 @@ function SuggestionCard({
         <View style={[styles.co2Badge, { backgroundColor: COLORS.green + "20" }]}>
           <TrendingDown size={14} color={COLORS.green} />
           <Text style={[styles.co2BadgeText, { color: COLORS.green }]}>
-            {suggestion.co2_reduction_pct}%
+            –{suggestion.co2_reduction_pct}%
           </Text>
         </View>
       </View>
 
-      <View style={styles.statsRow}>
+      <View style={[styles.statsRow, { backgroundColor: COLORS.grayLight }]}>
         <View style={styles.stat}>
           <Text style={[styles.statValue, { color: COLORS.dark }]}>
             {suggestion.estimated_co2_kg.toFixed(2)} kg
           </Text>
           <Text style={styles.statLabel}>CO2 / trip</Text>
         </View>
-        <View style={[styles.statDivider, { backgroundColor: COLORS.grayLight }]} />
+        <View style={[styles.statDivider, { backgroundColor: "#E5E7EB" }]} />
         <View style={styles.stat}>
           <Text style={[styles.statValue, { color: COLORS.dark }]}>
             {suggestion.estimated_time_min} min
           </Text>
           <Text style={styles.statLabel}>Est. time</Text>
         </View>
-        <View style={[styles.statDivider, { backgroundColor: COLORS.grayLight }]} />
+        <View style={[styles.statDivider, { backgroundColor: "#E5E7EB" }]} />
         <View style={styles.stat}>
           <Text style={[styles.statValue, { color: COLORS.green }]}>
             €{suggestion.cost_saving_eur_monthly}
@@ -193,7 +199,7 @@ function SuggestionCard({
         </View>
       </View>
 
-      {suggestion.tips.slice(0, 1).map((tip, i) => (
+      {suggestion.tips.slice(0, 2).map((tip, i) => (
         <View key={i} style={styles.tipRow}>
           <Leaf size={13} color={COLORS.green} />
           <Text style={styles.tipText}>{tip}</Text>
@@ -204,8 +210,7 @@ function SuggestionCard({
         style={styles.ctaButton}
         onPress={() => onPlanIt(suggestion.mode)}
       >
-        <Text style={styles.ctaButtonText}>{suggestion.cta_label}</Text>
-        <ChevronRight size={16} color={COLORS.primary} />
+        <Text style={styles.ctaButtonText}>{suggestion.cta_label} →</Text>
       </TouchableOpacity>
     </View>
   );
@@ -256,8 +261,8 @@ export default function AIPlannerScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>AI Planner</Text>
           <Sparkles size={22} color={COLORS.primary} />
-          <Text style={styles.headerTitle}>AI Commute Coach</Text>
         </View>
         <TouchableOpacity
           style={styles.refreshBtn}
@@ -290,22 +295,16 @@ export default function AIPlannerScreen() {
         {/* Hero insight card */}
         {commuteResult && (
           <LinearGradient
-            colors={["#E0F7FA", "#B2EBF2"]}
+            colors={[COLORS.primary, COLORS.dark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.insightCard}
           >
-            <View style={styles.insightHeader}>
-              <Sparkles size={18} color={COLORS.primary} />
-              <Text style={styles.insightLabel}>Your weekly potential</Text>
-            </View>
+            <Sparkles size={24} color={COLORS.white} style={{ marginBottom: 10 }} />
             <Text style={styles.insightText}>{commuteResult.insight}</Text>
-            <View style={styles.savingRow}>
-              <Leaf size={16} color={COLORS.green} />
-              <Text style={styles.savingText}>
-                Save up to{" "}
-                <Text style={styles.savingHighlight}>
-                  {commuteResult.weekly_potential_saving_kg.toFixed(1)} kg CO2
-                </Text>{" "}
-                this week
+            <View style={styles.savingPill}>
+              <Text style={styles.savingPillText}>
+                Save ~{commuteResult.weekly_potential_saving_kg.toFixed(1)} kg/week
               </Text>
             </View>
           </LinearGradient>
@@ -378,8 +377,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: COLORS.dark },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  headerTitle: { fontSize: 28, fontWeight: "700", color: COLORS.dark },
   refreshBtn: {
     width: 40,
     height: 40,
@@ -390,7 +389,7 @@ const styles = StyleSheet.create({
   },
   scroll: { flex: 1, paddingHorizontal: 16 },
 
-  // Profile completion banner
+  // Profile completion banner — yellow left-border style
   completionBanner: {
     flexDirection: "row",
     alignItems: "center",
@@ -399,25 +398,28 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.orange + "40",
+    borderLeftWidth: 4,
+    borderLeftColor: "#FDD835",
   },
   completionText: { flex: 1 },
   completionTitle: { fontSize: 14, fontWeight: "600", color: COLORS.dark },
   completionSubtitle: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
 
-  // Insight hero
+  // Insight hero — dark gradient card
   insightCard: {
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
     marginBottom: 16,
   },
-  insightHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
-  insightLabel: { fontSize: 13, fontWeight: "600", color: COLORS.primaryDark },
-  insightText: { fontSize: 15, color: COLORS.dark, lineHeight: 22, marginBottom: 12 },
-  savingRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  savingText: { fontSize: 14, color: COLORS.dark },
-  savingHighlight: { fontWeight: "bold", color: COLORS.green },
+  insightText: { fontSize: 16, fontWeight: "600", color: COLORS.white, lineHeight: 24, marginBottom: 16 },
+  savingPill: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 50,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  savingPillText: { fontSize: 13, fontWeight: "700", color: COLORS.white },
 
   // Skeleton
   skeletonCard: {
@@ -450,6 +452,15 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
+  bestPickBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: COLORS.white,
+    borderRadius: 50,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginBottom: 16,
+  },
+  bestPickText: { fontSize: 12, fontWeight: "700", color: COLORS.primary },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
   modeIconBg: {
     width: 44,
@@ -508,27 +519,24 @@ const styles = StyleSheet.create({
 
   // CTA buttons
   ctaButtonTop: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.white,
-    borderRadius: 14,
-    paddingVertical: 12,
-    marginTop: 8,
-    gap: 6,
+    borderRadius: 28,
+    paddingVertical: 14,
+    marginTop: 12,
   },
-  ctaButtonTopText: { fontSize: 14, fontWeight: "bold", color: COLORS.primary },
+  ctaButtonTopText: { fontSize: 15, fontWeight: "700", color: COLORS.primary },
   ctaButton: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.light,
-    borderRadius: 14,
-    paddingVertical: 12,
-    marginTop: 8,
-    gap: 6,
+    borderRadius: 28,
+    paddingVertical: 14,
+    marginTop: 12,
+    overflow: "hidden",
+    backgroundColor: COLORS.primary,
   },
-  ctaButtonText: { fontSize: 14, fontWeight: "bold", color: COLORS.primaryDark },
+  ctaButtonText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
 
   // Error
   errorCard: {
@@ -569,6 +577,4 @@ const styles = StyleSheet.create({
   },
   generateText: { color: COLORS.white, fontWeight: "bold", fontSize: 15 },
 
-  // Orange constant (for completionBanner)
-  orange: COLORS.orange,
 });

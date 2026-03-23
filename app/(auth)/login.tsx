@@ -9,38 +9,32 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Image,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { Mail, Lock } from "lucide-react-native";
+import { Mail, Lock, Eye, EyeOff, Leaf, Building2 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 
-// Brand Colors - UNIFIED (Phase 27)
 const COLORS = {
-  primary: "#26C6DA",     // Unified Cyan
-  primaryDark: "#00ACC1",
+  primary: "#26C6DA",
+  primaryDark: "#006064",
   accent: "#FDD835",
   dark: "#006064",
   light: "#E0F7FA",
-  background: "#F5FAFA",
   white: "#FFFFFF",
   gray: "#90A4AE",
+  textSecondary: "#546E7A",
+  green: "#4CAF50",
+  border: "#E5E7EB",
 };
-
-// Logo image
-let logoImage: any = null;
-try {
-  logoImage = require("../../assets/images/clyzio-logo.png");
-} catch (e) {
-  // Logo not found
-}
 
 export default function LoginScreen() {
   const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const checkOnboardingNeeded = async (userId: string) => {
@@ -50,74 +44,32 @@ export default function LoginScreen() {
         .select("company_id, department_id, is_solo_user")
         .eq("id", userId)
         .single();
-
-      // If corporate user without department, show onboarding
-      if (profile?.company_id && !profile?.department_id && !profile?.is_solo_user) {
-        return true;
-      }
+      if (profile?.company_id && !profile?.department_id && !profile?.is_solo_user) return true;
       return false;
-    } catch (error) {
-      console.error("Error checking onboarding:", error);
+    } catch {
       return false;
     }
   };
 
   const handleAuth = async () => {
-    if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email address");
-      return;
-    }
-    if (!password.trim()) {
-      Alert.alert("Error", "Please enter your password");
-      return;
-    }
-    if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
-      return;
-    }
-
+    if (!email.trim()) { Alert.alert("Error", "Please enter your email address"); return; }
+    if (!password.trim()) { Alert.alert("Error", "Please enter your password"); return; }
+    if (password.length < 6) { Alert.alert("Error", "Password must be at least 6 characters"); return; }
     setIsLoading(true);
-
     try {
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password: password,
-        });
-
-        if (error) {
-          Alert.alert("Sign Up Failed", error.message);
-          return;
-        }
-
+        const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+        if (error) { Alert.alert("Sign Up Failed", error.message); return; }
         if (data.user) {
-          // Check if onboarding needed
           const needsOnboarding = await checkOnboardingNeeded(data.user.id);
-          if (needsOnboarding) {
-            router.replace("/(auth)/onboarding");
-          } else {
-            router.replace("/(tabs)");
-          }
+          router.replace(needsOnboarding ? "/(auth)/onboarding" : "/(tabs)");
         }
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password: password,
-        });
-
-        if (error) {
-          Alert.alert("Sign In Failed", error.message);
-          return;
-        }
-
+        const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        if (error) { Alert.alert("Sign In Failed", error.message); return; }
         if (data.session && data.user) {
-          // Check if onboarding needed
           const needsOnboarding = await checkOnboardingNeeded(data.user.id);
-          if (needsOnboarding) {
-            router.replace("/(auth)/onboarding");
-          } else {
-            router.replace("/(tabs)");
-          }
+          router.replace(needsOnboarding ? "/(auth)/onboarding" : "/(tabs)");
         }
       }
     } catch (error: any) {
@@ -127,195 +79,283 @@ export default function LoginScreen() {
     }
   };
 
-  // Check domain for preview
-  const emailDomain = email.includes("@") ? email.split("@")[1].toLowerCase() : "";
-  const isCorpDomain = emailDomain && !["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com"].includes(emailDomain);
+  const emailDomain = email.includes("@") ? email.split("@")[1]?.toLowerCase() : "";
+  const isCorpEmail =
+    !!emailDomain &&
+    !["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com"].includes(emailDomain);
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={styles.content}>
-        {/* Logo - Using actual logo image */}
-        {logoImage ? (
-          <Image
-            source={logoImage}
-            style={styles.logoImage}
-          />
-        ) : (
-          <View style={styles.fallbackLogo}>
-            <Text style={styles.fallbackLogoText}>clyzio</Text>
-            <View style={styles.sunDot} />
-          </View>
-        )}
-        
-        <Text style={styles.subtitle}>
-          Corporate ride-sharing for a greener commute
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Logo */}
+        <View style={styles.logoRow}>
+          <Text style={styles.logoText}>CLYZIO</Text>
+          <View style={styles.logoDot} />
+        </View>
+
+        {/* Welcome */}
+        <Text style={styles.heading}>{isSignUp ? "Create account" : "Welcome back"}</Text>
+        <Text style={styles.subheading}>
+          {isSignUp ? "Join your company's eco team" : "Sign in to your eco commute"}
         </Text>
 
-        {/* Form */}
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Mail size={20} color={COLORS.gray} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder=""
-              placeholderTextColor={COLORS.gray}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              value={email}
-              onChangeText={setEmail}
-              testID="login-email"
-            />
-          </View>
+        {/* Email */}
+        <Text style={styles.label}>Email</Text>
+        <View style={styles.inputWrap}>
+          <Mail size={20} color={COLORS.gray} style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="your.email@company.com"
+            placeholderTextColor={COLORS.gray}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={email}
+            onChangeText={setEmail}
+            testID="login-email"
+          />
+        </View>
 
-          {/* Domain Preview */}
-          {emailDomain && (
-            <View style={[styles.domainPreview, isCorpDomain && styles.domainPreviewCorp]}>
-              <Text style={[styles.domainText, isCorpDomain && styles.domainTextCorp]}>
-                {isCorpDomain ? `🏢 Corporate: ${emailDomain}` : `👤 Personal account`}
+        {/* Corporate detection banner */}
+        {isCorpEmail && (
+          <View style={styles.corpBanner}>
+            <Building2 size={22} color={COLORS.primary} />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={styles.corpBannerTitle}>Corporate Detected</Text>
+              <Text style={styles.corpBannerSub}>
+                {emailDomain} — You'll join your company's eco team!
               </Text>
             </View>
-          )}
-
-          <View style={styles.inputContainer}>
-            <Lock size={20} color={COLORS.gray} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder=""
-              placeholderTextColor={COLORS.gray}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              testID="login-password"
-            />
           </View>
+        )}
 
-          <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            onPress={handleAuth}
-            disabled={isLoading}
-          >
-            <LinearGradient
-              colors={[COLORS.primary, COLORS.primaryDark]}
-              style={styles.buttonGradient}
-            >
-              {isLoading ? (
-                <ActivityIndicator color={COLORS.white} />
-              ) : (
-                <Text style={styles.buttonText}>
-                  {isSignUp ? "Create Account" : "Sign In"}
-                </Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.toggleButton}
-            onPress={() => setIsSignUp(!isSignUp)}
-          >
-            <Text style={styles.toggleText}>
-              {isSignUp
-                ? "Already have an account? Sign In"
-                : "Don't have an account? Sign Up"}
-            </Text>
+        {/* Password */}
+        <Text style={[styles.label, { marginTop: 16 }]}>Password</Text>
+        <View style={styles.inputWrap}>
+          <Lock size={20} color={COLORS.gray} style={styles.inputIcon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your password"
+            placeholderTextColor={COLORS.gray}
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+            testID="login-password"
+          />
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+            {showPassword
+              ? <EyeOff size={20} color={COLORS.gray} />
+              : <Eye size={20} color={COLORS.gray} />
+            }
           </TouchableOpacity>
         </View>
 
-        {/* Info */}
+        {/* CTA */}
+        <TouchableOpacity
+          style={[styles.ctaBtn, isLoading && { opacity: 0.7 }]}
+          onPress={handleAuth}
+          disabled={isLoading}
+          activeOpacity={0.85}
+        >
+          <LinearGradient
+            colors={[COLORS.primary, COLORS.primaryDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.ctaGradient}
+          >
+            {isLoading
+              ? <ActivityIndicator color={COLORS.white} />
+              : <Text style={styles.ctaText}>{isSignUp ? "Create Account" : "Sign In"}</Text>
+            }
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Toggle */}
+        <Text style={styles.toggleRow}>
+          {isSignUp ? "Already have an account? " : "Don't have an account? "}
+          <Text style={styles.toggleLink} onPress={() => setIsSignUp(!isSignUp)}>
+            {isSignUp ? "Sign In" : "Sign Up"}
+          </Text>
+        </Text>
+
+        {/* Divider */}
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        {/* Info card */}
         <View style={styles.infoCard}>
+          <Leaf size={22} color={COLORS.green} />
           <Text style={styles.infoText}>
-            💡 Use your work email to join your company's eco-team!
+            Use your work email to join your company's eco-team!
           </Text>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  content: { flex: 1, justifyContent: "center", paddingHorizontal: 24 },
-  // Logo image
-  logoImage: {
-    width: 180,
-    height: 60,
-    resizeMode: "contain",
-    alignSelf: "center",
-    marginBottom: 16,
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.white,
   },
-  // Fallback logo
-  fallbackLogo: {
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 80,
+    paddingBottom: 40,
+  },
+
+  logoRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    alignSelf: "center",
-    marginBottom: 16,
+    justifyContent: "center",
+    marginBottom: 36,
   },
-  fallbackLogoText: {
-    fontSize: 42,
-    fontWeight: "bold",
+  logoText: {
+    fontSize: 32,
+    fontWeight: "800",
     color: COLORS.primary,
-    letterSpacing: -0.5,
+    letterSpacing: 1,
   },
-  sunDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+  logoDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: COLORS.accent,
-    marginLeft: 2,
-    marginTop: -2,
+    marginLeft: 3,
+    marginTop: 5,
   },
-  subtitle: {
+
+  heading: {
+    fontSize: 30,
+    fontWeight: "700",
+    color: COLORS.dark,
+    marginBottom: 6,
+  },
+  subheading: {
     fontSize: 15,
     color: COLORS.gray,
-    textAlign: "center",
-    marginBottom: 40,
+    marginBottom: 28,
   },
-  form: { gap: 14 },
-  inputContainer: {
+
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+  },
+  inputWrap: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.light,
-    overflow: "hidden",
+    borderColor: COLORS.border,
+    paddingHorizontal: 14,
+    marginBottom: 4,
   },
-  inputIcon: { marginLeft: 16 },
+  inputIcon: {
+    marginRight: 10,
+  },
   input: {
     flex: 1,
-    height: 56,
-    paddingHorizontal: 12,
-    fontSize: 16,
+    height: 52,
+    fontSize: 15,
     color: COLORS.dark,
   },
-  domainPreview: {
-    backgroundColor: COLORS.light,
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    marginTop: -4,
+  eyeBtn: {
+    padding: 4,
   },
-  domainPreviewCorp: { backgroundColor: COLORS.primary + "20" },
-  domainText: { fontSize: 13, color: COLORS.gray },
-  domainTextCorp: { color: COLORS.primaryDark, fontWeight: "500" },
-  button: { borderRadius: 16, overflow: "hidden", marginTop: 8 },
-  buttonDisabled: { opacity: 0.7 },
-  buttonGradient: {
+
+  corpBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: COLORS.light,
+    borderRadius: 14,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+    padding: 14,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  corpBannerTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.dark,
+    marginBottom: 2,
+  },
+  corpBannerSub: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+
+  ctaBtn: {
+    borderRadius: 28,
+    overflow: "hidden",
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  ctaGradient: {
     height: 56,
     alignItems: "center",
     justifyContent: "center",
   },
-  buttonText: { color: COLORS.white, fontSize: 18, fontWeight: "bold" },
-  toggleButton: { alignItems: "center", marginTop: 8 },
-  toggleText: { color: COLORS.gray, fontSize: 14 },
-  infoCard: {
-    backgroundColor: COLORS.accent + "20",
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 32,
+  ctaText: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: COLORS.white,
   },
-  infoText: { fontSize: 13, color: COLORS.dark, textAlign: "center" },
+
+  toggleRow: {
+    textAlign: "center",
+    fontSize: 14,
+    color: COLORS.gray,
+    marginBottom: 24,
+  },
+  toggleLink: {
+    color: COLORS.primary,
+    fontWeight: "600",
+  },
+
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 24,
+    gap: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    fontSize: 13,
+    color: COLORS.gray,
+  },
+
+  infoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.light,
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+  },
 });

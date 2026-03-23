@@ -1,22 +1,15 @@
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
+import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
-import { useTheme } from "../contexts/ThemeContext";
+import { LinearGradient } from "expo-linear-gradient";
 
-// Brand Colors (matching logo)
 const COLORS = {
-  primary: "#26C6DA",  // Unified Cyan
-  accent: "#FDD835",   // Yellow sun
+  primary: "#26C6DA",
+  primaryDark: "#006064",
+  accent: "#FDD835",
   dark: "#006064",
   white: "#FFFFFF",
 };
-
-// Logo image
-let logoImage: any = null;
-try {
-  logoImage = require("../assets/images/clyzio-logo.png");
-} catch (e) {
-  // Logo not found, use fallback
-}
 
 interface BrandHeaderProps {
   userName?: string;
@@ -26,43 +19,44 @@ interface BrandHeaderProps {
 
 export default function BrandHeader({ userName = "", userAvatar, userLevel = 1 }: BrandHeaderProps) {
   const router = useRouter();
-  const { isDark } = useTheme();
+  const initials = userName
+    ? userName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+    : "U";
 
   return (
     <View style={styles.container}>
-      {/* Content - Transparent Background */}
-      <View style={styles.content}>
-        {/* Logo - Direct render */}
-        {logoImage ? (
-          <Image
-            source={logoImage}
-            style={styles.logo}
-          />
-        ) : (
-          // Fallback matching the logo design
-          <View style={styles.fallbackLogo}>
-            <Text style={styles.logoText}>clyzio</Text>
-            <View style={styles.sunIcon} />
+      <BlurView intensity={60} tint="light" style={styles.blur}>
+        <View style={styles.content}>
+          {/* Logo */}
+          <View style={styles.logoRow}>
+            <Text style={styles.logoText}>CLYZIO</Text>
+            <View style={styles.logoDot} />
           </View>
-        )}
 
-        {/* Spacer */}
-        <View style={{ flex: 1 }} />
+          <View style={{ flex: 1 }} />
 
-        {/* User Avatar */}
-        <TouchableOpacity style={styles.avatarButton} onPress={() => router.push("/(tabs)/profile")}>
-          {userAvatar ? (
-            <Image source={{ uri: userAvatar }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitials}>{userName.charAt(0).toUpperCase() || "U"}</Text>
+          {/* Avatar */}
+          <TouchableOpacity
+            style={styles.avatarBtn}
+            onPress={() => router.push("/(tabs)/profile")}
+            activeOpacity={0.8}
+          >
+            {userAvatar ? (
+              <Image source={{ uri: userAvatar }} style={styles.avatarImage} />
+            ) : (
+              <LinearGradient
+                colors={[COLORS.primary, COLORS.primaryDark]}
+                style={styles.avatarGradient}
+              >
+                <Text style={styles.avatarInitials}>{initials}</Text>
+              </LinearGradient>
+            )}
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelBadgeText}>L{userLevel}</Text>
             </View>
-          )}
-          <View style={styles.levelBadge}>
-            <Text style={styles.levelBadgeText}>{userLevel}</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+          </TouchableOpacity>
+        </View>
+      </BlurView>
     </View>
   );
 }
@@ -70,50 +64,39 @@ export default function BrandHeader({ userName = "", userAvatar, userLevel = 1 }
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    top: 50, // Below status bar
+    top: 0,
     left: 0,
     right: 0,
     zIndex: 50,
-    // NO BACKGROUND - fully transparent
+  },
+  blur: {
+    paddingTop: 52,
+    paddingBottom: 10,
+    paddingHorizontal: 20,
   },
   content: {
-    paddingHorizontal: 24,
-    paddingVertical: 8,
     flexDirection: "row",
     alignItems: "center",
-    // Transparent - map shows through
   },
-  // Logo image - wide, no cropping
-  logo: {
-    width: 100,
-    height: 36,
-    resizeMode: "contain",
-  },
-  // Fallback logo matching the design
-  fallbackLogo: {
+  logoRow: {
     flexDirection: "row",
     alignItems: "flex-start",
   },
   logoText: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "800",
     color: COLORS.primary,
-    letterSpacing: -0.5,
-    // Add shadow for visibility over map
-    textShadowColor: "rgba(255,255,255,0.8)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    letterSpacing: 0.5,
   },
-  sunIcon: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  logoDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
     backgroundColor: COLORS.accent,
     marginLeft: 2,
-    marginTop: -2,
+    marginTop: 3,
   },
-  // Avatar styles
-  avatarButton: {
+  avatarBtn: {
     position: "relative",
   },
   avatarImage: {
@@ -123,43 +106,40 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.white,
   },
-  avatarPlaceholder: {
+  avatarGradient: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 2,
-    borderColor: COLORS.white,
-    // Shadow for visibility
     shadowColor: "#000",
     shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
   avatarInitials: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 15,
+    fontWeight: "700",
     color: COLORS.white,
   },
   levelBadge: {
     position: "absolute",
     bottom: -4,
     right: -4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: COLORS.accent,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
     borderColor: COLORS.white,
+    paddingHorizontal: 3,
   },
   levelBadgeText: {
-    fontSize: 10,
-    fontWeight: "bold",
+    fontSize: 9,
+    fontWeight: "800",
     color: COLORS.dark,
   },
 });

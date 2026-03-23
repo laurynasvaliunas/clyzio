@@ -218,12 +218,19 @@ function LeaderboardRow({ user, index, isCurrentUser = false, showDepartment = t
   const userName = 'is_current_user' in user && user.is_current_user ? "You" : ('name' in user ? user.name : 'user_name' in user ? user.user_name : '');
   const department = 'department' in user ? user.department : ('total_trips' in user ? `${user.total_trips} trips` : '');
   const totalSaved = 'total_saved' in user ? user.total_saved : user.total_co2_saved;
-  
+  const initials = userName.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
+
   return (
     <View style={[styles.leaderboardRow, isCurrentUser && styles.leaderboardRowHighlight]}>
       <View style={styles.leaderboardRank}>
-        {isLeader ? <Crown size={20} color={COLORS.accent} /> : <Text style={styles.rankNumber}>{index + 1}</Text>}
+        {isLeader ? <Crown size={18} color={COLORS.accent} /> : <Text style={styles.rankNumber}>{index + 1}</Text>}
       </View>
+      <LinearGradient
+        colors={isLeader ? [COLORS.accent, COLORS.accentDark] : [COLORS.primary, COLORS.primaryDark]}
+        style={styles.leaderboardAvatar}
+      >
+        <Text style={styles.leaderboardAvatarText}>{initials || "?"}</Text>
+      </LinearGradient>
       <View style={styles.leaderboardInfo}>
         <Text style={[styles.leaderboardName, isCurrentUser && styles.leaderboardNameYou]}>
           {userName}
@@ -601,14 +608,19 @@ export default function StatsScreen() {
         {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Target size={24} color={COLORS.primary} />
+            <Target size={22} color={COLORS.primary} />
             <Text style={styles.statValue}>{stats.total_trips}</Text>
-            <Text style={styles.statLabel}>Total Trips</Text>
+            <Text style={styles.statLabel}>Trips</Text>
           </View>
           <View style={styles.statCard}>
-            <TrendingUp size={24} color={COLORS.green} />
+            <TrendingUp size={22} color={COLORS.green} />
             <Text style={styles.statValue}>{stats.this_week_co2.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>This Week (kg)</Text>
+            <Text style={styles.statLabel}>This Week</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Zap size={22} color={COLORS.accent} />
+            <Text style={styles.statValue}>{xpPoints}</Text>
+            <Text style={styles.statLabel}>XP</Text>
           </View>
         </View>
 
@@ -825,7 +837,7 @@ const styles = StyleSheet.create({
   segmentWrapper: {
     flexDirection: "row",
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 50,
     padding: 4,
     position: "relative",
     shadowColor: COLORS.black,
@@ -839,7 +851,7 @@ const styles = StyleSheet.create({
     bottom: 4,
     width: "33.33%",
     backgroundColor: COLORS.primary,
-    borderRadius: 12,
+    borderRadius: 50,
   },
   segmentBtn: {
     flex: 1,
@@ -971,10 +983,21 @@ const styles = StyleSheet.create({
   progressText: { fontSize: 12, color: COLORS.white, opacity: 0.8, marginTop: 8, textAlign: "center" },
   
   // ===== STATS ROW =====
-  statsRow: { flexDirection: "row", paddingHorizontal: 16, gap: 12, marginTop: 16 },
-  statCard: { flex: 1, backgroundColor: COLORS.white, borderRadius: 20, padding: 20, alignItems: "center", shadowColor: COLORS.black, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
-  statValue: { fontSize: 28, fontWeight: "bold", color: COLORS.dark, marginTop: 8 },
-  statLabel: { fontSize: 12, color: COLORS.gray, marginTop: 4 },
+  statsRow: { flexDirection: "row", paddingHorizontal: 16, gap: 10, marginTop: 16 },
+  statCard: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 16,
+    alignItems: "center",
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  statValue: { fontSize: 22, fontWeight: "800", color: COLORS.dark, marginTop: 8 },
+  statLabel: { fontSize: 11, color: COLORS.gray, marginTop: 4, textAlign: "center" },
   
   // ===== WEEKLY CHART =====
   chartCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
@@ -992,9 +1015,18 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: COLORS.gray, textAlign: "center", paddingVertical: 20 },
   leaderboardRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.light },
   leaderboardRowHighlight: { backgroundColor: COLORS.light, marginHorizontal: -12, paddingHorizontal: 12, borderRadius: 12 },
-  leaderboardRank: { width: 36, alignItems: "center" },
-  rankNumber: { fontSize: 16, fontWeight: "bold", color: COLORS.gray },
-  leaderboardInfo: { flex: 1, marginLeft: 8 },
+  leaderboardRank: { width: 28, alignItems: "center" },
+  rankNumber: { fontSize: 14, fontWeight: "bold", color: COLORS.gray },
+  leaderboardAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  leaderboardAvatarText: { fontSize: 13, fontWeight: "700", color: COLORS.white },
+  leaderboardInfo: { flex: 1 },
   leaderboardName: { fontSize: 15, fontWeight: "600", color: COLORS.dark },
   leaderboardNameYou: { color: COLORS.primary },
   leaderboardDept: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
