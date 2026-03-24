@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { Mail, Lock, Eye, EyeOff, Leaf, Building2 } from "lucide-react-native";
+import { Mail, Lock, Eye, EyeOff, Leaf, Building2, Check } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 
 const COLORS = {
@@ -36,6 +36,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const checkOnboardingNeeded = async (userId: string) => {
     try {
@@ -55,12 +56,23 @@ export default function LoginScreen() {
     if (!email.trim()) { Alert.alert("Error", "Please enter your email address"); return; }
     if (!password.trim()) { Alert.alert("Error", "Please enter your password"); return; }
     if (password.length < 6) { Alert.alert("Error", "Password must be at least 6 characters"); return; }
+    if (isSignUp && !termsAccepted) {
+      Alert.alert("Agreement Required", "Please accept the Terms & Conditions and Privacy Policy to create an account.");
+      return;
+    }
     setIsLoading(true);
     try {
       if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
         if (error) { Alert.alert("Sign Up Failed", error.message); return; }
         if (data.user) {
+          // Record terms acceptance timestamp
+          const now = new Date().toISOString();
+          await supabase
+            .from("profiles")
+            .update({ terms_accepted_at: now, privacy_policy_accepted_at: now })
+            .eq("id", data.user.id);
+
           const needsOnboarding = await checkOnboardingNeeded(data.user.id);
           router.replace(needsOnboarding ? "/(auth)/onboarding" : "/(tabs)");
         }
@@ -157,11 +169,40 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Terms acceptance checkbox — shown only during sign up */}
+        {isSignUp && (
+          <TouchableOpacity
+            style={styles.checkRow}
+            onPress={() => setTermsAccepted(!termsAccepted)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+              {termsAccepted && <Check size={12} color={COLORS.white} />}
+            </View>
+            <Text style={styles.checkLabel}>
+              {"I agree to the "}
+              <Text
+                style={styles.checkLink}
+                onPress={() => router.push("/legal/terms")}
+              >
+                Terms & Conditions
+              </Text>
+              {" and "}
+              <Text
+                style={styles.checkLink}
+                onPress={() => router.push("/legal/privacy")}
+              >
+                Privacy Policy
+              </Text>
+            </Text>
+          </TouchableOpacity>
+        )}
+
         {/* CTA */}
         <TouchableOpacity
-          style={[styles.ctaBtn, isLoading && { opacity: 0.7 }]}
+          style={[styles.ctaBtn, (isLoading || (isSignUp && !termsAccepted)) && { opacity: 0.5 }]}
           onPress={handleAuth}
-          disabled={isLoading}
+          disabled={isLoading || (isSignUp && !termsAccepted)}
           activeOpacity={0.85}
         >
           <LinearGradient
@@ -180,7 +221,7 @@ export default function LoginScreen() {
         {/* Toggle */}
         <Text style={styles.toggleRow}>
           {isSignUp ? "Already have an account? " : "Don't have an account? "}
-          <Text style={styles.toggleLink} onPress={() => setIsSignUp(!isSignUp)}>
+          <Text style={styles.toggleLink} onPress={() => { setIsSignUp(!isSignUp); setTermsAccepted(false); }}>
             {isSignUp ? "Sign In" : "Sign Up"}
           </Text>
         </Text>
@@ -300,10 +341,44 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
 
+  checkRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginTop: 20,
+    marginBottom: 4,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  checkLabel: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+  },
+  checkLink: {
+    color: COLORS.primary,
+    fontWeight: "600",
+    textDecorationLine: "underline",
+  },
+
   ctaBtn: {
     borderRadius: 28,
     overflow: "hidden",
-    marginTop: 24,
+    marginTop: 20,
     marginBottom: 16,
   },
   ctaGradient: {

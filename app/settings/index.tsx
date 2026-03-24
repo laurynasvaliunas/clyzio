@@ -91,19 +91,11 @@ export default function SettingsScreen() {
   };
 
   const handlePrivacyPolicy = () => {
-    Alert.alert(
-      "Privacy Policy",
-      "This would open the Privacy Policy page.\n\nIn a production app, this would link to your legal documentation.",
-      [{ text: "OK" }]
-    );
+    router.push("/legal/privacy");
   };
 
   const handleTermsOfService = () => {
-    Alert.alert(
-      "Terms of Service",
-      "This would open the Terms of Service page.\n\nIn a production app, this would link to your legal documentation.",
-      [{ text: "OK" }]
-    );
+    router.push("/legal/terms");
   };
 
   const handleDeleteAccount = () => {
