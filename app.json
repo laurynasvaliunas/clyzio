@@ -15,10 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.clyzio.app",
-      "config": {
-        "googleMapsApiKey": "$GOOGLE_MAPS_API_KEY_IOS"
-      }
+      "bundleIdentifier": "com.clyzio.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -26,12 +23,7 @@
         "backgroundColor": "#10B981"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.clyzio.app",
-      "config": {
-        "googleMaps": {
-          "apiKey": "$GOOGLE_MAPS_API_KEY_ANDROID"
-        }
-      }
+      "package": "com.clyzio.app"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -39,6 +31,12 @@
     },
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "565dc638-6385-4dcf-885d-8abd3f0d9c30"
+      }
+    }
   }
 }
