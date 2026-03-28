@@ -26,6 +26,9 @@ import {
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import TripCompletionModal from "../../components/TripCompletionModal";
+import { useTheme } from "../../contexts/ThemeContext";
+import { getThemeColors } from "../../lib/theme";
+import { useToast } from "../../contexts/ToastContext";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -111,9 +114,11 @@ interface UpcomingCardProps {
   onPress: () => void;
   onComplete: () => void;
   onCancel: () => void;
+  completing?: boolean;
+  TC: ReturnType<typeof getThemeColors>;
 }
 
-function UpcomingCard({ item, userId, onPress, onComplete, onCancel }: UpcomingCardProps) {
+function UpcomingCard({ item, userId, onPress, onComplete, onCancel, completing = false, TC }: UpcomingCardProps) {
   const formatScheduledTime = (dateStr: string) => {
     const date = parseISO(dateStr);
     const time = format(date, "h:mm a");
@@ -145,7 +150,7 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel }: UpcomingC
   const role = getRoleBadge();
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity style={[styles.card, { backgroundColor: TC.surface }]} onPress={onPress} activeOpacity={0.7}>
       {/* Date badge */}
       <View style={styles.dateBadge}>
         <Text style={styles.dateBadgeText}>{day}</Text>
@@ -155,14 +160,14 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel }: UpcomingC
       <View style={styles.routeConnector}>
         <View style={styles.routeDots}>
           <View style={styles.routeDotOrigin} />
-          <View style={styles.routeDotLine} />
+          <View style={[styles.routeDotLine, { backgroundColor: TC.border }]} />
           <View style={styles.routeDotDest} />
         </View>
         <View style={styles.routeAddresses}>
-          <Text style={styles.routeText} numberOfLines={1}>
+          <Text style={[styles.routeText, { color: TC.text }]} numberOfLines={1}>
             {item.origin_address || "Pickup location"}
           </Text>
-          <Text style={styles.routeText} numberOfLines={1}>
+          <Text style={[styles.routeText, { color: TC.text }]} numberOfLines={1}>
             {item.dest_address || "Destination"}
           </Text>
         </View>
@@ -174,10 +179,10 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel }: UpcomingC
           <Text style={{ fontSize: 16 }}>{getModeEmoji(item.transport_mode)}</Text>
         </View>
         <View style={styles.timeChip}>
-          <Clock size={14} color={COLORS.textSecondary} />
-          <Text style={styles.timeText}>{time}</Text>
+          <Clock size={14} color={TC.textSecondary} />
+          <Text style={[styles.timeText, { color: TC.textSecondary }]}>{time}</Text>
         </View>
-        {item.co2_saved && item.co2_saved > 0 && (
+        {!!item.co2_saved && item.co2_saved > 0 && (
           <View style={styles.co2Chip}>
             <Leaf size={14} color={COLORS.green} />
             <Text style={styles.co2ChipText}>–{item.co2_saved.toFixed(2)} kg</Text>
@@ -192,13 +197,25 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel }: UpcomingC
       </View>
 
       {/* Action buttons */}
-      <View style={styles.cardActions}>
-        <TouchableOpacity style={styles.completeBtn} onPress={onComplete}>
-          <Text style={styles.completeBtnText}>✓ Complete</Text>
+      <View style={[styles.cardActions, { borderTopColor: TC.border }]}>
+        <TouchableOpacity
+          style={[styles.completeBtn, completing && styles.completeBtnLoading]}
+          onPress={onComplete}
+          disabled={completing}
+          activeOpacity={0.8}
+        >
+          {completing ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <CheckCircle2 size={16} color={COLORS.white} />
+          )}
+          <Text style={styles.completeBtnText}>
+            {completing ? "Saving..." : "Mark Complete"}
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
-          <X size={16} color={COLORS.red} />
-          <Text style={styles.cancelText}>Cancel</Text>
+        <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} disabled={completing}>
+          <X size={16} color={completing ? COLORS.gray : COLORS.red} />
+          <Text style={[styles.cancelText, completing && { color: COLORS.gray }]}>Cancel</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -211,9 +228,10 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel }: UpcomingC
 interface HistoryCardProps {
   item: Ride;
   onPress: () => void;
+  TC: ReturnType<typeof getThemeColors>;
 }
 
-function HistoryCard({ item, onPress }: HistoryCardProps) {
+function HistoryCard({ item, onPress, TC }: HistoryCardProps) {
   const formatScheduledTime = (dateStr: string) => {
     const date = parseISO(dateStr);
     const time = format(date, "h:mm a");
@@ -237,7 +255,7 @@ function HistoryCard({ item, onPress }: HistoryCardProps) {
 
   return (
     <TouchableOpacity
-      style={[styles.card, isCancelled && styles.cardCancelled]}
+      style={[styles.card, { backgroundColor: TC.surface }, isCancelled && styles.cardCancelled]}
       onPress={onPress}
       activeOpacity={0.7}
     >
@@ -253,10 +271,10 @@ function HistoryCard({ item, onPress }: HistoryCardProps) {
         </View>
 
         <View style={styles.historyCenter}>
-          <Text style={[styles.historyDate, isCancelled && styles.textCancelled]}>
+          <Text style={[styles.historyDate, { color: TC.text }, isCancelled && styles.textCancelled]}>
             {day} • {time}
           </Text>
-          <Text style={[styles.historyRoute, isCancelled && styles.textCancelled]} numberOfLines={1}>
+          <Text style={[styles.historyRoute, { color: TC.textSecondary }, isCancelled && styles.textCancelled]} numberOfLines={1}>
             {item.origin_address?.split(",")[0] || "Origin"} → {item.dest_address?.split(",")[0] || "Destination"}
           </Text>
           <View style={styles.statusRow}>
@@ -264,8 +282,8 @@ function HistoryCard({ item, onPress }: HistoryCardProps) {
             <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
               {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
             </Text>
-            {item.transport_label && (
-              <Text style={styles.transportModeSmall}> • {item.transport_label}</Text>
+            {!!item.transport_label && (
+              <Text style={[styles.transportModeSmall, { color: TC.textSecondary }]}> • {item.transport_label}</Text>
             )}
           </View>
         </View>
@@ -277,7 +295,7 @@ function HistoryCard({ item, onPress }: HistoryCardProps) {
               <Text style={styles.co2Text}>–{item.co2_saved.toFixed(1)}kg</Text>
             </View>
           ) : (
-            <ChevronRight size={20} color={COLORS.gray} />
+            <ChevronRight size={20} color={TC.textSecondary} />
           )}
         </View>
       </View>
@@ -291,18 +309,19 @@ function HistoryCard({ item, onPress }: HistoryCardProps) {
 interface EmptyStateProps {
   isUpcoming: boolean;
   onPlanTrip: () => void;
+  TC: ReturnType<typeof getThemeColors>;
 }
 
-function EmptyState({ isUpcoming, onPlanTrip }: EmptyStateProps) {
+function EmptyState({ isUpcoming, onPlanTrip, TC }: EmptyStateProps) {
   return (
     <View style={styles.emptyState}>
       <View style={styles.emptyIcon}>
         <Leaf size={48} color={COLORS.primary} />
       </View>
-      <Text style={styles.emptyTitle}>
+      <Text style={[styles.emptyTitle, { color: TC.text }]}>
         {isUpcoming ? "No commutes planned" : "No history yet"}
       </Text>
-      <Text style={styles.emptySubtitle}>
+      <Text style={[styles.emptySubtitle, { color: TC.textSecondary }]}>
         {isUpcoming
           ? "Tap the map to plan your next eco-friendly trip!"
           : "Complete some rides to see your impact here."}
@@ -319,6 +338,9 @@ function EmptyState({ isUpcoming, onPlanTrip }: EmptyStateProps) {
  */
 export default function ActivityScreen() {
   const router = useRouter();
+  const { isDark } = useTheme();
+  const TC = getThemeColors(isDark);
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("upcoming");
   const [loading, setLoading] = useState(true);
   const [rides, setRides] = useState<Ride[]>([]);
@@ -333,6 +355,7 @@ export default function ActivityScreen() {
     leveledUp: false,
     newLevel: 0,
   });
+  const [completingId, setCompletingId] = useState<string | null>(null);
 
   /**
    * Load rides based on active tab
@@ -356,15 +379,14 @@ export default function ActivityScreen() {
         .or(`rider_id.eq.${user.id},driver_id.eq.${user.id}`);
 
       if (activeTab === "upcoming") {
-        // Upcoming: scheduled, requested, accepted AND scheduled_at > now
+        // Upcoming: any active status — user must manually complete or cancel
         query = query
           .in("status", ["scheduled", "requested", "accepted", "in_progress"])
-          .gte("scheduled_at", now)
           .order("scheduled_at", { ascending: true });
       } else {
-        // History: completed OR scheduled_at < now
+        // History: only explicitly completed or cancelled trips
         query = query
-          .or(`status.eq.completed,status.eq.cancelled,scheduled_at.lt.${now}`)
+          .in("status", ["completed", "cancelled"])
           .order("scheduled_at", { ascending: false });
       }
 
@@ -420,7 +442,7 @@ export default function ActivityScreen() {
               if (error) throw error;
               loadRides();
             } catch (error: any) {
-              Alert.alert("Error", error.message);
+              showToast({ title: 'Error', message: error.message, type: 'error' });
             }
           },
         },
@@ -430,10 +452,13 @@ export default function ActivityScreen() {
 
   /**
    * Complete a trip
-   * 1. Calculates distance and XP earned
-   * 2. Updates ride status to completed
-   * 3. Updates user profile stats (XP, CO2, trips count)
-   * 4. Shows completion modal with celebration
+   * 1. Confirms with native Alert (reversible action guard)
+   * 2. Shows per-card loading state while processing
+   * 3. Calculates distance, XP, CO2
+   * 4. Updates ride status + completed_at timestamp
+   * 5. Updates user profile stats (XP, CO2, trips count)
+   * 6. Unlocks badges based on milestones
+   * 7. Shows celebration modal, then switches to History tab
    */
   const completeTrip = useCallback(async (rideId: string) => {
     Alert.alert(
@@ -445,6 +470,7 @@ export default function ActivityScreen() {
           text: "Yes, Complete",
           style: "default",
           onPress: async () => {
+            setCompletingId(rideId);
             try {
               // Step 1: Fetch ride details
               const { data: ride, error: fetchError } = await supabase
@@ -453,24 +479,20 @@ export default function ActivityScreen() {
                 .eq("id", rideId)
                 .single();
 
-              if (fetchError || !ride) {
-                throw new Error("Failed to fetch ride details");
-              }
+              if (fetchError || !ride) throw new Error("Failed to fetch ride details");
 
               // Step 2: Calculate distance and XP
               const distance = calculateDistance(
-                ride.origin_lat,
-                ride.origin_long,
-                ride.dest_lat,
-                ride.dest_long
+                ride.origin_lat, ride.origin_long,
+                ride.dest_lat, ride.dest_long
               );
               const totalXP = calculateXP(distance, ride.transport_mode);
               const co2Saved = ride.co2_saved || 0;
 
-              // Step 3: Update ride status to completed
+              // Step 3: Mark ride as completed
               const { error: updateError } = await supabase
                 .from("rides")
-                .update({ status: "completed" })
+                .update({ status: "completed", completed_at: new Date().toISOString() })
                 .eq("id", rideId);
 
               if (updateError) throw updateError;
@@ -478,67 +500,72 @@ export default function ActivityScreen() {
               // Step 4: Update user profile stats
               const { data: { user } } = await supabase.auth.getUser();
               if (user) {
-                // Fetch current profile stats
-                const { data: profile, error: profileError } = await supabase
+                const { data: profile } = await supabase
                   .from("profiles")
-                  .select("xp_points, total_co2_saved, trips_completed")
+                  .select("xp_points, total_co2_saved, trips_completed, badges")
                   .eq("id", user.id)
                   .single();
 
-                if (profileError) {
-                  console.error("Error fetching profile:", profileError);
-                } else if (profile) {
-                  // Calculate new values
+                if (profile) {
                   const oldXP = profile.xp_points || 0;
                   const newXP = oldXP + totalXP;
                   const newCO2 = (profile.total_co2_saved || 0) + co2Saved;
                   const newTripsCount = (profile.trips_completed || 0) + 1;
-
-                  // Check if user leveled up
                   const oldLevel = Math.floor(oldXP / 1000) + 1;
                   const newLevel = Math.floor(newXP / 1000) + 1;
                   const leveledUp = newLevel > oldLevel;
 
-                  // Update profile in database
-                  const { error: statsError } = await supabase
+                  await supabase
                     .from("profiles")
-                    .update({
-                      xp_points: newXP,
-                      total_co2_saved: newCO2,
-                      trips_completed: newTripsCount,
-                    })
+                    .update({ xp_points: newXP, total_co2_saved: newCO2, trips_completed: newTripsCount })
                     .eq("id", user.id);
 
-                  if (statsError) {
-                    console.error("Error updating stats:", statsError);
-                  } else {
-                    console.log(`✅ Stats updated: +${totalXP} XP, +${co2Saved.toFixed(2)} kg CO2`);
+                  // Step 5: Unlock badges
+                  const existingBadges: string[] = profile.badges || [];
+                  const newBadges: string[] = [];
+
+                  if (newTripsCount >= 1 && !existingBadges.includes("first_trip"))
+                    newBadges.push("first_trip");
+                  if (newTripsCount >= 10 && !existingBadges.includes("trips_10"))
+                    newBadges.push("trips_10");
+                  if (newCO2 >= 50 && !existingBadges.includes("co2_50"))
+                    newBadges.push("co2_50");
+                  if (newCO2 >= 100 && !existingBadges.includes("co2_100"))
+                    newBadges.push("co2_100");
+                  if (ride.driver_id && ride.rider_id && !existingBadges.includes("first_carpool"))
+                    newBadges.push("first_carpool");
+                  if (ride.transport_mode === "walking") {
+                    const { count: walkCount } = await supabase
+                      .from("rides")
+                      .select("id", { count: "exact", head: true })
+                      .or(`rider_id.eq.${user.id},driver_id.eq.${user.id}`)
+                      .eq("transport_mode", "walking")
+                      .eq("status", "completed");
+                    if ((walkCount || 0) >= 5 && !existingBadges.includes("walker_5"))
+                      newBadges.push("walker_5");
+                  }
+                  if (newBadges.length > 0) {
+                    await supabase
+                      .from("profiles")
+                      .update({ badges: [...existingBadges, ...newBadges] })
+                      .eq("id", user.id);
                   }
 
-                  // Show completion modal
-                  setCompletionData({
-                    xpEarned: totalXP,
-                    co2Saved: co2Saved,
-                    distance: distance,
-                    leveledUp: leveledUp,
-                    newLevel: newLevel,
-                  });
+                  // Step 6: Show celebration modal
+                  setCompletionData({ xpEarned: totalXP, co2Saved, distance, leveledUp, newLevel });
                   setShowCompletionModal(true);
-                  
-                  // Reload rides after a short delay
-                  setTimeout(() => {
-                    loadRides();
-                  }, 500);
                 }
               }
             } catch (error: any) {
-              Alert.alert("Error", error.message);
+              showToast({ title: 'Could not complete trip', message: error.message, type: 'error' });
+            } finally {
+              setCompletingId(null);
             }
           },
         },
       ]
     );
-  }, [loadRides]);
+  }, [loadRides, showToast]);
 
   /**
    * Render function for FlatList items
@@ -552,6 +579,8 @@ export default function ActivityScreen() {
           onPress={() => router.push(`/trip/${item.id}`)}
           onComplete={() => completeTrip(item.id)}
           onCancel={() => cancelRide(item.id)}
+          completing={completingId === item.id}
+          TC={TC}
         />
       );
     } else {
@@ -559,37 +588,44 @@ export default function ActivityScreen() {
         <HistoryCard
           item={item}
           onPress={() => router.push(`/trip/${item.id}`)}
+          TC={TC}
         />
       );
     }
-  }, [activeTab, userId, router, completeTrip, cancelRide]);
+  }, [activeTab, userId, router, completeTrip, cancelRide, completingId, TC]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Activity</Text>
+        <Text style={[styles.headerTitle, { color: TC.text }]}>Activity</Text>
         <TouchableOpacity style={styles.filterBtn}>
-          <Filter size={22} color={COLORS.textSecondary} />
+          <Filter size={22} color={TC.textSecondary} />
         </TouchableOpacity>
       </View>
 
       {/* Tab Switcher */}
       <View style={styles.tabContainer}>
-        <View style={styles.tabSwitcher}>
+        <View style={[styles.tabSwitcher, { backgroundColor: TC.surface }]}>
           <TouchableOpacity
-            style={[styles.tab, activeTab === "upcoming" && styles.tabActive]}
+            style={[
+              styles.tab,
+              activeTab === "upcoming" ? styles.tabActive : { backgroundColor: TC.surface2 },
+            ]}
             onPress={() => handleTabChange("upcoming")}
           >
-            <Text style={[styles.tabText, activeTab === "upcoming" && styles.tabTextActive]}>
+            <Text style={[styles.tabText, { color: TC.text }, activeTab === "upcoming" && styles.tabTextActive]}>
               Upcoming
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === "history" && styles.tabActive]}
+            style={[
+              styles.tab,
+              activeTab === "history" ? styles.tabActive : { backgroundColor: TC.surface2 },
+            ]}
             onPress={() => handleTabChange("history")}
           >
-            <Text style={[styles.tabText, activeTab === "history" && styles.tabTextActive]}>
+            <Text style={[styles.tabText, { color: TC.text }, activeTab === "history" && styles.tabTextActive]}>
               History
             </Text>
           </TouchableOpacity>
@@ -605,6 +641,7 @@ export default function ActivityScreen() {
         <EmptyState
           isUpcoming={activeTab === "upcoming"}
           onPlanTrip={() => router.push("/(tabs)")}
+          TC={TC}
         />
       ) : (
         <FlatList
@@ -621,7 +658,8 @@ export default function ActivityScreen() {
         visible={showCompletionModal}
         onClose={() => {
           setShowCompletionModal(false);
-          loadRides(); // Refresh list when modal closes
+          // Switch to History so the user immediately sees their completed trip
+          handleTabChange("history");
         }}
         xpEarned={completionData.xpEarned}
         co2Saved={completionData.co2Saved}
@@ -866,26 +904,33 @@ const styles = StyleSheet.create({
     fontWeight: "bold"
   },
   completeBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-    marginTop: 8
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  completeBtnLoading: {
+    opacity: 0.7,
   },
   completeBtnText: {
-    fontSize: 12,
+    fontSize: 14,
     color: COLORS.white,
-    fontWeight: "bold"
+    fontWeight: "700",
   },
   cancelBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    paddingHorizontal: 4,
   },
   cancelText: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.red,
-    fontWeight: "500"
+    fontWeight: "500",
   },
   cardActions: {
     flexDirection: "row",

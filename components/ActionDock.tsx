@@ -1,13 +1,10 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Search, MapPin } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
-import GlassView from "./GlassView";
 import { useTheme } from "../contexts/ThemeContext";
 
-// Brand Colors
 const COLORS = {
-  primary: "#26C6DA",  // Unified Cyan (Phase 27)
-  gray: "#90A4AE",
+  primary: "#26C6DA",
   white: "#FFFFFF",
 };
 
@@ -18,7 +15,7 @@ interface ActionDockProps {
 
 export default function ActionDock({ onPress, hasRoute = false }: ActionDockProps) {
   const { isDark } = useTheme();
-  
+
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
@@ -26,17 +23,18 @@ export default function ActionDock({ onPress, hasRoute = false }: ActionDockProp
 
   return (
     <View style={styles.container}>
-      {/* Enhanced white background with stronger shadow for visibility */}
-      <View style={styles.solidBackground}>
-        <TouchableOpacity 
-          style={styles.touchable} 
-          onPress={handlePress} 
+      <View style={[styles.pill, isDark && styles.pillDark]}>
+        <TouchableOpacity
+          style={styles.touchable}
+          onPress={handlePress}
           activeOpacity={0.7}
+          accessibilityLabel={hasRoute ? "Change destination" : "Plan a trip"}
+          accessibilityRole="button"
         >
           <View style={styles.content}>
             <Search size={22} color={COLORS.primary} />
-            <Text style={styles.text}>
-              {hasRoute ? "Change destination" : "Where to today?"}
+            <Text style={[styles.text, isDark && styles.textDark]}>
+              {hasRoute ? "Change destination" : "Plan a Trip ✨"}
             </Text>
           </View>
           <View style={styles.button}>
@@ -51,12 +49,11 @@ export default function ActionDock({ onPress, hasRoute = false }: ActionDockProp
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 40,
-    left: 20,
-    right: 20,
+    bottom: 104,
+    left: 16,
+    right: 16,
     height: 64,
     borderRadius: 32,
-    // ENHANCED: Stronger shadow for better separation from map
     shadowColor: "#000",
     shadowOpacity: 0.25,
     shadowOffset: { width: 0, height: 8 },
@@ -64,17 +61,16 @@ const styles = StyleSheet.create({
     elevation: 16,
     zIndex: 30,
   },
-  solidBackground: {
-    backgroundColor: COLORS.white,
+  pill: {
+    backgroundColor: "#FFFFFF",
     borderRadius: 32,
     height: 64,
-    // Additional border for definition
     borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.05)",
+    borderColor: "rgba(0, 0, 0, 0.06)",
   },
-  glassContainer: {
-    borderRadius: 32,
-    overflow: 'hidden',
+  pillDark: {
+    backgroundColor: "#1C1C1E",
+    borderColor: "rgba(255, 255, 255, 0.08)",
   },
   touchable: {
     flexDirection: "row",
@@ -90,10 +86,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   text: {
-    // ENHANCED: Larger and bolder text for better visibility
     fontSize: 17,
     color: "#334155",
     fontWeight: "600",
+  },
+  textDark: {
+    color: "#E2E8F0",
   },
   button: {
     width: 52,
@@ -108,4 +106,3 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 });
-

@@ -11,6 +11,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useTheme } from "../../contexts/ThemeContext";
+import { getThemeColors } from "../../lib/theme";
+import { useToast } from "../../contexts/ToastContext";
 import {
   ChevronLeft,
   User,
@@ -41,6 +43,8 @@ const COLORS = {
 export default function SettingsScreen() {
   const router = useRouter();
   const { theme, isDark, setTheme } = useTheme(); // Use theme context
+  const TC = getThemeColors(isDark);
+  const { showToast } = useToast();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const darkModeEnabled = isDark;
   const [isManager, setIsManager] = useState(false);
@@ -79,9 +83,9 @@ export default function SettingsScreen() {
                 redirectTo: "clyzio://reset-password",
               });
               if (error) {
-                Alert.alert("Error", error.message);
+                showToast({ title: 'Error', message: error.message, type: 'error' });
               } else {
-                Alert.alert("Success", "Password reset email sent!");
+                showToast({ title: 'Email Sent', message: 'Password reset email sent!', type: 'success' });
               }
             }
           },
@@ -127,11 +131,11 @@ export default function SettingsScreen() {
                         // Sign out
                         await supabase.auth.signOut();
                         
-                        Alert.alert("Account Deleted", "Your account has been permanently deleted.");
+                        showToast({ title: 'Account Deleted', message: 'Your account has been permanently deleted.', type: 'info' });
                         router.replace("/(auth)/login");
                       }
                     } catch (error: any) {
-                      Alert.alert("Error", error.message);
+                      showToast({ title: 'Error', message: error.message, type: 'error' });
                     }
                   },
                 },
@@ -144,64 +148,64 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: TC.surface, borderBottomColor: TC.border }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ChevronLeft size={24} color={COLORS.dark} />
+          <ChevronLeft size={24} color={TC.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: TC.text }]}>Settings</Text>
         <View style={styles.headerRight} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Account Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Account</Text>
 
-          <TouchableOpacity style={styles.settingItem} onPress={handleEditProfile}>
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: TC.surface }]} onPress={handleEditProfile}>
             <View style={[styles.iconBox, { backgroundColor: COLORS.primary + "20" }]}>
               <User size={20} color={COLORS.primary} />
             </View>
-            <Text style={styles.settingLabel}>Edit Profile</Text>
-            <ChevronRight size={20} color={COLORS.gray} />
+            <Text style={[styles.settingLabel, { color: TC.text }]}>Edit Profile</Text>
+            <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem} onPress={handleChangePassword}>
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: TC.surface }]} onPress={handleChangePassword}>
             <View style={[styles.iconBox, { backgroundColor: COLORS.accent + "20" }]}>
               <Key size={20} color={COLORS.accent} />
             </View>
-            <Text style={styles.settingLabel}>Change Password</Text>
-            <ChevronRight size={20} color={COLORS.gray} />
+            <Text style={[styles.settingLabel, { color: TC.text }]}>Change Password</Text>
+            <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {/* Manager Section — only shown to managers */}
         {isManager && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Management</Text>
+            <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Management</Text>
             <TouchableOpacity
-              style={styles.settingItem}
+              style={[styles.settingItem, { backgroundColor: TC.surface }]}
               onPress={() => router.push("/(manager)/dashboard")}
             >
               <View style={[styles.iconBox, { backgroundColor: COLORS.primary + "20" }]}>
                 <Building2 size={20} color={COLORS.primary} />
               </View>
-              <Text style={styles.settingLabel}>Sustainability Dashboard</Text>
-              <ChevronRight size={20} color={COLORS.gray} />
+              <Text style={[styles.settingLabel, { color: TC.text }]}>Sustainability Dashboard</Text>
+              <ChevronRight size={20} color={TC.textSecondary} />
             </TouchableOpacity>
           </View>
         )}
 
         {/* Preferences Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
+          <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Preferences</Text>
 
-          <View style={styles.settingItem}>
+          <View style={[styles.settingItem, { backgroundColor: TC.surface }]}>
             <View style={[styles.iconBox, { backgroundColor: COLORS.green + "20" }]}>
               <Bell size={20} color={COLORS.green} />
             </View>
-            <Text style={styles.settingLabel}>Notifications</Text>
+            <Text style={[styles.settingLabel, { color: TC.text }]}>Notifications</Text>
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
@@ -210,11 +214,11 @@ export default function SettingsScreen() {
             />
           </View>
 
-          <View style={styles.settingItem}>
+          <View style={[styles.settingItem, { backgroundColor: TC.surface }]}>
             <View style={[styles.iconBox, { backgroundColor: COLORS.dark + "20" }]}>
               <Moon size={20} color={COLORS.dark} />
             </View>
-            <Text style={styles.settingLabel}>Dark Mode</Text>
+            <Text style={[styles.settingLabel, { color: TC.text }]}>Dark Mode</Text>
             <Switch
               value={darkModeEnabled}
               onValueChange={async (value) => {
@@ -229,22 +233,22 @@ export default function SettingsScreen() {
 
         {/* Legal Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Legal</Text>
+          <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Legal</Text>
 
-          <TouchableOpacity style={styles.settingItem} onPress={handlePrivacyPolicy}>
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: TC.surface, borderColor: TC.border }]} onPress={handlePrivacyPolicy}>
             <View style={[styles.iconBox, { backgroundColor: COLORS.gray + "20" }]}>
               <Shield size={20} color={COLORS.gray} />
             </View>
-            <Text style={styles.settingLabel}>Privacy Policy</Text>
-            <ChevronRight size={20} color={COLORS.gray} />
+            <Text style={[styles.settingLabel, { color: TC.text }]}>Privacy Policy</Text>
+            <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem} onPress={handleTermsOfService}>
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: TC.surface, borderColor: TC.border }]} onPress={handleTermsOfService}>
             <View style={[styles.iconBox, { backgroundColor: COLORS.gray + "20" }]}>
               <FileText size={20} color={COLORS.gray} />
             </View>
-            <Text style={styles.settingLabel}>Terms of Service</Text>
-            <ChevronRight size={20} color={COLORS.gray} />
+            <Text style={[styles.settingLabel, { color: TC.text }]}>Terms of Service</Text>
+            <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -253,7 +257,7 @@ export default function SettingsScreen() {
           <Text style={[styles.sectionTitle, { color: COLORS.red }]}>Danger Zone</Text>
 
           <TouchableOpacity
-            style={[styles.settingItem, styles.dangerItem]}
+            style={[styles.settingItem, styles.dangerItem, { backgroundColor: TC.surface }]}
             onPress={handleDeleteAccount}
           >
             <View style={[styles.iconBox, { backgroundColor: COLORS.red + "20" }]}>
@@ -268,8 +272,8 @@ export default function SettingsScreen() {
 
         {/* App Version */}
         <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Clyzio v1.0.0</Text>
-          <Text style={styles.versionSubtext}>Made with 🌱 for a greener future</Text>
+          <Text style={[styles.versionText, { color: TC.textSecondary }]}>Clyzio v1.0.0</Text>
+          <Text style={[styles.versionSubtext, { color: TC.textSecondary }]}>Made with 🌱 for a greener future</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

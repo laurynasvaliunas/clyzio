@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
+import { ToastProvider } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
 import { checkAndSendAINotifications } from "../lib/aiNotifications";
 import { useAIStore } from "../store/useAIStore";
@@ -34,6 +35,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -68,7 +71,7 @@ async function registerForPushNotificationsAsync() {
       // Note: Push tokens require projectId in Expo Go - this is expected to fail
       // In production builds, this will work correctly
       token = (await Notifications.getExpoPushTokenAsync({
-        projectId: "clyzio-app", // Placeholder - will be auto-resolved in production
+        projectId: "565dc638-6385-4dcf-885d-8abd3f0d9c30",
       })).data;
       console.log("Push token:", token);
     } catch (error) {
@@ -252,8 +255,8 @@ function RootLayoutContent() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { subscribeToIncomingSuggestions, unsubscribeFromSuggestions } = useAIStore();
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>("");
-  const notificationListener = useRef<Notifications.EventSubscription>();
-  const responseListener = useRef<Notifications.EventSubscription>();
+  const notificationListener = useRef<Notifications.EventSubscription>(undefined!);
+  const responseListener = useRef<Notifications.EventSubscription>(undefined!);
 
   // CRITICAL: Check for existing session on mount (Fix auth persistence)
   useEffect(() => {
@@ -347,20 +350,21 @@ function RootLayoutContent() {
     );
   }
 
-  // Apply dark mode class to root (Phase 24)
-  const bgColor = isDark ? '#0F172A' : COLORS.background;
+  const bgColor = isDark ? '#000000' : COLORS.background;
   const statusBarStyle = isDark ? 'light-content' : 'dark-content';
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle={statusBarStyle} backgroundColor={bgColor} />
+      <StatusBar barStyle={statusBarStyle} translucent backgroundColor="transparent" />
       <View style={{ flex: 1, backgroundColor: bgColor }} className={isDark ? 'dark' : ''}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(manager)" options={{ headerShown: false }} />
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="trip" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen name="legal" options={{ headerShown: false, presentation: "modal" }} />
         </Stack>
         <IncomingSuggestionBanner />
       </View>
@@ -371,7 +375,9 @@ function RootLayoutContent() {
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <RootLayoutContent />
+      <ToastProvider>
+        <RootLayoutContent />
+      </ToastProvider>
     </ThemeProvider>
   );
 }

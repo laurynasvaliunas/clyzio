@@ -1,10 +1,10 @@
-import React, { useState, useRef, memo } from "react";
+import React, { useState, useRef, useEffect, memo } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   TextInput,
-  FlatList,
+  Modal,
   StyleSheet,
   Dimensions,
   Animated,
@@ -12,6 +12,7 @@ import {
   Platform,
   Keyboard,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import {
   Car,
@@ -29,12 +30,15 @@ import {
   Clock,
   Plus,
   School,
+  TrendingDown,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { supabase } from "../lib/supabase";
+import { useToast } from "../contexts/ToastContext";
+import { computeLocalModes } from "../lib/commuteUtils";
 
-const GOOGLE_API_KEY = "AIzaSyAaQG2TsYZO_Ibp9sohoNS1XS-1DZ7UPwg";
+import { MAPBOX_TOKEN } from "../lib/config";
 const { height } = Dimensions.get("window");
 
 const COLORS = {
@@ -58,55 +62,44 @@ const TRANSPORT_MODES = [
 ];
 
 // --- ISOLATED INPUT COMPONENT ---
-const CustomAddressInput = ({ placeholder, icon, onSelect, inputRef }) => {
+interface CustomAddressInputProps {
+  placeholder: string;
+  icon: React.ReactNode;
+  onSelect: (data: { description: string; location: { lat: number; lng: number } }) => void;
+  inputRef?: React.RefObject<TextInput | null>;
+}
+const CustomAddressInput = ({ placeholder, icon, onSelect, inputRef }: CustomAddressInputProps) => {
   const [text, setText] = useState("");
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
   const [isFocused, setIsFocused] = useState(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const searchPlaces = async (searchText) => {
+  const searchPlaces = (searchText: string) => {
     setText(searchText);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
     if (searchText.length < 3) {
       setResults([]);
       return;
     }
-
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?key=${GOOGLE_API_KEY}&input=${searchText}&language=en`
-      );
-      const json = await response.json();
-      if (json.predictions) {
-        setResults(json.predictions);
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchText)}.json?access_token=${MAPBOX_TOKEN}&limit=5&types=address,place,locality,neighborhood`;
+        const response = await fetch(url);
+        const json = await response.json();
+        setResults(json.features ?? []);
+      } catch (error) {
+        console.error(error);
       }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+    }, 350);
   };
 
-  const handleSelect = async (placeId, description) => {
+  const handleSelect = (feature: any) => {
     Keyboard.dismiss();
-    setText(description);
+    setText(feature.place_name);
     setResults([]);
     setIsFocused(false);
-    
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/details/json?key=${GOOGLE_API_KEY}&place_id=${placeId}&fields=geometry`
-      );
-      const json = await response.json();
-      if (json.result?.geometry) {
-        onSelect({
-          description,
-          location: json.result.geometry.location,
-        });
-      }
-    } catch (error) {
-      console.error(error);
-    }
+    const [lng, lat] = feature.geometry.coordinates;
+    onSelect({ description: feature.place_name, location: { lat, lng } });
   };
 
   return (
@@ -126,17 +119,17 @@ const CustomAddressInput = ({ placeholder, icon, onSelect, inputRef }) => {
           autoCorrect={false}
         />
       </View>
-      
+
       {isFocused && results.length > 0 && (
         <View style={styles.resultsList}>
-          {results.map((item) => (
+          {results.map((item, index) => (
             <TouchableOpacity
-              key={item.place_id}
+              key={`${item.id}-${index}`}
               style={styles.resultItem}
-              onPress={() => handleSelect(item.place_id, item.description)}
+              onPress={() => handleSelect(item)}
             >
               <MapPin size={16} color={COLORS.gray} />
-              <Text style={styles.resultText}>{item.description}</Text>
+              <Text style={styles.resultText}>{item.place_name}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -151,12 +144,16 @@ interface TripPlannerModalProps {
   onTripStart: (data: {
     origin: { lat: number; lng: number; description: string };
     destination: { lat: number; lng: number; description: string };
+    waypoint?: { lat: number; lng: number; description: string } | null;
     mode: any;
     role: string;
+    scheduledTime?: Date;
   }) => void;
+  initialMode?: string; // Pre-select a transport mode when opened from AI Planner
 }
 
-const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, onTripStart }) => {
+const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, onTripStart, initialMode }) => {
+  const { showToast } = useToast();
   const [step, setStep] = useState<"location" | "mode">("location");
   const [role, setRole] = useState<"solo" | "driver" | "rider">("solo");
   
@@ -173,6 +170,11 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
   // Mode state
   const [selectedMode, setSelectedMode] = useState<any>(null);
   
+  // Per-trip carpool candidate state
+  const [carpoolCandidates, setCarpoolCandidates] = useState<any[]>([]);
+  const [isLoadingCarpool, setIsLoadingCarpool] = useState(false);
+  const [carpoolFetched, setCarpoolFetched] = useState(false);
+
   // Scheduling state - default to 15 minutes from now so trips appear in "Upcoming"
   const [scheduledDate, setScheduledDate] = useState(() => {
     const date = new Date();
@@ -189,6 +191,22 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     }
   }, [visible]);
 
+  // Pre-select mode (and role) when opened from AI Planner with a suggested mode
+  React.useEffect(() => {
+    if (!visible || !initialMode) return;
+    if (initialMode === 'carpool') {
+      // Carpool suggestion → set role to rider
+      setRole('rider');
+      setSelectedMode(null);
+    } else {
+      const found = TRANSPORT_MODES.find(m => m.id === initialMode);
+      if (found) {
+        setSelectedMode(found);
+        setRole('solo');
+      }
+    }
+  }, [visible, initialMode]);
+
   // Calculate route distance when origin and destination are set
   React.useEffect(() => {
     if (originCoords && destCoords) {
@@ -203,6 +221,35 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       setRouteDistance(0);
     }
   }, [originCoords, destCoords]);
+
+  // Auto-fetch carpool candidates when both locations are set (or when role changes)
+  useEffect(() => {
+    if (!originCoords || !destCoords) return;
+    fetchTripCarpoolCandidates();
+  }, [originCoords, destCoords, role]);
+
+  const fetchTripCarpoolCandidates = async () => {
+    if (!originCoords || !destCoords) return;
+    setIsLoadingCarpool(true);
+    setCarpoolFetched(false);
+    try {
+      const { data } = await supabase.rpc("find_carpool_candidates", {
+        p_origin_lat:      originCoords.lat,
+        p_origin_long:     originCoords.lng,
+        p_dest_lat:        destCoords.lat,
+        p_dest_long:       destCoords.lng,
+        p_departure_time:  scheduledDate.toISOString(),
+        p_role:            role === "solo" ? "rider" : role,
+        p_radius_km:       5,
+      });
+      setCarpoolCandidates(data ?? []);
+    } catch {
+      setCarpoolCandidates([]);
+    } finally {
+      setIsLoadingCarpool(false);
+      setCarpoolFetched(true);
+    }
+  };
 
   // Helper: Calculate distance using Haversine formula (returns km)
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -247,8 +294,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.error("❌ No user found");
-        alert("Error: No user logged in");
+        showToast({ title: "Not signed in", message: "Please sign in to save a trip.", type: "error" });
         return;
       }
 
@@ -308,12 +354,17 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       const { data, error } = await supabase.from("rides").insert([rideData]).select();
       if (error) {
         console.error("❌ Error saving ride:", error);
-        alert(`Error saving ride: ${error.message}`);
+        showToast({ title: "Could not save trip", message: error.message, type: "error" });
         return;
       }
-      
+
       console.log("✅ Ride saved successfully:", data);
-      alert(`✅ Trip scheduled! You'll save ${co2SavedKg.toFixed(2)} kg CO2. Check Activity → Upcoming.`);
+      showToast({
+        title: "Trip scheduled!",
+        message: `You'll save ${co2SavedKg.toFixed(2)} kg CO₂. Check Activity → Upcoming.`,
+        type: "success",
+        duration: 5000,
+      });
       
       // Call parent callback
       onTripStart({
@@ -335,6 +386,8 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       setWaypointDescription("");
       setShowWaypointInput(false);
       setSelectedMode(null);
+      setCarpoolCandidates([]);
+      setCarpoolFetched(false);
       // Reset to 15 minutes in the future
       const futureDate = new Date();
       futureDate.setMinutes(futureDate.getMinutes() + 15);
@@ -342,61 +395,71 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       onClose();
     } catch (error) {
       console.error("❌ Error in handleTripSubmit:", error);
-      alert(`Error: ${error}`);
+      showToast({ title: "Something went wrong", message: String(error), type: "error" });
     }
   };
 
   const handleClose = () => {
     Keyboard.dismiss();
+    setCarpoolCandidates([]);
+    setCarpoolFetched(false);
     onClose();
   };
 
-  if (!visible) return null;
+  const modeReady = originCoords && destCoords;
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"} 
-      style={styles.sheetWrapper}
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={handleClose}
+      statusBarTranslucent
     >
-      <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
-        <View style={styles.handle} />
-        
-        <View style={styles.header}>
-          {step === 'mode' && (
-            <TouchableOpacity onPress={() => setStep('location')}>
-              <ChevronDown size={24} color="#333" style={{transform: [{rotate: '90deg'}]}} />
-            </TouchableOpacity>
-          )}
-          <Text style={styles.title}>{step === "location" ? "Plan Trip" : "Select Mode"}</Text>
-          <TouchableOpacity onPress={handleClose}>
-            <X size={24} color="#999" />
-          </TouchableOpacity>
-        </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.sheetWrapper}
+      >
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.handle} />
 
-        {/* STEP 1: LOCATION INPUTS */}
-        {step === "location" && (
-          <View style={{ flex: 1 }}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>Plan Trip</Text>
+            <TouchableOpacity onPress={handleClose}>
+              <X size={24} color="#999" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Single scrollable body */}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 100 }}
+          >
+            {/* ── Location Inputs ── */}
             <CustomAddressInput
-              placeholder=""
+              placeholder="Origin"
               icon={<Navigation2 size={20} color={COLORS.green} />}
               onSelect={(data) => {
                 setOriginDescription(data.description);
                 setOriginCoords({ lat: data.location.lat, lng: data.location.lng });
               }}
             />
-            
-            {/* Waypoint Input (Optional) */}
+
+            {/* Waypoint */}
             {showWaypointInput ? (
               <View style={{ marginBottom: 12 }}>
                 <CustomAddressInput
-                  placeholder=""
+                  placeholder="School / Kindergarten stop"
                   icon={<School size={20} color={COLORS.accent} />}
                   onSelect={(data) => {
                     setWaypointDescription(data.description);
                     setWaypointCoords({ lat: data.location.lat, lng: data.location.lng });
                   }}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => {
                     setShowWaypointInput(false);
                     setWaypointCoords(null);
@@ -409,7 +472,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                 </TouchableOpacity>
               </View>
             ) : (
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setShowWaypointInput(true)}
                 style={styles.addWaypointBtn}
               >
@@ -417,183 +480,214 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                 <Text style={styles.addWaypointText}>Add Kindergarten / School Stop</Text>
               </TouchableOpacity>
             )}
-            
+
             <CustomAddressInput
-              placeholder=""
+              placeholder="Destination"
               icon={<MapPin size={20} color={COLORS.red} />}
               onSelect={(data) => {
                 setDestDescription(data.description);
                 setDestCoords({ lat: data.location.lat, lng: data.location.lng });
               }}
             />
-            
-            <TouchableOpacity 
-              style={[styles.btn, (!originCoords || !destCoords) && {opacity: 0.5}]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setStep("mode");
-              }}
-              disabled={!originCoords || !destCoords}
-            >
-              <Text style={styles.btnText}>Continue</Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
-        {/* STEP 2: MODE SELECTION */}
-        {step === "mode" && (
-          <View style={{ flex: 1 }}>
-            {/* Role Toggle (Fixed at top) */}
-            <View style={styles.roleRow}>
-              {(['solo', 'driver', 'rider'] as const).map((r) => (
-                <TouchableOpacity 
-                  key={r} 
-                  style={[styles.roleChip, role === r && styles.roleChipActive]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setRole(r);
-                    setSelectedMode(null);
-                  }}
-                >
-                  {r === 'solo' && <Footprints size={16} color={role === r ? COLORS.primary : COLORS.gray} />}
-                  {r === 'driver' && <Car size={16} color={role === r ? COLORS.primary : COLORS.gray} />}
-                  {r === 'rider' && <Users size={16} color={role === r ? COLORS.primary : COLORS.gray} />}
-                  <Text style={[styles.roleText, role === r && {color: COLORS.primary, fontWeight: "700"}]}>
-                    {r.charAt(0).toUpperCase() + r.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {/* ── Mode Section — appears once both addresses are filled ── */}
+            {modeReady && (
+              <>
+                {/* Divider */}
+                <View style={styles.modeSectionDivider} />
 
-            {/* SCROLLABLE CONTENT - Modes + Scheduler */}
-            <ScrollView 
-              style={{ flex: 1 }} 
-              contentContainerStyle={{ paddingBottom: 100 }}
-              showsVerticalScrollIndicator={false}
-            >
-              {/* Transport Mode List OR Rider Message */}
-              {role === "rider" ? (
-                <View style={styles.riderMessageContainer}>
-                  <Users size={48} color={COLORS.primary} />
-                  <Text style={styles.riderMessageTitle}>Looking for a ride?</Text>
-                  <Text style={styles.riderMessageText}>
-                    We will match you with a driver heading your way.
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.modeListContainer}>
-                  {getModesByRole().map((m) => {
-                    const IconComponent = m.icon;
-                    const isSelected = selectedMode?.id === m.id;
-                    
-                    // Calculate total trip CO2
-                    const totalCO2Kg = routeDistance * m.co2; // in kg
-                    const totalCO2Grams = totalCO2Kg * 1000; // in grams
-                    
-                    // Format CO2 display
-                    let co2Display = "0 g";
-                    if (m.co2 === 0) {
-                      co2Display = "Zero Emissions";
-                    } else if (routeDistance === 0) {
-                      co2Display = "—"; // Show dash if no route yet
-                    } else if (totalCO2Kg < 1) {
-                      co2Display = `${totalCO2Grams.toFixed(0)} g CO₂`;
-                    } else {
-                      co2Display = `${totalCO2Kg.toFixed(1)} kg CO₂`;
-                    }
-                    
-                    return (
-                      <TouchableOpacity 
-                        key={m.id} 
-                        style={[styles.modeItem, isSelected && styles.modeItemActive]}
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          setSelectedMode(m);
-                        }}
-                      >
-                        <View style={[styles.iconBox, {backgroundColor: m.color + '20'}]}>
-                          <IconComponent size={24} color={m.color} />
-                        </View>
-                        <Text style={[styles.modeLabel, isSelected && {color: COLORS.primary, fontWeight: "700"}]}>
-                          {m.label}
-                        </Text>
-                        <Text style={styles.modeCo2}>{co2Display}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
+                {/* AI Insight Banner */}
+                {routeDistance > 0 && (() => {
+                  const best = computeLocalModes(routeDistance, 1)[0];
+                  if (!best) return null;
+                  return (
+                    <View style={styles.tripInsightBanner}>
+                      <TrendingDown size={16} color={COLORS.primary} />
+                      <Text style={styles.tripInsightText}>
+                        <Text style={{ fontWeight: "700" }}>{routeDistance.toFixed(1)} km trip. </Text>
+                        Best green option: {best.label} (saves ~{best.reductionPct}% CO₂, ~{best.timeMin} min)
+                      </Text>
+                    </View>
+                  );
+                })()}
 
-              {/* Date/Time Picker - Only for Driver/Rider */}
-              {(role === "driver" || role === "rider") && (
-                <View style={styles.schedulerContainer}>
-                  <TouchableOpacity 
-                    style={styles.schedulerBtn}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setShowDatePicker(true);
-                    }}
-                  >
-                    <Calendar size={20} color={COLORS.primary} />
-                    <Text style={styles.schedulerText}>
-                      {scheduledDate.toLocaleString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric', 
-                        hour: 'numeric', 
-                        minute: '2-digit' 
-                      })}
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  {showDatePicker && (
-                    <DateTimePicker
-                      value={scheduledDate}
-                      mode="datetime"
-                      display={Platform.OS === "ios" ? "spinner" : "default"}
-                      onChange={(event, date) => {
-                        setShowDatePicker(Platform.OS === "ios");
-                        if (date) setScheduledDate(date);
+                {/* Role Toggle */}
+                <View style={styles.roleRow}>
+                  {(['solo', 'driver', 'rider'] as const).map((r) => (
+                    <TouchableOpacity
+                      key={r}
+                      style={[styles.roleChip, role === r && styles.roleChipActive]}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setRole(r);
+                        setSelectedMode(null);
                       }}
-                    />
-                  )}
+                    >
+                      {r === 'solo' && <Footprints size={16} color={role === r ? COLORS.primary : COLORS.gray} />}
+                      {r === 'driver' && <Car size={16} color={role === r ? COLORS.primary : COLORS.gray} />}
+                      {r === 'rider' && <Users size={16} color={role === r ? COLORS.primary : COLORS.gray} />}
+                      <Text style={[styles.roleText, role === r && { color: COLORS.primary, fontWeight: "700" }]}>
+                        {r.charAt(0).toUpperCase() + r.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              )}
-            </ScrollView>
 
-            {/* STICKY FOOTER - Submit Button (Always visible at bottom) */}
-            {((role === "solo" || role === "driver") && selectedMode) || role === "rider" ? (
-              <View style={styles.stickyFooter}>
-                <TouchableOpacity 
-                  style={styles.btn}
-                  onPress={handleTripSubmit}
-                >
-                  <Text style={styles.btnText}>Submit my trip</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-          </View>
-        )}
-      </Animated.View>
-    </KeyboardAvoidingView>
+                {/* Mode tiles or Rider message */}
+                {role === "rider" ? (
+                  <View style={styles.riderMessageContainer}>
+                    <Users size={40} color={COLORS.primary} />
+                    <Text style={styles.riderMessageTitle}>Looking for a ride?</Text>
+                    <Text style={styles.riderMessageText}>
+                      We will match you with a driver heading your way.
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.modeListContainer}>
+                    {getModesByRole().map((m) => {
+                      const IconComponent = m.icon;
+                      const isSelected = selectedMode?.id === m.id;
+                      const totalCO2Kg = routeDistance * m.co2;
+                      const totalCO2Grams = totalCO2Kg * 1000;
+                      let co2Display = "0 g";
+                      if (m.co2 === 0) {
+                        co2Display = "Zero Emissions";
+                      } else if (routeDistance === 0) {
+                        co2Display = "—";
+                      } else if (totalCO2Kg < 1) {
+                        co2Display = `${totalCO2Grams.toFixed(0)} g CO₂`;
+                      } else {
+                        co2Display = `${totalCO2Kg.toFixed(1)} kg CO₂`;
+                      }
+                      return (
+                        <TouchableOpacity
+                          key={m.id}
+                          style={[styles.modeItem, isSelected && styles.modeItemActive]}
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setSelectedMode(m);
+                          }}
+                        >
+                          <View style={[styles.iconBox, { backgroundColor: m.color + '20' }]}>
+                            <IconComponent size={24} color={m.color} />
+                          </View>
+                          <Text style={[styles.modeLabel, isSelected && { color: COLORS.primary, fontWeight: "700" }]}>
+                            {m.label}
+                          </Text>
+                          <Text style={styles.modeCo2}>{co2Display}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+
+                {/* Carpool match badge */}
+                {(role === "driver" || role === "rider") && carpoolFetched && (
+                  <View style={styles.carpoolMatchBanner}>
+                    <Users size={18} color={carpoolCandidates.length > 0 ? COLORS.primary : COLORS.gray} />
+                    {isLoadingCarpool ? (
+                      <ActivityIndicator size="small" color={COLORS.primary} />
+                    ) : (
+                      <Text style={styles.carpoolMatchText}>
+                        {carpoolCandidates.length > 0
+                          ? `${carpoolCandidates.length} potential match${carpoolCandidates.length > 1 ? "es" : ""} found near your route 🎉`
+                          : "No matches yet — you'll be added to the pool"}
+                      </Text>
+                    )}
+                  </View>
+                )}
+
+                {/* Date/time scheduler (driver/rider only) */}
+                {(role === "driver" || role === "rider") && (
+                  <View style={styles.schedulerContainer}>
+                    <TouchableOpacity
+                      style={styles.schedulerBtn}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setShowDatePicker(!showDatePicker);
+                      }}
+                    >
+                      <Calendar size={20} color={COLORS.primary} />
+                      <Text style={styles.schedulerText}>
+                        {scheduledDate.toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {showDatePicker && (
+                      <View>
+                        {Platform.OS === "ios" && (
+                          <TouchableOpacity
+                            onPress={() => setShowDatePicker(false)}
+                            style={{ alignSelf: "flex-end", paddingHorizontal: 12, paddingVertical: 4 }}
+                          >
+                            <Text style={{ color: COLORS.primary, fontWeight: "700", fontSize: 15 }}>Done</Text>
+                          </TouchableOpacity>
+                        )}
+                        <DateTimePicker
+                          value={scheduledDate}
+                          mode="datetime"
+                          display={Platform.OS === "ios" ? "spinner" : "default"}
+                          onChange={(event, date) => {
+                            if (Platform.OS !== "ios") setShowDatePicker(false);
+                            if (date) setScheduledDate(date);
+                          }}
+                        />
+                      </View>
+                    )}
+                  </View>
+                )}
+              </>
+            )}
+          </ScrollView>
+
+          {/* Submit button — pinned to bottom, only visible when ready */}
+          {modeReady && (
+            <View style={styles.submitBtn}>
+              <TouchableOpacity
+                style={[styles.btn, !(role === "rider" || selectedMode) && styles.btnDisabled]}
+                onPress={handleTripSubmit}
+                disabled={!(role === "rider" || selectedMode)}
+              >
+                <Text style={styles.btnText}>
+                  {role === "rider"
+                    ? "Find a Driver"
+                    : selectedMode
+                    ? `Go with ${selectedMode.label}`
+                    : "Select a mode above"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  sheetWrapper: { 
-    position: "absolute", 
-    bottom: 0, 
-    width: "100%", 
-    zIndex: 100 
+  sheetWrapper: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
   sheet: {
     backgroundColor: "white",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     padding: 24,
-    height: height * 0.7,
-    shadowColor: "#000", 
-    shadowOpacity: 0.2, 
-    shadowRadius: 10, 
+    paddingBottom: 32,
+    maxHeight: height * 0.92,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
     elevation: 10,
   },
   handle: { 
@@ -696,10 +790,6 @@ const styles = StyleSheet.create({
   },
 
   // Mode List
-  modeListContainer: {
-    flex: 1,
-    marginBottom: 16,
-  },
   modeItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -739,24 +829,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
 
-  // Sticky Footer for Submit Button
-  stickyFooter: {
+  // Submit button pinned to bottom of sheet
+  submitBtn: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.white,
-    paddingTop: 12,
-    paddingBottom: 8,
-    paddingHorizontal: 0,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.lightGray,
-    // Add shadow to separate from content
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 8,
+    bottom: 32,
+    left: 24,
+    right: 24,
   },
 
   // Button
@@ -765,7 +843,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
-    marginTop: 0,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  btnDisabled: {
+    backgroundColor: COLORS.gray,
+    shadowOpacity: 0,
+    opacity: 0.5,
   },
   btnText: {
     color: "white",
@@ -827,6 +914,52 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     textAlign: "center",
     lineHeight: 24,
+  },
+
+  // Divider between location section and mode section
+  modeSectionDivider: {
+    height: 1,
+    backgroundColor: "#F0F0F0",
+    marginVertical: 16,
+  },
+
+  // Trip AI insight banner (top of Step 2)
+  tripInsightBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#E0F7FA",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 14,
+  },
+  tripInsightText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#006064",
+    lineHeight: 18,
+  },
+
+  // Carpool match count badge (below mode tiles)
+  carpoolMatchBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#F5FAFA",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#B2EBF2",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  carpoolMatchText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#006064",
+    fontWeight: "600",
   },
 
   // Scheduler

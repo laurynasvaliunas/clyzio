@@ -217,13 +217,13 @@ export default function ManagerDashboardScreen() {
         </View>
 
         {/* Department Rankings */}
-        {sustainabilityReport?.department_rankings?.length > 0 && (
+        {(sustainabilityReport?.department_rankings?.length ?? 0) > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Building2 size={18} color={COLORS.primary} />
               <Text style={styles.sectionTitle}>Department Rankings</Text>
             </View>
-            {sustainabilityReport.department_rankings.slice(0, 4).map((dept, i) => (
+            {sustainabilityReport!.department_rankings!.slice(0, 4).map((dept, i) => (
               <View key={i} style={styles.deptRow}>
                 <View style={styles.deptRank}>
                   <Text style={styles.deptRankNum}>{i + 1}</Text>

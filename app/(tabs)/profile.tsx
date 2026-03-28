@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Animated,
   Image,
@@ -16,6 +15,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { User, LogOut, Save, Leaf, Check, Settings, ChevronRight, Camera } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../../lib/supabase";
+import { useTheme } from "../../contexts/ThemeContext";
+import { getThemeColors } from "../../lib/theme";
+import { useToast } from "../../contexts/ToastContext";
 
 const COLORS = {
   primary: "#26C6DA",
@@ -80,11 +82,12 @@ interface UserCardProps {
   uploading: boolean;
   onPress: () => void;
   onPickImage: () => void;
+  TC: ReturnType<typeof getThemeColors>;
 }
 
-function UserCard({ userName, userEmail, userAvatar, uploading, onPress, onPickImage }: UserCardProps) {
+function UserCard({ userName, userEmail, userAvatar, uploading, onPress, onPickImage, TC }: UserCardProps) {
   return (
-    <TouchableOpacity style={styles.userCard} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={[styles.userCard, { backgroundColor: TC.surface }]} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.avatarContainer}>
         {userAvatar ? (
           <Image source={{ uri: userAvatar }} style={styles.userAvatar} />
@@ -109,10 +112,10 @@ function UserCard({ userName, userEmail, userAvatar, uploading, onPress, onPickI
         </TouchableOpacity>
       </View>
       <View style={styles.userInfo}>
-        <Text style={styles.userName}>{userName || "Set up your profile"}</Text>
-        <Text style={styles.userEmail}>{userEmail}</Text>
+        <Text style={[styles.userName, { color: TC.text }]}>{userName || "Set up your profile"}</Text>
+        <Text style={[styles.userEmail, { color: TC.textSecondary }]}>{userEmail}</Text>
       </View>
-      <ChevronRight size={20} color={COLORS.gray} />
+      <ChevronRight size={20} color={TC.textSecondary} />
     </TouchableOpacity>
   );
 }
@@ -159,14 +162,15 @@ interface ModeCardProps {
   isSelected: boolean;
   daysCount: number;
   onPress: () => void;
+  TC: ReturnType<typeof getThemeColors>;
 }
 
-function ModeCard({ mode, isSelected, daysCount, onPress }: ModeCardProps) {
+function ModeCard({ mode, isSelected, daysCount, onPress, TC }: ModeCardProps) {
   const hasData = daysCount > 0;
-  
+
   return (
     <TouchableOpacity
-      style={[styles.modeCard, isSelected && styles.modeCardSelected, hasData && !isSelected && styles.modeCardHasData]}
+      style={[styles.modeCard, { backgroundColor: TC.surface }, isSelected && styles.modeCardSelected, hasData && !isSelected && styles.modeCardHasData]}
       onPress={onPress}
       activeOpacity={0.8}
     >
@@ -176,8 +180,8 @@ function ModeCard({ mode, isSelected, daysCount, onPress }: ModeCardProps) {
         </View>
       )}
       <Text style={styles.modeEmoji}>{mode.emoji}</Text>
-      <Text style={[styles.modeName, isSelected && styles.modeNameSelected]}>{mode.name}</Text>
-      <Text style={[styles.modeCo2, isSelected && styles.modeCo2Selected]}>{mode.co2} kg</Text>
+      <Text style={[styles.modeName, { color: TC.text }, isSelected && styles.modeNameSelected]}>{mode.name}</Text>
+      <Text style={[styles.modeCo2, { color: TC.textSecondary }, isSelected && styles.modeCo2Selected]}>{mode.co2} kg</Text>
     </TouchableOpacity>
   );
 }
@@ -189,12 +193,13 @@ interface DaySelectorProps {
   modeName: string;
   selectedDays: boolean[];
   onToggleDay: (index: number) => void;
+  TC: ReturnType<typeof getThemeColors>;
 }
 
-function DaySelector({ modeName, selectedDays, onToggleDay }: DaySelectorProps) {
+function DaySelector({ modeName, selectedDays, onToggleDay, TC }: DaySelectorProps) {
   return (
-    <View style={styles.daySelector}>
-      <Text style={styles.daySelectorTitle}>
+    <View style={[styles.daySelector, { backgroundColor: TC.surface }]}>
+      <Text style={[styles.daySelectorTitle, { color: TC.text }]}>
         Tap the days you use {modeName}:
       </Text>
       <View style={styles.dayBubbles}>
@@ -225,6 +230,9 @@ function DaySelector({ modeName, selectedDays, onToggleDay }: DaySelectorProps) 
  */
 export default function ProfileScreen() {
   const router = useRouter();
+  const { isDark } = useTheme();
+  const TC = getThemeColors(isDark);
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -316,7 +324,7 @@ export default function ProfileScreen() {
       // Request permission
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to your photo library.');
+        showToast({ title: 'Permission Required', message: 'Please allow access to your photo library.', type: 'warning' });
         return;
       }
 
@@ -333,7 +341,7 @@ export default function ProfileScreen() {
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      showToast({ title: 'Error', message: 'Failed to pick image', type: 'error' });
     }
   }, [userId]);
 
@@ -384,10 +392,10 @@ export default function ProfileScreen() {
       // Update local state
       setUserAvatar(avatarUrl);
       
-      Alert.alert('Success', 'Profile photo updated!');
+      showToast({ title: 'Photo Updated', message: 'Your profile photo has been saved.', type: 'success' });
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
-      Alert.alert('Upload Failed', error.message || 'Failed to upload photo');
+      showToast({ title: 'Upload Failed', message: error.message || 'Failed to upload photo', type: 'error' });
     } finally {
       setUploading(false);
     }
@@ -468,7 +476,7 @@ export default function ProfileScreen() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        Alert.alert("Error", "Please sign in first");
+        showToast({ title: 'Error', message: 'Please sign in first', type: 'error' });
         return;
       }
 
@@ -478,9 +486,9 @@ export default function ProfileScreen() {
         .eq("id", user.id);
 
       if (error) throw error;
-      Alert.alert("✓ Saved!", `Your baseline is ${baseline.toFixed(3)} kg/km`);
+      showToast({ title: 'Saved!', message: `Your baseline is ${baseline.toFixed(3)} kg/km`, type: 'success' });
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      showToast({ title: 'Error', message: error.message, type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -500,7 +508,7 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
@@ -509,16 +517,16 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header with Settings */}
         <View style={styles.headerRow}>
-          <Text style={styles.pageTitle}>Profile</Text>
+          <Text style={[styles.pageTitle, { color: TC.text }]}>Profile</Text>
           <TouchableOpacity
-            style={styles.settingsButton}
+            style={[styles.settingsButton, { backgroundColor: TC.surface }]}
             onPress={() => router.push("/settings")}
           >
-            <Settings size={22} color={COLORS.dark} />
+            <Settings size={22} color={TC.text} />
           </TouchableOpacity>
         </View>
 
@@ -530,6 +538,7 @@ export default function ProfileScreen() {
           uploading={uploading}
           onPress={() => router.push("/settings/edit-profile")}
           onPickImage={handlePickImage}
+          TC={TC}
         />
 
         {/* Score Card */}
@@ -542,8 +551,8 @@ export default function ProfileScreen() {
 
         {/* Commute Setup */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🚀 Weekly Commute Mix</Text>
-          <Text style={styles.sectionSubtitle}>Select modes and tap the days you use them</Text>
+          <Text style={[styles.sectionTitle, { color: TC.text }]}>🚀 Weekly Commute Mix</Text>
+          <Text style={[styles.sectionSubtitle, { color: TC.textSecondary }]}>Select modes and tap the days you use them</Text>
 
           <ScrollView
             horizontal
@@ -557,6 +566,7 @@ export default function ProfileScreen() {
                 isSelected={selectedModeId === mode.id}
                 daysCount={getDaysCount(mode.id)}
                 onPress={() => handleModeSelect(mode.id)}
+                TC={TC}
               />
             ))}
           </ScrollView>
@@ -566,6 +576,7 @@ export default function ProfileScreen() {
               modeName={TRANSPORT_OPTIONS.find((m) => m.id === selectedModeId)?.name || ""}
               selectedDays={getHabitDays(selectedModeId)}
               onToggleDay={(index) => toggleDay(selectedModeId, index)}
+              TC={TC}
             />
           )}
         </View>

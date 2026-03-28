@@ -45,7 +45,6 @@ export default function ManagerLayout() {
       <Stack.Screen name="dashboard" />
       <Stack.Screen name="insights" />
       <Stack.Screen name="challenges" />
-      <Stack.Screen name="departments" />
       <Stack.Screen name="esg-export" />
     </Stack>
   );

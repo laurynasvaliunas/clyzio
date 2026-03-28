@@ -6,12 +6,12 @@ import {
   FlatList,
   ActivityIndicator,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { X, Users, Leaf, Clock, CheckCircle } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { CarpoolMatch, CarpoolAIResult, useAIStore } from "../store/useAIStore";
+import { useToast } from "../contexts/ToastContext";
 
 const COLORS = {
   primary: "#26C6DA",
@@ -53,23 +53,21 @@ export default function CarpoolMatchModal({
   onMatchAccepted,
 }: CarpoolMatchModalProps) {
   const { sendCarpoolSuggestion } = useAIStore();
+  const { showToast } = useToast();
 
   const handleRequest = async (match: CarpoolMatch) => {
     if (!match.to_user_id) {
-      Alert.alert("Error", "This match is no longer available.");
+      showToast({ title: 'Not Available', message: 'This match is no longer available.', type: 'warning' });
       return;
     }
 
     try {
       await sendCarpoolSuggestion(match);
       onMatchAccepted(match.ride_id);
-      Alert.alert(
-        "Request Sent!",
-        `You've sent a carpool request to ${match.user_first_name}. They'll be notified and can accept or decline.`
-      );
+      showToast({ title: 'Request Sent!', message: `Carpool request sent to ${match.user_first_name}. They'll be notified shortly.`, type: 'success' });
       onClose();
     } catch (err: any) {
-      Alert.alert("Error", err.message || "Could not send request. Please try again.");
+      showToast({ title: 'Error', message: err.message || 'Could not send request. Please try again.', type: 'error' });
     }
   };
 

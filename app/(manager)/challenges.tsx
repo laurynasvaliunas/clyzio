@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
-  Alert,
   Switch,
   Modal,
 } from "react-native";
@@ -15,6 +14,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft, Plus, Target, X } from "lucide-react-native";
 import { useManagerStore, NewChallenge } from "../../store/useManagerStore";
+import { useToast } from "../../contexts/ToastContext";
 
 const COLORS = {
   primary: "#26C6DA",
@@ -37,6 +37,7 @@ const CHALLENGE_TYPES = [
 
 export default function ChallengesScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const { challenges, fetchChallenges, createChallenge, toggleChallenge } =
     useManagerStore();
   const [showCreate, setShowCreate] = useState(false);
@@ -54,11 +55,11 @@ export default function ChallengesScreen() {
 
   const handleCreate = async () => {
     if (!form.title?.trim()) {
-      Alert.alert("Required", "Please enter a challenge title.");
+      showToast({ title: 'Required', message: 'Please enter a challenge title.', type: 'warning' });
       return;
     }
     if (!form.target_value || form.target_value <= 0) {
-      Alert.alert("Required", "Please enter a valid target value.");
+      showToast({ title: 'Required', message: 'Please enter a valid target value.', type: 'warning' });
       return;
     }
 
@@ -70,7 +71,7 @@ export default function ChallengesScreen() {
       setShowCreate(false);
       setForm({ challenge_type: "co2_reduction", reward_xp: 100 });
     } else {
-      Alert.alert("Error", "Could not create challenge. Please try again.");
+      showToast({ title: 'Error', message: 'Could not create challenge. Please try again.', type: 'error' });
     }
   };
 

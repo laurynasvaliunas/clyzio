@@ -1,42 +1,89 @@
 {
   "expo": {
-    "name": "clyzio",
+    "name": "Clyzio",
     "slug": "clyzio",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "scheme": "clyzio",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#10B981"
+      "backgroundColor": "#006064"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.clyzio.app"
+      "bundleIdentifier": "com.clyzio.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Clyzio uses your location to show your position on the map, plan routes, and match you with nearby commuters.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Clyzio uses your location in the background to track active trips and notify you of nearby carpool matches.",
+        "NSPhotoLibraryUsageDescription": "Clyzio needs access to your photo library to let you choose a profile picture.",
+        "NSCameraUsageDescription": "Clyzio needs camera access to let you take a profile picture.",
+        "UIBackgroundModes": ["location", "remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#10B981"
+        "backgroundColor": "#006064"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.clyzio.app"
+      "package": "com.clyzio.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": "sk.placeholder"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Clyzio uses your location to show your position on the map, plan routes, and match you with nearby commuters.",
+          "locationAlwaysAndWhenInUsePermission": "Clyzio uses your location in the background to track active trips and notify you of nearby carpool matches.",
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Clyzio needs access to your photo library to let you choose a profile picture.",
+          "cameraPermission": "Clyzio needs camera access to let you take a profile picture."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#26C6DA"
+        }
+      ]
     ],
     "extra": {
       "router": {},
       "eas": {
         "projectId": "565dc638-6385-4dcf-885d-8abd3f0d9c30"
       }
-    }
+    },
+    "owner": "clyzio"
   }
 }

@@ -15,11 +15,11 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
-import MapViewDirections from "react-native-maps-directions";
+import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserLocation } from "@rnmapbox/maps";
 import * as Location from "expo-location";
 import { MessageCircle, Shield, X, Phone, AlertTriangle, Car, Footprints, Bike, Zap, Bus, Navigation as NavIcon, Circle, MapPin } from "lucide-react-native";
 import ChatModal from "../../components/ChatModal";
+import { useToast } from "../../contexts/ToastContext";
 
 interface Ride {
   id: string;
@@ -50,12 +50,11 @@ interface Profile {
   car_plate?: string;
 }
 
-const GOOGLE_MAPS_API_KEY_IOS = "AIzaSyAaQG2TsYZO_Ibp9sohoNS1XS-1DZ7UPwg";
-const GOOGLE_MAPS_API_KEY_ANDROID = "AIzaSyCRyIfMk8bJeoeLIGkRUqmdTpSc8dnTXbY";
-const GOOGLE_MAPS_API_KEY = Platform.OS === "ios" ? GOOGLE_MAPS_API_KEY_IOS : GOOGLE_MAPS_API_KEY_ANDROID;
+import { MAPBOX_TOKEN } from "../../lib/config";
+Mapbox.setAccessToken(MAPBOX_TOKEN);
 
 const COLORS = {
-  primary: "#10B981",
+  primary: "#26C6DA",
   accent: "#FDE047",
   dark: "#0F172A",
   white: "#FFFFFF",
@@ -70,7 +69,9 @@ const COLORS = {
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { showToast } = useToast();
   const mapRef = useRef<MapView>(null);
+  const cameraRef = useRef<Camera>(null);
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
   const insets = useSafeAreaInsets(); // Safe area for notch/home bar
 
@@ -114,7 +115,7 @@ export default function TripScreen() {
 
       if (rideError) {
         console.error("Error fetching ride:", rideError);
-        Alert.alert("Error", "Could not load ride details");
+        showToast({ title: 'Error', message: 'Could not load ride details', type: 'error' });
         setIsLoading(false);
         return;
       }
@@ -153,7 +154,7 @@ export default function TripScreen() {
     const startTracking = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permission Denied", "Location access is required for navigation.");
+        showToast({ title: 'Permission Denied', message: 'Location access is required for navigation.', type: 'warning' });
         return;
       }
 
@@ -212,40 +213,86 @@ export default function TripScreen() {
     return R * c;
   };
 
-  // Complete trip and award XP
+  // Complete trip and award XP + update all impact stats
   const handleCompleteTr = async () => {
     if (!ride || !currentUserId) return;
 
-    // CRITICAL: Close modal IMMEDIATELY before async operations
+    // Close modal IMMEDIATELY before async operations
     setShowArrivalModal(false);
-    setIsNavigating(false); // Stop GPS tracking
+    setIsNavigating(false);
 
-    // Update ride status
+    const completedAt = new Date().toISOString();
+    const distance = haversineDistance(ride.origin_lat, ride.origin_long, ride.dest_lat, ride.dest_long);
+    const baseXP = 100;
+    const distanceBonus = Math.floor(distance * 10);
+    const ecoBonus = (ride.transport_mode === "walking" || ride.transport_mode === "bike") ? 50 : 0;
+    const xpEarned = baseXP + distanceBonus + ecoBonus;
+    const co2Saved = ride.co2_saved || 0;
+
+    // Update ride status + completed_at
     await supabase
       .from("rides")
-      .update({ status: "completed" })
+      .update({ status: "completed", completed_at: completedAt })
       .eq("id", id);
 
-    // Award XP (10 XP per km saved)
-    const xpEarned = Math.round(ride.co2_saved * 10);
+    // Fetch current profile stats
     const { data: profile } = await supabase
       .from("profiles")
-      .select("xp_points")
+      .select("xp_points, total_co2_saved, trips_completed, badges")
       .eq("id", currentUserId)
       .single();
 
     if (profile) {
+      const newXP = (profile.xp_points || 0) + xpEarned;
+      const newCO2 = (profile.total_co2_saved || 0) + co2Saved;
+      const newTripsCount = (profile.trips_completed || 0) + 1;
+
+      // Update all stats
       await supabase
         .from("profiles")
-        .update({ xp_points: (profile.xp_points || 0) + xpEarned })
+        .update({
+          xp_points: newXP,
+          total_co2_saved: newCO2,
+          trips_completed: newTripsCount,
+        })
         .eq("id", currentUserId);
+
+      // Unlock badges
+      const existingBadges: string[] = profile.badges || [];
+      const newBadges: string[] = [];
+
+      if (newTripsCount >= 1 && !existingBadges.includes("first_trip"))
+        newBadges.push("first_trip");
+      if (newTripsCount >= 10 && !existingBadges.includes("trips_10"))
+        newBadges.push("trips_10");
+      if (newCO2 >= 50 && !existingBadges.includes("co2_50"))
+        newBadges.push("co2_50");
+      if (newCO2 >= 100 && !existingBadges.includes("co2_100"))
+        newBadges.push("co2_100");
+      if (ride.driver_id && ride.rider_id && !existingBadges.includes("first_carpool"))
+        newBadges.push("first_carpool");
+
+      if (ride.transport_mode === "walking") {
+        const { count: walkCount } = await supabase
+          .from("rides")
+          .select("id", { count: "exact", head: true })
+          .eq("rider_id", currentUserId)
+          .eq("transport_mode", "walking")
+          .eq("status", "completed");
+        if ((walkCount || 0) >= 5 && !existingBadges.includes("walker_5"))
+          newBadges.push("walker_5");
+      }
+
+      if (newBadges.length > 0) {
+        await supabase
+          .from("profiles")
+          .update({ badges: [...existingBadges, ...newBadges] })
+          .eq("id", currentUserId);
+      }
     }
 
-    Alert.alert(
-      "Trip Complete! 🎉",
-      `You earned ${xpEarned} XP and saved ${ride.co2_saved.toFixed(2)} kg CO₂!`,
-      [{ text: "Awesome!", onPress: () => router.push("/(tabs)/activity") }]
-    );
+    showToast({ title: 'Trip Complete!', message: `You earned ${xpEarned} XP and saved ${co2Saved.toFixed(2)} kg CO₂!`, type: 'success' });
+    router.push("/(tabs)/activity");
   };
 
   // Cancel ride
@@ -281,7 +328,7 @@ export default function TripScreen() {
   };
 
   const handleShareRide = () => {
-    Alert.alert("Share Ride", "Ride details shared with your emergency contacts.");
+    showToast({ title: 'Shared', message: 'Ride details shared with your emergency contacts.', type: 'success' });
   };
 
   if (isLoading) {
@@ -348,67 +395,70 @@ export default function TripScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Top 60%: Map View */}
+      {/* Full-screen Map */}
       <View style={styles.mapContainer}>
         <MapView
           ref={mapRef}
           style={styles.map}
-          provider={PROVIDER_GOOGLE}
-          initialRegion={{
-            latitude: (ride.origin_lat + ride.dest_lat) / 2,
-            longitude: (ride.origin_long + ride.dest_long) / 2,
-            latitudeDelta: Math.abs(ride.dest_lat - ride.origin_lat) * 2 || 0.05,
-            longitudeDelta: Math.abs(ride.dest_long - ride.origin_long) * 2 || 0.05,
-          }}
+          styleURL={Mapbox.StyleURL.Street}
+          logoEnabled={false}
+          attributionEnabled={false}
         >
-          {/* Route Polyline with Waypoints */}
-          <MapViewDirections
-            origin={{ latitude: ride.origin_lat, longitude: ride.origin_long }}
-            destination={{ latitude: ride.dest_lat, longitude: ride.dest_long }}
-            waypoints={waypoints.length > 0 ? waypoints.map((wp: any) => ({
-              latitude: wp.lat,
-              longitude: wp.lng,
-            })) : undefined}
-            apikey={GOOGLE_MAPS_API_KEY}
-            strokeWidth={4}
-            strokeColor={COLORS.primary}
+          <Camera
+            ref={cameraRef}
+            defaultSettings={{
+              centerCoordinate: [
+                (ride.origin_long + ride.dest_long) / 2,
+                (ride.origin_lat + ride.dest_lat) / 2,
+              ],
+              zoomLevel: 12,
+            }}
           />
 
-          {/* Origin Marker (Green) */}
-          <Marker
-            coordinate={{ latitude: ride.origin_lat, longitude: ride.origin_long }}
-            title="Start"
-            pinColor="#10B981" // Green
-          />
+          <UserLocation visible />
 
-          {/* Waypoint Markers (Yellow/Gold - Kindergarten/School) */}
-          {waypoints.map((waypoint: any, index: number) => (
-            <Marker
-              key={`waypoint-${index}`}
-              coordinate={{ latitude: waypoint.lat, longitude: waypoint.lng }}
-              title={waypoint.description || `Stop ${index + 1}`}
-              pinColor={COLORS.accent} // Yellow/Gold
+          {/* Route Line */}
+          <ShapeSource
+            id="route"
+            shape={{
+              type: "Feature",
+              geometry: {
+                type: "LineString",
+                coordinates: [
+                  [ride.origin_long, ride.origin_lat],
+                  ...waypoints.map((wp: any) => [wp.lng, wp.lat]),
+                  [ride.dest_long, ride.dest_lat],
+                ],
+              },
+              properties: {},
+            }}
+          >
+            <LineLayer
+              id="routeLine"
+              style={{ lineColor: COLORS.primary, lineWidth: 4, lineJoin: "round", lineCap: "round" }}
             />
+          </ShapeSource>
+
+          {/* Origin Marker */}
+          <PointAnnotation id="origin" coordinate={[ride.origin_long, ride.origin_lat]}>
+            <View style={[styles.markerDot, { backgroundColor: "#10B981" }]} />
+          </PointAnnotation>
+
+          {/* Waypoint Markers */}
+          {waypoints.map((waypoint: any, index: number) => (
+            <PointAnnotation
+              key={`waypoint-${index}`}
+              id={`waypoint-${index}`}
+              coordinate={[waypoint.lng, waypoint.lat]}
+            >
+              <View style={[styles.markerDot, { backgroundColor: COLORS.accent }]} />
+            </PointAnnotation>
           ))}
 
-          {/* Destination Marker (Red) */}
-          <Marker
-            coordinate={{ latitude: ride.dest_lat, longitude: ride.dest_long }}
-            title="Destination"
-            pinColor={COLORS.red}
-          />
-
-          {/* Current Location Marker (if tracking) */}
-          {currentLocation && (
-            <Marker
-              coordinate={{
-                latitude: currentLocation.coords.latitude,
-                longitude: currentLocation.coords.longitude,
-              }}
-              title="You"
-              pinColor={COLORS.primary}
-            />
-          )}
+          {/* Destination Marker */}
+          <PointAnnotation id="destination" coordinate={[ride.dest_long, ride.dest_lat]}>
+            <View style={[styles.markerDot, { backgroundColor: COLORS.red }]} />
+          </PointAnnotation>
         </MapView>
 
         {/* Back Button Overlay */}
@@ -429,8 +479,11 @@ export default function TripScreen() {
         )}
       </View>
 
-      {/* Bottom 40%: Ride Dashboard */}
+      {/* Bottom Sheet: Ride Dashboard (overlays map) */}
       <View style={styles.dashboard}>
+        {/* Drag Handle */}
+        <View style={styles.dragHandle} />
+
         {/* SCROLLABLE CONTENT */}
         <ScrollView 
           style={styles.scrollContent}
@@ -439,17 +492,19 @@ export default function TripScreen() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. HEADER: Large Circular Icon */}
+          {/* 1. HEADER: Icon + Mode + Distance — horizontal row */}
           <View style={styles.headerSection}>
             <View style={styles.modeIconCircle}>
-              <TransportIcon size={40} color={COLORS.white} />
+              <TransportIcon size={26} color={COLORS.white} />
             </View>
-            <Text style={styles.modeLabel}>
-              {ride.transport_label || "Commuting"} • {isSoloTrip ? "Solo" : isDriver ? "Driving" : "Riding"}
-            </Text>
-            <Text style={styles.distanceLabelHeader}>
-              {tripDistance.toFixed(1)} km trip
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.modeLabel}>
+                {ride.transport_label || "Commuting"} • {isSoloTrip ? "Solo" : isDriver ? "Driving" : "Riding"}
+              </Text>
+              <Text style={styles.distanceLabelHeader}>
+                {tripDistance.toFixed(1)} km trip
+              </Text>
+            </View>
           </View>
 
           {/* 2. ROUTE INFORMATION: Timeline Style */}
@@ -667,13 +722,20 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   
-  // Map Section (Top 60%)
+  // Map Section — fills the whole screen; dashboard overlays on top
   mapContainer: {
-    height: "60%",
+    flex: 1,
     position: "relative",
   },
   map: {
     flex: 1,
+  },
+  markerDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
   },
   backButtonOverlay: {
     position: "absolute",
@@ -719,51 +781,64 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Dashboard (Bottom 85%) - Expanded for better visibility
+  // Dashboard — absolute overlay from bottom (Google Maps / Uber style)
   dashboard: {
-    height: "85%",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    maxHeight: "62%",
     backgroundColor: COLORS.white,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: -4 },
-    shadowRadius: 12,
-    elevation: 10,
+    shadowRadius: 16,
+    elevation: 20,
+  },
+  dragHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: COLORS.gray200,
+    borderRadius: 3,
+    alignSelf: "center",
+    marginTop: 10,
+    marginBottom: 4,
   },
   scrollContent: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingTop: 12,
   },
 
-  // 1. Header Section (Large Circular Icon) - Centered with Safe Spacing
+  // 1. Header Section — compact horizontal row to save space
   headerSection: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
-    paddingTop: 8,
+    marginBottom: 14,
+    gap: 12,
   },
   modeIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
     shadowColor: COLORS.primary,
     shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowRadius: 8,
+    elevation: 4,
   },
   modeLabel: {
     fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.gray700,
-    marginBottom: 4,
+    fontWeight: "700",
+    color: COLORS.dark,
+    marginBottom: 2,
   },
   distanceLabelHeader: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.gray400,
     fontWeight: "500",
   },

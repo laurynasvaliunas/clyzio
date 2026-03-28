@@ -15,7 +15,7 @@ import { Send, X } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
 
 const COLORS = {
-  primary: "#10B981",
+  primary: "#26C6DA",
   white: "#FFFFFF",
   gray50: "#F9FAFB",
   gray400: "#9CA3AF",

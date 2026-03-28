@@ -35,6 +35,8 @@ import {
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import CostSavingsCard from "../../components/CostSavingsCard";
+import { useTheme } from "../../contexts/ThemeContext";
+import { getThemeColors } from "../../lib/theme";
 
 const COLORS = {
   primary: "#26C6DA",
@@ -211,9 +213,10 @@ interface LeaderboardRowProps {
   index: number;
   isCurrentUser?: boolean;
   showDepartment?: boolean;
+  TC: ReturnType<typeof getThemeColors>;
 }
 
-function LeaderboardRow({ user, index, isCurrentUser = false, showDepartment = true }: LeaderboardRowProps) {
+function LeaderboardRow({ user, index, isCurrentUser = false, showDepartment = true, TC }: LeaderboardRowProps) {
   const isLeader = index === 0;
   const userName = 'is_current_user' in user && user.is_current_user ? "You" : ('name' in user ? user.name : 'user_name' in user ? user.user_name : '');
   const department = 'department' in user ? user.department : ('total_trips' in user ? `${user.total_trips} trips` : '');
@@ -221,9 +224,9 @@ function LeaderboardRow({ user, index, isCurrentUser = false, showDepartment = t
   const initials = userName.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
 
   return (
-    <View style={[styles.leaderboardRow, isCurrentUser && styles.leaderboardRowHighlight]}>
+    <View style={[styles.leaderboardRow, { borderBottomColor: TC.border }, isCurrentUser && styles.leaderboardRowHighlight]}>
       <View style={styles.leaderboardRank}>
-        {isLeader ? <Crown size={18} color={COLORS.accent} /> : <Text style={styles.rankNumber}>{index + 1}</Text>}
+        {isLeader ? <Crown size={18} color={COLORS.accent} /> : <Text style={[styles.rankNumber, { color: TC.textSecondary }]}>{index + 1}</Text>}
       </View>
       <LinearGradient
         colors={isLeader ? [COLORS.accent, COLORS.accentDark] : [COLORS.primary, COLORS.primaryDark]}
@@ -232,18 +235,18 @@ function LeaderboardRow({ user, index, isCurrentUser = false, showDepartment = t
         <Text style={styles.leaderboardAvatarText}>{initials || "?"}</Text>
       </LinearGradient>
       <View style={styles.leaderboardInfo}>
-        <Text style={[styles.leaderboardName, isCurrentUser && styles.leaderboardNameYou]}>
+        <Text style={[styles.leaderboardName, { color: TC.text }, isCurrentUser && styles.leaderboardNameYou]}>
           {userName}
         </Text>
-        {showDepartment && department && (
-          <Text style={styles.leaderboardDept}>{department}</Text>
+        {!!showDepartment && !!department && (
+          <Text style={[styles.leaderboardDept, { color: TC.textSecondary }]}>{department}</Text>
         )}
       </View>
       <View style={styles.leaderboardScore}>
         <Text style={[styles.leaderboardValue, isLeader && { color: COLORS.accent }]}>
           {totalSaved.toFixed(1)}
         </Text>
-        <Text style={styles.leaderboardUnit}>kg</Text>
+        <Text style={[styles.leaderboardUnit, { color: TC.textSecondary }]}>kg</Text>
       </View>
     </View>
   );
@@ -302,6 +305,8 @@ function DepartmentBreakdownItem({ dept, maxCo2, barColor }: DepartmentBreakdown
  * Displays personal, department, and company-wide statistics
  */
 export default function StatsScreen() {
+  const { isDark } = useTheme();
+  const TC = getThemeColors(isDark);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<StatsView>("personal");
   const [stats, setStats] = useState<UserStats>({ total_co2_saved: 0, total_trips: 0, this_week_co2: 0, last_week_co2: 0 });
@@ -460,7 +465,7 @@ export default function StatsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
@@ -469,18 +474,18 @@ export default function StatsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Your Impact</Text>
-          <Text style={styles.headerSubtitle}>Making the planet greener</Text>
+          <Text style={[styles.headerTitle, { color: TC.text }]}>Your Impact</Text>
+          <Text style={[styles.headerSubtitle, { color: TC.textSecondary }]}>Making the planet greener</Text>
         </View>
-        
+
         {/* Segmented Control */}
         {hasCompany && (
           <View style={styles.segmentContainer}>
-            <View style={styles.segmentWrapper}>
+            <View style={[styles.segmentWrapper, { backgroundColor: TC.surface }]}>
               <Animated.View 
                 style={[
                   styles.segmentIndicator,
@@ -521,13 +526,13 @@ export default function StatsScreen() {
         {activeView === "personal" && (
           <>
         {/* Level Progress Card */}
-        <View style={styles.levelCard}>
+        <View style={[styles.levelCard, { backgroundColor: TC.surface }]}>
           <View style={styles.levelHeader}>
             <View style={styles.levelBadge}>
               <Trophy size={20} color={COLORS.accent} />
               <Text style={styles.levelNumber}>Level {levelInfo.level}</Text>
             </View>
-            <Text style={styles.levelTitle}>{levelInfo.title}</Text>
+            <Text style={[styles.levelTitle, { color: TC.text }]}>{levelInfo.title}</Text>
           </View>
           
           <View style={styles.progressBarContainer}>
@@ -554,8 +559,8 @@ export default function StatsScreen() {
           </View>
           
           <View style={styles.xpRow}>
-            <Text style={styles.xpText}>{xpPoints} XP</Text>
-            <Text style={styles.xpToNext}>{levelInfo.xpToNext} XP to Level {levelInfo.level + 1}</Text>
+            <Text style={[styles.xpText, { color: TC.text }]}>{xpPoints} XP</Text>
+            <Text style={[styles.xpToNext, { color: TC.textSecondary }]}>{levelInfo.xpToNext} XP to Level {levelInfo.level + 1}</Text>
           </View>
         </View>
 
@@ -563,7 +568,7 @@ export default function StatsScreen() {
         <View style={styles.badgesSection}>
           <View style={styles.sectionHeader}>
             <Award size={20} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>Trophy Cabinet</Text>
+            <Text style={[styles.sectionTitle, { color: TC.text }]}>Trophy Cabinet</Text>
           </View>
           
           <View style={styles.badgesGrid}>
@@ -607,53 +612,53 @@ export default function StatsScreen() {
 
         {/* Stats Row */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: TC.surface }]}>
             <Target size={22} color={COLORS.primary} />
-            <Text style={styles.statValue}>{stats.total_trips}</Text>
-            <Text style={styles.statLabel}>Trips</Text>
+            <Text style={[styles.statValue, { color: TC.text }]}>{stats.total_trips}</Text>
+            <Text style={[styles.statLabel, { color: TC.textSecondary }]}>Trips</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: TC.surface }]}>
             <TrendingUp size={22} color={COLORS.green} />
-            <Text style={styles.statValue}>{stats.this_week_co2.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>This Week</Text>
+            <Text style={[styles.statValue, { color: TC.text }]}>{stats.this_week_co2.toFixed(1)}</Text>
+            <Text style={[styles.statLabel, { color: TC.textSecondary }]}>This Week</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, { backgroundColor: TC.surface }]}>
             <Zap size={22} color={COLORS.accent} />
-            <Text style={styles.statValue}>{xpPoints}</Text>
-            <Text style={styles.statLabel}>XP</Text>
+            <Text style={[styles.statValue, { color: TC.text }]}>{xpPoints}</Text>
+            <Text style={[styles.statLabel, { color: TC.textSecondary }]}>XP</Text>
           </View>
         </View>
 
         {/* Weekly Chart */}
-        <View style={styles.chartCard}>
-          <Text style={styles.chartTitle}>📊 Weekly Comparison</Text>
+        <View style={[styles.chartCard, { backgroundColor: TC.surface }]}>
+          <Text style={[styles.chartTitle, { color: TC.text }]}>📊 Weekly Comparison</Text>
           <View style={styles.chartContainer}>
             <View style={styles.chartBar}>
-              <Text style={styles.chartBarLabel}>This Week</Text>
+              <Text style={[styles.chartBarLabel, { color: TC.textSecondary }]}>This Week</Text>
               <View style={styles.chartBarBg}>
                 <LinearGradient
                   colors={[COLORS.primary, COLORS.primaryDark]}
                   style={[styles.chartBarFill, { width: `${(stats.this_week_co2 / maxBar) * 100}%` }]}
                 />
               </View>
-              <Text style={styles.chartBarValue}>{stats.this_week_co2.toFixed(1)} kg</Text>
+              <Text style={[styles.chartBarValue, { color: TC.text }]}>{stats.this_week_co2.toFixed(1)} kg</Text>
             </View>
             <View style={styles.chartBar}>
-              <Text style={styles.chartBarLabel}>Last Week</Text>
+              <Text style={[styles.chartBarLabel, { color: TC.textSecondary }]}>Last Week</Text>
               <View style={styles.chartBarBg}>
                 <View style={[styles.chartBarFillGray, { width: `${(stats.last_week_co2 / maxBar) * 100}%` }]} />
               </View>
-              <Text style={styles.chartBarValue}>{stats.last_week_co2.toFixed(1)} kg</Text>
+              <Text style={[styles.chartBarValue, { color: TC.text }]}>{stats.last_week_co2.toFixed(1)} kg</Text>
             </View>
           </View>
         </View>
 
         {/* Top Commuting Modes */}
         {topModes.length > 0 && (
-          <View style={styles.topModesCard}>
+          <View style={[styles.topModesCard, { backgroundColor: TC.surface }]}>
             <View style={styles.sectionHeader}>
               <Car size={20} color={COLORS.primary} />
-              <Text style={styles.sectionTitle}>Top Commuting Modes</Text>
+              <Text style={[styles.sectionTitle, { color: TC.text }]}>Top Commuting Modes</Text>
             </View>
             <View style={styles.topModesRow}>
               {topModes.map((mode, index) => (
@@ -664,14 +669,14 @@ export default function StatsScreen() {
         )}
 
         {/* Personal Leaderboard */}
-        <View style={styles.leaderboardCard}>
+        <View style={[styles.leaderboardCard, { backgroundColor: TC.surface }]}>
           <View style={styles.sectionHeader}>
             <Users size={20} color={COLORS.dark} />
-            <Text style={styles.sectionTitle}>Company Leaderboard</Text>
+            <Text style={[styles.sectionTitle, { color: TC.text }]}>Company Leaderboard</Text>
           </View>
 
           {leaderboard.length === 0 ? (
-            <Text style={styles.emptyText}>No data yet. Start logging trips!</Text>
+            <Text style={[styles.emptyText, { color: TC.textSecondary }]}>No data yet. Start logging trips!</Text>
           ) : (
             leaderboard.map((user, index) => (
               <LeaderboardRow
@@ -680,6 +685,7 @@ export default function StatsScreen() {
                 index={index}
                 isCurrentUser={user.is_current_user}
                 showDepartment={true}
+                TC={TC}
               />
             ))
           )}
@@ -695,19 +701,19 @@ export default function StatsScreen() {
               <View style={styles.deptIcon}>
                 <Users size={32} color={COLORS.primary} />
               </View>
-              <Text style={styles.deptTitle}>Your Department</Text>
-              <Text style={styles.deptSubtitle}>See how your team is performing</Text>
+              <Text style={[styles.deptTitle, { color: TC.text }]}>Your Department</Text>
+              <Text style={[styles.deptSubtitle, { color: TC.textSecondary }]}>See how your team is performing</Text>
             </View>
-            
+
             {/* Department Leaderboard */}
-            <View style={styles.leaderboardCard}>
+            <View style={[styles.leaderboardCard, { backgroundColor: TC.surface }]}>
               <View style={styles.sectionHeader}>
                 <Trophy size={20} color={COLORS.accent} />
-                <Text style={styles.sectionTitle}>Department Leaders</Text>
+                <Text style={[styles.sectionTitle, { color: TC.text }]}>Department Leaders</Text>
               </View>
-              
+
               {deptLeaderboard.length === 0 ? (
-                <Text style={styles.emptyText}>No department data available</Text>
+                <Text style={[styles.emptyText, { color: TC.textSecondary }]}>No department data available</Text>
               ) : (
                 deptLeaderboard.map((user, index) => (
                   <LeaderboardRow
@@ -715,6 +721,7 @@ export default function StatsScreen() {
                     user={user}
                     index={index}
                     showDepartment={true}
+                    TC={TC}
                   />
                 ))
               )}
@@ -756,14 +763,14 @@ export default function StatsScreen() {
             )}
             
             {/* Department Breakdown Chart */}
-            <View style={styles.breakdownCard}>
+            <View style={[styles.breakdownCard, { backgroundColor: TC.surface }]}>
               <View style={styles.sectionHeader}>
                 <BarChart3 size={20} color={COLORS.primary} />
-                <Text style={styles.sectionTitle}>Department vs Department</Text>
+                <Text style={[styles.sectionTitle, { color: TC.text }]}>Department vs Department</Text>
               </View>
-              
+
               {companyBreakdown.length === 0 ? (
-                <Text style={styles.emptyText}>No department data available</Text>
+                <Text style={[styles.emptyText, { color: TC.textSecondary }]}>No department data available</Text>
               ) : (
                 companyBreakdown.map((dept, index) => {
                   const maxCo2 = Math.max(...companyBreakdown.map(d => d.total_co2_saved), 1);
@@ -800,18 +807,18 @@ export default function StatsScreen() {
       {/* Badge Modal */}
       <Modal visible={!!selectedBadge} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: TC.surface }]}>
             <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedBadge(null)}>
-              <X size={24} color={COLORS.gray} />
+              <X size={24} color={TC.textSecondary} />
             </TouchableOpacity>
-            
+
             {selectedBadge && (
               <>
                 <View style={[styles.modalBadge, { backgroundColor: selectedBadge.color + "20" }]}>
                   <selectedBadge.icon size={48} color={selectedBadge.color} />
                 </View>
-                <Text style={styles.modalTitle}>{selectedBadge.name}</Text>
-                <Text style={styles.modalDesc}>{selectedBadge.desc}</Text>
+                <Text style={[styles.modalTitle, { color: TC.text }]}>{selectedBadge.name}</Text>
+                <Text style={[styles.modalDesc, { color: TC.textSecondary }]}>{selectedBadge.desc}</Text>
                 <View style={styles.modalUnlocked}>
                   <Text style={styles.modalUnlockedText}>🎉 Unlocked!</Text>
                 </View>

@@ -132,7 +132,7 @@ export async function scheduleRideReminder(
         body: `Your scheduled ride starts in ${reminderMinutesBefore} minutes.`,
         sound: true,
       },
-      trigger: { date: reminderTime },
+      trigger: { type: "date", date: reminderTime } as any,
     });
 
     return id;

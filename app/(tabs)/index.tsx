@@ -4,15 +4,13 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Animated,
 } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
-import MapViewDirections from "react-native-maps-directions";
+import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserLocation } from "@rnmapbox/maps";
 import * as Location from "expo-location";
 import { Car, Users, UserCircle, X } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import BrandHeader from "../../components/BrandHeader";
 import ActionDock from "../../components/ActionDock";
@@ -21,8 +19,12 @@ import AISuggestionChip from "../../components/AISuggestionChip";
 import CarpoolMatchModal from "../../components/CarpoolMatchModal";
 import { supabase } from "../../lib/supabase";
 import { useAIStore } from "../../store/useAIStore";
+import { useTheme } from "../../contexts/ThemeContext";
+import { getThemeColors } from "../../lib/theme";
+import { useToast } from "../../contexts/ToastContext";
 
-const GOOGLE_API_KEY = "AIzaSyAaQG2TsYZO_Ibp9sohoNS1XS-1DZ7UPwg";
+import { MAPBOX_TOKEN } from "../../lib/config";
+Mapbox.setAccessToken(MAPBOX_TOKEN);
 
 const COLORS = {
   primary: "#26C6DA",
@@ -52,20 +54,15 @@ function CommuterMarker({ commuter, searchMode, onPress }: CommuterMarkerProps) 
   const profile = commuter.profiles;
   if (!profile) return null;
 
-  // Determine icon and color based on search mode
   const isLookingForDriver = searchMode === 'rider';
   const markerColor = isLookingForDriver ? COLORS.primary : COLORS.accent;
 
   return (
-    <Marker
-      coordinate={{
-        latitude: commuter.origin_lat,
-        longitude: commuter.origin_long,
-      }}
-      onPress={onPress}
-      tracksViewChanges={false}
+    <PointAnnotation
+      id={`commuter-${commuter.id}`}
+      coordinate={[commuter.origin_long, commuter.origin_lat]}
+      onSelected={onPress}
     >
-      {/* Custom Marker Icon - Clean, no callout */}
       <View style={[styles.customMarker, { backgroundColor: markerColor }]}>
         {isLookingForDriver ? (
           <Car size={20} color={COLORS.white} />
@@ -73,7 +70,7 @@ function CommuterMarker({ commuter, searchMode, onPress }: CommuterMarkerProps) 
           <Users size={20} color={COLORS.white} />
         )}
       </View>
-    </Marker>
+    </PointAnnotation>
   );
 }
 
@@ -238,8 +235,11 @@ interface MatchCardProps {
 }
 
 function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = false }: MatchCardProps) {
+  const { showToast } = useToast();
   return (
     <View style={styles.matchCard}>
+      {/* Drag handle */}
+      <View style={styles.matchHandle} />
       {/* Card Header */}
       <View style={styles.matchHeader}>
         <View style={styles.matchAvatarContainer}>
@@ -252,7 +252,7 @@ function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = fal
           <Text style={styles.matchName}>
             {match.profiles?.first_name} {match.profiles?.last_name}
           </Text>
-          {match.profiles?.department && (
+          {!!match.profiles?.department && (
             <Text style={styles.matchDept}>📍 {match.profiles?.department}</Text>
           )}
           <View style={styles.matchRoleBadge}>
@@ -301,7 +301,7 @@ function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = fal
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.viewProfileBtn, isLoading && styles.viewProfileBtnDisabled]}
-          onPress={() => Alert.alert('Profile', 'Profile view coming soon!')}
+          onPress={() => showToast({ title: 'Coming Soon', message: 'Profile view coming soon!', type: 'info' })}
           disabled={isLoading}
         >
           <Text style={styles.viewProfileBtnText}>View Profile</Text>
@@ -317,12 +317,23 @@ function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = fal
  */
 export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
-  const hasAutocentered = useRef(false); // Prevent repeated auto-centering
+  const cameraRef = useRef<Camera>(null);
   const router = useRouter();
-  
+  const { preset_mode } = useLocalSearchParams<{ preset_mode?: string }>();
+  const { isDark } = useTheme();
+  const TC = getThemeColors(isDark);
+  const { showToast } = useToast();
+
+  // ✅ PROFILE STATE
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [userName, setUserName] = useState("");
+
   // ✅ MINIMAL STATE - Only trip result data
+  const [locationGranted, setLocationGranted] = useState(false);
   const [showPlanner, setShowPlanner] = useState(false);
+  const [pendingPresetMode, setPendingPresetMode] = useState<string | null>(null);
   const [activeTrip, setActiveTrip] = useState<any>(null);
+  const [routeCoords, setRouteCoords] = useState<number[][] | null>(null);
 
   // ✅ COMMUTER RADAR STATE
   const [searchMode, setSearchMode] = useState<'driver' | 'rider' | null>(null);
@@ -344,48 +355,90 @@ export default function MapScreen() {
 
   /**
    * ✅ AUTO-CENTER TO USER LOCATION ON MOUNT
-   * Only runs once when component mounts
+   * Requests permission, sets locationGranted state, and centers map.
    */
+  const centerToUserLocation = useCallback(async () => {
+    try {
+      let granted = false;
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status === 'granted') {
+        granted = true;
+      } else {
+        const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
+        granted = newStatus === 'granted';
+      }
+
+      setLocationGranted(granted);
+
+      if (!granted) return;
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      cameraRef.current?.setCamera({
+        centerCoordinate: [location.coords.longitude, location.coords.latitude],
+        zoomLevel: 13,
+        animationDuration: 1000,
+      });
+    } catch (error) {
+      console.error('Error getting location:', error);
+    }
+  }, []);
+
+  // centerToUserLocation is called via onDidFinishLoadingMap once the camera ref is ready
+
+  // ✅ Fetch real road route via Mapbox Directions whenever activeTrip changes
   useEffect(() => {
-    const centerToUserLocation = async () => {
-      if (hasAutocentered.current) return; // Already centered
-
+    if (!activeTrip?.origin || !activeTrip?.destination) {
+      setRouteCoords(null);
+      return;
+    }
+    const fetchRoute = async () => {
       try {
-        // Check location permissions
-        const { status } = await Location.getForegroundPermissionsAsync();
-        
-        if (status !== 'granted') {
-          // Request permission if not granted
-          const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
-          if (newStatus !== 'granted') {
-            console.log('Location permission denied');
-            return;
-          }
+        const modeId = activeTrip.mode?.id ?? "my_car";
+        const profile =
+          modeId === "walking" ? "walking"
+          : modeId === "bike" || modeId === "ebike" ? "cycling"
+          : "driving";
+
+        const waypoints = [
+          `${activeTrip.origin.lng},${activeTrip.origin.lat}`,
+          ...(activeTrip.waypoint ? [`${activeTrip.waypoint.lng},${activeTrip.waypoint.lat}`] : []),
+          `${activeTrip.destination.lng},${activeTrip.destination.lat}`,
+        ].join(";");
+
+        const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${waypoints}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json.routes?.length > 0) {
+          setRouteCoords(json.routes[0].geometry.coordinates);
         }
-
-        // Get current position
-        const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-
-        // Animate map to user location
-        if (mapRef.current) {
-          mapRef.current.animateToRegion({
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          }, 1000);
-        }
-
-        hasAutocentered.current = true; // Mark as centered
-      } catch (error) {
-        console.error('Error getting location:', error);
+      } catch (e) {
+        console.warn("Route fetch failed:", e);
       }
     };
+    fetchRoute();
+  }, [activeTrip]);
 
-    centerToUserLocation();
-  }, []); // Empty deps - only run once
+  // ✅ Fetch user profile for avatar
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, avatar_url')
+        .eq('id', user.id)
+        .single();
+      if (data) {
+        setUserAvatar(data.avatar_url ?? null);
+        const name = [data.first_name, data.last_name].filter(Boolean).join(' ');
+        setUserName(name);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   // ✅ Fetch AI commute suggestions when screen is focused (6h cache, non-blocking)
   useFocusEffect(
@@ -393,6 +446,14 @@ export default function MapScreen() {
       fetchCommuteSuggestions().catch(() => {});
     }, [fetchCommuteSuggestions])
   );
+
+  // ✅ Auto-open TripPlannerModal with pre-selected mode when navigated from AI Planner
+  useEffect(() => {
+    if (preset_mode && typeof preset_mode === 'string') {
+      setPendingPresetMode(preset_mode);
+      setShowPlanner(true);
+    }
+  }, [preset_mode]);
 
   /**
    * ✅ POST-TRIP MAP RESET
@@ -426,6 +487,7 @@ export default function MapScreen() {
             if (activeTrip || searchMode || nearbyCommuters.length > 0) {
               console.log('🔄 Resetting map to initial state');
               setActiveTrip(null);
+              setRouteCoords(null);
               setSearchMode(null);
               setNearbyCommuters([]);
               setSelectedMatch(null);
@@ -439,14 +501,11 @@ export default function MapScreen() {
                 accuracy: Location.Accuracy.Balanced,
               });
               
-              if (mapRef.current) {
-                mapRef.current.animateToRegion({
-                  latitude: location.coords.latitude,
-                  longitude: location.coords.longitude,
-                  latitudeDelta: 0.05,
-                  longitudeDelta: 0.05,
-                }, 1000);
-              }
+              cameraRef.current?.setCamera({
+                centerCoordinate: [location.coords.longitude, location.coords.latitude],
+                zoomLevel: 13,
+                animationDuration: 1000,
+              });
             }
           }
         } catch (error) {
@@ -510,13 +569,23 @@ export default function MapScreen() {
       const searchRole = role === 'driver' ? 'rider' : 'driver';
       const searchColumn = `${searchRole}_id`;
       
-      // Step 1: Query rides that are scheduled or active
+      // Step 1: Get IDs of users who opted in to map visibility
+      const { data: publicProfiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_public', true)
+        .neq('id', user.id);
+
+      const publicUserIds = (publicProfiles ?? []).map((p: any) => p.id);
+
+      // Step 2: Query scheduled/active rides only from public users
+      // (AI matching uses find_carpool_candidates RPC which bypasses this filter)
       const { data: rides, error: ridesError } = await supabase
         .from('rides')
         .select('id, origin_lat, origin_long, dest_lat, dest_long, origin_address, dest_address, status, scheduled_at, driver_id, rider_id')
         .in('status', ['scheduled', 'active', 'requested'])
         .not(searchColumn, 'is', null)
-        .neq(searchColumn, user.id) // Exclude self
+        .in(searchColumn, publicUserIds.length > 0 ? publicUserIds : ['00000000-0000-0000-0000-000000000000'])
         .limit(20);
 
       if (ridesError) {
@@ -526,14 +595,15 @@ export default function MapScreen() {
       }
 
       if (!rides || rides.length === 0) {
-        console.log('No nearby commuters found - generating mock data');
-        
-        // Generate mock data for demo
-        const mockData = generateMockCommuters(origin, role, 2);
-        setNearbyCommuters(mockData);
-        
-        if (mockData.length > 0) {
-          setSearchStatus('matched');
+        if (__DEV__) {
+          // Generate mock data for development/demo only
+          const mockData = generateMockCommuters(origin, role, 2);
+          setNearbyCommuters(mockData);
+          if (mockData.length > 0) {
+            setSearchStatus('matched');
+          } else {
+            setSearchStatus('waiting');
+          }
         } else {
           setSearchStatus('waiting');
         }
@@ -545,7 +615,7 @@ export default function MapScreen() {
       
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, department, avatar_url')
+        .select('id, first_name, last_name, department, avatar_url, is_public')
         .in('id', userIds);
 
       if (profilesError) {
@@ -602,22 +672,19 @@ export default function MapScreen() {
     }
 
     // Fit map to route (including waypoint if present)
-    if (mapRef.current && tripData.origin && tripData.destination) {
-      const coordinates = [
-        { latitude: tripData.origin.lat, longitude: tripData.origin.lng },
-      ];
-      
-      // Include waypoint if present
+    if (tripData.origin && tripData.destination) {
+      const lats = [tripData.origin.lat, tripData.destination.lat];
+      const lngs = [tripData.origin.lng, tripData.destination.lng];
       if (tripData.waypoint) {
-        coordinates.push({ latitude: tripData.waypoint.lat, longitude: tripData.waypoint.lng });
+        lats.push(tripData.waypoint.lat);
+        lngs.push(tripData.waypoint.lng);
       }
-      
-      coordinates.push({ latitude: tripData.destination.lat, longitude: tripData.destination.lng });
-      
-      mapRef.current.fitToCoordinates(coordinates, {
-        edgePadding: { top: 100, right: 50, bottom: 350, left: 50 },
-        animated: true,
-      });
+      cameraRef.current?.fitBounds(
+        [Math.max(...lngs), Math.max(...lats)],
+        [Math.min(...lngs), Math.min(...lats)],
+        [100, 50, 350, 50],
+        1000,
+      );
     }
   };
 
@@ -652,8 +719,8 @@ export default function MapScreen() {
    */
   const handleRequestMatch = useCallback(async (matchId: string) => {
     try {
-      setRequestStatus('loading'); // Show loading state
-      
+      setRequestStatus('loading');
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !selectedMatch) {
         setRequestStatus('idle');
@@ -662,51 +729,52 @@ export default function MapScreen() {
 
       const targetProfile = selectedMatch.profiles;
       if (!targetProfile) {
-        Alert.alert('Error', 'Unable to find user profile.');
+        showToast({ title: "User not found", type: "error" });
         setRequestStatus('idle');
         return;
       }
 
-      // Determine which ID to update based on user's role
-      const updateData: any = { status: 'scheduled' };
-      
-      if (searchMode === 'rider') {
-        // User is a rider, joining a driver's ride
-        updateData.rider_id = user.id;
-      } else {
-        // User is a driver, picking up a rider
-        updateData.driver_id = user.id;
+      // Mock rides (demo data) — skip DB update, go straight to success
+      const isMockRide = matchId.startsWith('mock-');
+
+      if (!isMockRide) {
+        const updateData: any = { status: 'scheduled' };
+        if (searchMode === 'rider') {
+          updateData.rider_id = user.id;
+        } else {
+          updateData.driver_id = user.id;
+        }
+
+        const { error: updateError } = await supabase
+          .from('rides')
+          .update(updateData)
+          .eq('id', matchId);
+
+        if (updateError) throw updateError;
       }
 
-      // Update the ride to link the users and set status to scheduled
-      const { error: updateError } = await supabase
-        .from('rides')
-        .update(updateData)
-        .eq('id', matchId);
+      // Create a ride request record for history/approval tracking (real rides only)
+      if (!isMockRide) {
+        const { error: requestError } = await supabase
+          .from('ride_requests')
+          .insert({
+            requester_id: user.id,
+            target_id: targetProfile.id,
+            ride_id: matchId,
+            requester_role: searchMode,
+            status: 'accepted',
+            pickup_lat: selectedMatch.origin_lat,
+            pickup_long: selectedMatch.origin_long,
+            pickup_address: selectedMatch.origin_address,
+            dropoff_lat: selectedMatch.dest_lat,
+            dropoff_long: selectedMatch.dest_long,
+            dropoff_address: selectedMatch.dest_address,
+            responded_at: new Date().toISOString(),
+          });
 
-      if (updateError) throw updateError;
-
-      // Create a ride request record for history/approval tracking
-      const { error: requestError } = await supabase
-        .from('ride_requests')
-        .insert({
-          requester_id: user.id,
-          target_id: targetProfile.id,
-          ride_id: matchId,
-          requester_role: searchMode,
-          status: 'accepted', // Immediately accepted for instant booking
-          pickup_lat: selectedMatch.origin_lat,
-          pickup_long: selectedMatch.origin_long,
-          pickup_address: selectedMatch.origin_address,
-          dropoff_lat: selectedMatch.dest_lat,
-          dropoff_long: selectedMatch.dest_long,
-          dropoff_address: selectedMatch.dest_address,
-          responded_at: new Date().toISOString(),
-        });
-
-      if (requestError) {
-        console.warn('Request record failed:', requestError);
-        // Don't fail the whole operation if this fails
+        if (requestError) {
+          console.warn('Request record failed:', requestError);
+        }
       }
 
       // Store ride details for success overlay
@@ -720,7 +788,7 @@ export default function MapScreen() {
       
     } catch (error: any) {
       setRequestStatus('idle');
-      Alert.alert('Error', error.message || 'Failed to confirm ride. Please try again.');
+      showToast({ title: "Could not confirm ride", message: error.message, type: "error" });
     }
   }, [selectedMatch, searchMode]);
 
@@ -759,78 +827,77 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅ MAP - Never re-renders during typing */}
+      {/* MAP */}
       <MapView
         ref={mapRef}
-        provider={PROVIDER_GOOGLE}
         style={styles.map}
-        initialRegion={{
-          latitude: 37.7749,
-          longitude: -122.4194,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        }}
-        showsUserLocation
-        showsMyLocationButton
+        styleURL={isDark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street}
+        logoEnabled={false}
+        attributionEnabled={false}
+        onDidFinishLoadingMap={centerToUserLocation}
       >
+        <Camera
+          ref={cameraRef}
+          defaultSettings={{
+            centerCoordinate: [25.2797, 54.6872],
+            zoomLevel: 12,
+          }}
+        />
+
+        <UserLocation visible={locationGranted} />
+
         {/* Origin Marker */}
         {activeTrip?.origin && (
-          <Marker
-            coordinate={{
-              latitude: activeTrip.origin.lat,
-              longitude: activeTrip.origin.lng,
-            }}
-            pinColor="green"
-            title="Origin"
-          />
+          <PointAnnotation
+            id="origin"
+            coordinate={[activeTrip.origin.lng, activeTrip.origin.lat]}
+          >
+            <View style={[styles.markerDot, { backgroundColor: COLORS.green }]} />
+          </PointAnnotation>
         )}
 
-        {/* Waypoint Marker (School/Kindergarten) */}
+        {/* Waypoint Marker */}
         {activeTrip?.waypoint && (
-          <Marker
-            coordinate={{
-              latitude: activeTrip.waypoint.lat,
-              longitude: activeTrip.waypoint.lng,
-            }}
-            pinColor="orange"
-            title={activeTrip.waypoint.description || "Waypoint"}
-          />
+          <PointAnnotation
+            id="waypoint"
+            coordinate={[activeTrip.waypoint.lng, activeTrip.waypoint.lat]}
+          >
+            <View style={[styles.markerDot, { backgroundColor: "#FF9800" }]} />
+          </PointAnnotation>
         )}
 
         {/* Destination Marker */}
         {activeTrip?.destination && (
-          <Marker
-            coordinate={{
-              latitude: activeTrip.destination.lat,
-              longitude: activeTrip.destination.lng,
-            }}
-            pinColor="red"
-            title="Destination"
-          />
+          <PointAnnotation
+            id="destination"
+            coordinate={[activeTrip.destination.lng, activeTrip.destination.lat]}
+          >
+            <View style={[styles.markerDot, { backgroundColor: "#EF4444" }]} />
+          </PointAnnotation>
         )}
 
-        {/* Route Line (with waypoints if present) */}
-        {activeTrip?.origin && activeTrip?.destination && (
-          <MapViewDirections
-            origin={{
-              latitude: activeTrip.origin.lat,
-              longitude: activeTrip.origin.lng,
+        {/* Route Line — follows real roads via Mapbox Directions */}
+        {routeCoords && routeCoords.length > 1 && (
+          <ShapeSource
+            id="route"
+            shape={{
+              type: "Feature",
+              geometry: { type: "LineString", coordinates: routeCoords },
+              properties: {},
             }}
-            destination={{
-              latitude: activeTrip.destination.lat,
-              longitude: activeTrip.destination.lng,
-            }}
-            waypoints={activeTrip.waypoint ? [{
-              latitude: activeTrip.waypoint.lat,
-              longitude: activeTrip.waypoint.lng,
-            }] : undefined}
-            apikey={GOOGLE_API_KEY}
-            strokeWidth={4}
-            strokeColor={COLORS.primary}
-          />
+          >
+            <LineLayer
+              id="routeLineCasing"
+              style={{ lineColor: "#fff", lineWidth: 8, lineJoin: "round", lineCap: "round", lineOpacity: 0.6 }}
+            />
+            <LineLayer
+              id="routeLine"
+              style={{ lineColor: COLORS.primary, lineWidth: 5, lineJoin: "round", lineCap: "round" }}
+            />
+          </ShapeSource>
         )}
 
-        {/* ✅ COMMUTER RADAR: Display nearby drivers/riders */}
+        {/* COMMUTER RADAR: Display nearby drivers/riders */}
         {searchMode && nearbyCommuters.map((commuter) => (
           <CommuterMarker
             key={commuter.id}
@@ -842,7 +909,7 @@ export default function MapScreen() {
       </MapView>
 
       {/* Header */}
-      <BrandHeader />
+      <BrandHeader userAvatar={userAvatar} userName={userName} />
 
       {/* AI Suggestion Chip — shown above ActionDock when idle */}
       {!activeTrip && searchStatus === 'idle' && !chipDismissed && commuteResult?.insight && (
@@ -862,8 +929,9 @@ export default function MapScreen() {
       {/* ✅ ISOLATED MODAL - Memoized, never re-renders parent */}
       <TripPlannerModal
         visible={showPlanner}
-        onClose={() => setShowPlanner(false)}
+        onClose={() => { setShowPlanner(false); setPendingPresetMode(null); }}
         onTripStart={handleTripStart}
+        initialMode={pendingPresetMode ?? undefined}
       />
 
       {/* ✅ SEARCHING OVERLAY: Shows during driver/rider search, hidden when viewing map */}
@@ -879,12 +947,12 @@ export default function MapScreen() {
 
       {/* Active Trip Summary Card - Only show for solo trips or when not searching */}
       {activeTrip && searchStatus === 'idle' && (
-        <View style={styles.activeCard}>
+        <View style={[styles.activeCard, { backgroundColor: TC.surface }]}>
           <View>
-            <Text style={styles.activeTripTitle}>
+            <Text style={[styles.activeTripTitle, { color: TC.text }]}>
               Trip to {activeTrip.destination.description.split(',')[0]}
             </Text>
-            <Text style={styles.activeTripSubtitle}>
+            <Text style={[styles.activeTripSubtitle, { color: TC.textSecondary }]}>
               {activeTrip.mode?.label || 'Rider'} · {activeTrip.role}
             </Text>
           </View>
@@ -955,6 +1023,14 @@ export default function MapScreen() {
           handleGoToUpcoming();
         }}
       />
+
+      {/* My Location FAB */}
+      <TouchableOpacity
+        style={[styles.myLocationBtn, isDark && styles.myLocationBtnDark]}
+        onPress={centerToUserLocation}
+      >
+        <Text style={styles.myLocationBtnText}>⊙</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -963,7 +1039,7 @@ const styles = StyleSheet.create({
   // ===== CONTAINER & MAP =====
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#000",
   },
   map: {
     ...StyleSheet.absoluteFillObject,
@@ -1006,6 +1082,37 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "600",
   },
+  // ===== MY LOCATION FAB =====
+  myLocationBtn: {
+    position: "absolute",
+    bottom: 172,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.white,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: COLORS.black,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  myLocationBtnDark: {
+    backgroundColor: "#1C1C1E",
+  },
+  myLocationBtnText: {
+    fontSize: 22,
+    color: COLORS.primary,
+  },
+  // ===== MAPBOX MARKER DOTS =====
+  markerDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
   // ===== CUSTOM MARKER STYLES =====
   customMarker: {
     width: 40,
@@ -1025,18 +1132,28 @@ const styles = StyleSheet.create({
   // ===== MATCH CARD STYLES (Bottom sheet) =====
   matchCard: {
     position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: COLORS.white,
-    borderRadius: 28,
-    padding: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingBottom: 36,
+    paddingTop: 12,
+    maxHeight: "72%",
     shadowColor: COLORS.black,
     shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 15,
-    borderWidth: 1,
-    borderColor: COLORS.primary + "20",
+  },
+  matchHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 3,
+    alignSelf: "center",
+    marginBottom: 16,
   },
   matchHeader: {
     flexDirection: "row",
@@ -1279,19 +1396,21 @@ const styles = StyleSheet.create({
   // ===== SEARCHING OVERLAY STYLES =====
   searchingOverlay: {
     position: "absolute",
+    top: 0,
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.overlay,
-    paddingBottom: 40,
-    paddingTop: 20,
-    paddingHorizontal: 20,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
   },
   searchingCard: {
     backgroundColor: COLORS.white,
     borderRadius: 28,
     padding: 32,
     alignItems: "center",
+    width: "100%",
     shadowColor: COLORS.black,
     shadowOpacity: 0.3,
     shadowRadius: 20,

@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +14,7 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Mail, Lock, Eye, EyeOff, Leaf, Building2, Check } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
+import { useToast } from "../../contexts/ToastContext";
 
 const COLORS = {
   primary: "#26C6DA",
@@ -31,6 +31,7 @@ const COLORS = {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,18 +54,18 @@ export default function LoginScreen() {
   };
 
   const handleAuth = async () => {
-    if (!email.trim()) { Alert.alert("Error", "Please enter your email address"); return; }
-    if (!password.trim()) { Alert.alert("Error", "Please enter your password"); return; }
-    if (password.length < 6) { Alert.alert("Error", "Password must be at least 6 characters"); return; }
+    if (!email.trim()) { showToast({ title: 'Error', message: 'Please enter your email address', type: 'error' }); return; }
+    if (!password.trim()) { showToast({ title: 'Error', message: 'Please enter your password', type: 'error' }); return; }
+    if (password.length < 6) { showToast({ title: 'Error', message: 'Password must be at least 6 characters', type: 'error' }); return; }
     if (isSignUp && !termsAccepted) {
-      Alert.alert("Agreement Required", "Please accept the Terms & Conditions and Privacy Policy to create an account.");
+      showToast({ title: 'Agreement Required', message: 'Please accept the Terms & Conditions and Privacy Policy to create an account.', type: 'warning' });
       return;
     }
     setIsLoading(true);
     try {
       if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
-        if (error) { Alert.alert("Sign Up Failed", error.message); return; }
+        if (error) { showToast({ title: 'Sign Up Failed', message: error.message, type: 'error' }); return; }
         if (data.user) {
           // Record terms acceptance timestamp
           const now = new Date().toISOString();
@@ -78,14 +79,14 @@ export default function LoginScreen() {
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-        if (error) { Alert.alert("Sign In Failed", error.message); return; }
+        if (error) { showToast({ title: 'Sign In Failed', message: error.message, type: 'error' }); return; }
         if (data.session && data.user) {
           const needsOnboarding = await checkOnboardingNeeded(data.user.id);
           router.replace(needsOnboarding ? "/(auth)/onboarding" : "/(tabs)");
         }
       }
     } catch (error: any) {
-      Alert.alert("Error", error.message || "An unexpected error occurred");
+      showToast({ title: 'Error', message: error.message || 'An unexpected error occurred', type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -132,6 +133,7 @@ export default function LoginScreen() {
             value={email}
             onChangeText={setEmail}
             testID="login-email"
+            accessibilityLabel="Email address"
           />
         </View>
 
@@ -160,8 +162,9 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             testID="login-password"
+            accessibilityLabel="Password"
           />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn} accessibilityLabel={showPassword ? "Hide password" : "Show password"} accessibilityRole="button">
             {showPassword
               ? <EyeOff size={20} color={COLORS.gray} />
               : <Eye size={20} color={COLORS.gray} />

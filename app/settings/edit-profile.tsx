@@ -6,9 +6,9 @@ import {
   TextInput,
   ScrollView,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Image,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -29,6 +29,7 @@ import {
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import AddressInput from "../../components/AddressInput";
+import { useToast } from "../../contexts/ToastContext";
 
 // Brand Colors
 const COLORS = {
@@ -59,10 +60,12 @@ interface ProfileData {
   work_address: string;
   work_lat: number | null;
   work_long: number | null;
+  is_public: boolean;
 }
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -83,6 +86,7 @@ export default function EditProfileScreen() {
     work_address: "",
     work_lat: null,
     work_long: null,
+    is_public: false,
   });
 
   useEffect(() => {
@@ -100,7 +104,7 @@ export default function EditProfileScreen() {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("first_name, last_name, phone, department, avatar_url, car_make, car_model, car_color, car_plate, home_address, home_lat, home_long, work_address, work_lat, work_long")
+        .select("first_name, last_name, phone, department, avatar_url, car_make, car_model, car_color, car_plate, home_address, home_lat, home_long, work_address, work_lat, work_long, is_public")
         .eq("id", user.id)
         .single();
 
@@ -121,6 +125,7 @@ export default function EditProfileScreen() {
           work_address: data.work_address || "",
           work_lat: data.work_lat ?? null,
           work_long: data.work_long ?? null,
+          is_public: data.is_public ?? false,
         });
       }
     } catch (error) {
@@ -133,7 +138,7 @@ export default function EditProfileScreen() {
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert("Permission Required", "Please allow access to your photo library.");
+      showToast({ title: 'Permission Required', message: 'Please allow access to your photo library.', type: 'warning' });
       return;
     }
 
@@ -204,10 +209,10 @@ export default function EditProfileScreen() {
         .update({ avatar_url: avatarUrl })
         .eq("id", userId);
 
-      Alert.alert("Success", "Avatar updated!");
+      showToast({ title: 'Photo Updated', message: 'Your avatar has been saved.', type: 'success' });
     } catch (error: any) {
       console.error("Upload error:", error);
-      Alert.alert("Upload Failed", error.message);
+      showToast({ title: 'Upload Failed', message: error.message, type: 'error' });
     } finally {
       setUploading(false);
     }
@@ -235,19 +240,16 @@ export default function EditProfileScreen() {
           work_address: profile.work_address || null,
           work_lat: profile.work_lat,
           work_long: profile.work_long,
-          // Clear AI cache whenever commute details change
-          ai_suggestions_cache: null,
-          ai_cache_updated_at: null,
+          is_public: profile.is_public,
         })
         .eq("id", userId);
 
       if (error) throw error;
 
-      Alert.alert("Saved!", "Your profile has been updated.", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      showToast({ title: 'Saved!', message: 'Your profile has been updated.', type: 'success' });
+      router.back();
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      showToast({ title: 'Error', message: error.message, type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -330,30 +332,32 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <View style={styles.inputIcon}>
+            <Text style={styles.inputLabel}>Phone</Text>
+            <View style={styles.inputWithIcon}>
               <Phone size={18} color={COLORS.gray} />
+              <TextInput
+                style={styles.inputInner}
+                placeholder=""
+                placeholderTextColor={COLORS.gray}
+                keyboardType="phone-pad"
+                value={profile.phone}
+                onChangeText={(v) => updateField("phone", v)}
+              />
             </View>
-            <TextInput
-              style={[styles.input, { paddingLeft: 44 }]}
-              placeholder=""
-              placeholderTextColor={COLORS.gray}
-              keyboardType="phone-pad"
-              value={profile.phone}
-              onChangeText={(v) => updateField("phone", v)}
-            />
           </View>
 
           <View style={styles.inputGroup}>
-            <View style={styles.inputIcon}>
+            <Text style={styles.inputLabel}>Department</Text>
+            <View style={styles.inputWithIcon}>
               <Building2 size={18} color={COLORS.gray} />
+              <TextInput
+                style={styles.inputInner}
+                placeholder=""
+                placeholderTextColor={COLORS.gray}
+                value={profile.department}
+                onChangeText={(v) => updateField("department", v)}
+              />
             </View>
-            <TextInput
-              style={[styles.input, { paddingLeft: 44 }]}
-              placeholder=""
-              placeholderTextColor={COLORS.gray}
-              value={profile.department}
-              onChangeText={(v) => updateField("department", v)}
-            />
           </View>
         </View>
 
@@ -390,29 +394,31 @@ export default function EditProfileScreen() {
 
           <View style={styles.inputRow}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <View style={styles.inputIcon}>
+              <Text style={styles.inputLabel}>Color</Text>
+              <View style={styles.inputWithIcon}>
                 <Palette size={18} color={COLORS.gray} />
+                <TextInput
+                  style={styles.inputInner}
+                  placeholder=""
+                  placeholderTextColor={COLORS.gray}
+                  value={profile.car_color}
+                  onChangeText={(v) => updateField("car_color", v)}
+                />
               </View>
-              <TextInput
-                style={[styles.input, { paddingLeft: 44 }]}
-                placeholder=""
-                placeholderTextColor={COLORS.gray}
-                value={profile.car_color}
-                onChangeText={(v) => updateField("car_color", v)}
-              />
             </View>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <View style={styles.inputIcon}>
+              <Text style={styles.inputLabel}>Plate</Text>
+              <View style={styles.inputWithIcon}>
                 <CreditCard size={18} color={COLORS.gray} />
+                <TextInput
+                  style={styles.inputInner}
+                  placeholder=""
+                  placeholderTextColor={COLORS.gray}
+                  autoCapitalize="characters"
+                  value={profile.car_plate}
+                  onChangeText={(v) => updateField("car_plate", v)}
+                />
               </View>
-              <TextInput
-                style={[styles.input, { paddingLeft: 44 }]}
-                placeholder=""
-                placeholderTextColor={COLORS.gray}
-                autoCapitalize="characters"
-                value={profile.car_plate}
-                onChangeText={(v) => updateField("car_plate", v)}
-              />
             </View>
           </View>
         </View>
@@ -482,6 +488,23 @@ export default function EditProfileScreen() {
                 }))
               }
               showClearButton
+            />
+          </View>
+        </View>
+
+        {/* Map Visibility Toggle */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Privacy</Text>
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.toggleLabel}>Visible on map</Text>
+              <Text style={styles.toggleSub}>Others can see your commute activity and offer carpools</Text>
+            </View>
+            <Switch
+              value={profile.is_public}
+              onValueChange={(val) => setProfile((prev) => ({ ...prev, is_public: val }))}
+              trackColor={{ false: COLORS.grayLight, true: COLORS.primary + "80" }}
+              thumbColor={profile.is_public ? COLORS.primary : COLORS.gray}
             />
           </View>
         </View>
@@ -561,9 +584,8 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 },
   sectionTitle: { fontSize: 16, fontWeight: "bold", color: COLORS.dark },
   sectionSubtitle: { fontSize: 12, color: COLORS.gray, marginBottom: 16 },
-  inputGroup: { marginBottom: 16, position: "relative" },
+  inputGroup: { marginBottom: 16 },
   inputLabel: { fontSize: 12, color: COLORS.gray, marginBottom: 8, fontWeight: "500" },
-  inputIcon: { position: "absolute", left: 14, top: 40, zIndex: 1 },
   input: {
     backgroundColor: COLORS.grayLight,
     borderRadius: 14,
@@ -571,6 +593,21 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 15,
     color: COLORS.dark,
+  },
+  inputWithIcon: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.grayLight,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 10,
+  },
+  inputInner: {
+    flex: 1,
+    fontSize: 15,
+    color: COLORS.dark,
+    padding: 0,
   },
   inputRow: { flexDirection: "row", gap: 12 },
   saveButton: { borderRadius: 16, overflow: "hidden", marginTop: 8 },
@@ -583,5 +620,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   saveText: { color: COLORS.white, fontSize: 17, fontWeight: "bold" },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 4,
+  },
+  toggleLabel: { fontSize: 15, fontWeight: "600", color: COLORS.dark, marginBottom: 2 },
+  toggleSub: { fontSize: 12, color: COLORS.gray, lineHeight: 16 },
 });
 
