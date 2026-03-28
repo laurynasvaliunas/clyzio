@@ -15,6 +15,8 @@ import * as Device from "expo-device";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 import { supabase } from "../lib/supabase";
 import { checkAndSendAINotifications } from "../lib/aiNotifications";
+import { useAIStore } from "../store/useAIStore";
+import IncomingSuggestionBanner from "../components/IncomingSuggestionBanner";
 import "../global.css";
 
 // Brand Colors (matching logo)
@@ -248,6 +250,7 @@ function RootLayoutContent() {
   const segments = useSegments();
   const [isReady, setIsReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { subscribeToIncomingSuggestions, unsubscribeFromSuggestions } = useAIStore();
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>("");
   const notificationListener = useRef<Notifications.EventSubscription>();
   const responseListener = useRef<Notifications.EventSubscription>();
@@ -275,6 +278,18 @@ function RootLayoutContent() {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Subscribe to incoming carpool suggestions when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      subscribeToIncomingSuggestions();
+    } else {
+      unsubscribeFromSuggestions();
+    }
+    return () => {
+      unsubscribeFromSuggestions();
+    };
+  }, [isAuthenticated]);
 
   // Handle navigation based on auth state
   useEffect(() => {
@@ -347,6 +362,7 @@ function RootLayoutContent() {
           <Stack.Screen name="trip" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
         </Stack>
+        <IncomingSuggestionBanner />
       </View>
     </SafeAreaProvider>
   );
