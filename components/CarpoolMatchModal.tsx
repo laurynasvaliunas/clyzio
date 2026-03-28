@@ -11,8 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { X, Users, Leaf, Clock, CheckCircle } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { supabase } from "../lib/supabase";
-import { CarpoolMatch, CarpoolAIResult } from "../store/useAIStore";
+import { CarpoolMatch, CarpoolAIResult, useAIStore } from "../store/useAIStore";
 
 const COLORS = {
   primary: "#26C6DA",
@@ -53,49 +52,20 @@ export default function CarpoolMatchModal({
   onClose,
   onMatchAccepted,
 }: CarpoolMatchModalProps) {
+  const { sendCarpoolSuggestion } = useAIStore();
+
   const handleRequest = async (match: CarpoolMatch) => {
-    if (!rideId) return;
+    if (!match.to_user_id) {
+      Alert.alert("Error", "This match is no longer available.");
+      return;
+    }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Fetch the target user id from the matched ride
-      const { data: ride } = await supabase
-        .from("rides")
-        .select("rider_id, driver_id, origin_lat, origin_long, dest_lat, dest_long, origin_address, dest_address")
-        .eq("id", match.ride_id)
-        .single();
-
-      if (!ride) {
-        Alert.alert("Error", "This ride is no longer available.");
-        return;
-      }
-
-      const targetId = ride.driver_id !== user.id ? ride.driver_id : ride.rider_id;
-      if (!targetId) return;
-
-      const { error } = await supabase.from("ride_requests").insert({
-        requester_id: user.id,
-        target_id: targetId,
-        ride_id: match.ride_id,
-        requester_role: "rider",
-        status: "pending",
-        pickup_lat: ride.origin_lat,
-        pickup_long: ride.origin_long,
-        pickup_address: ride.origin_address,
-        dropoff_lat: ride.dest_lat,
-        dropoff_long: ride.dest_long,
-        dropoff_address: ride.dest_address,
-        message: `AI matched — compatibility score: ${match.compatibility_score}/100`,
-      });
-
-      if (error) throw error;
-
+      await sendCarpoolSuggestion(match);
       onMatchAccepted(match.ride_id);
       Alert.alert(
         "Request Sent!",
-        `You've sent a carpool request to ${match.user_first_name}. Check your Activity tab for updates.`
+        `You've sent a carpool request to ${match.user_first_name}. They'll be notified and can accept or decline.`
       );
       onClose();
     } catch (err: any) {

@@ -16,6 +16,7 @@ Rules:
 interface CarpoolMatch {
   ride_id: string;
   user_first_name: string;
+  to_user_id?: string;
   compatibility_score: number;
   co2_saving_kg: number;
   reasoning: string;
@@ -123,6 +124,18 @@ Return JSON matching this schema exactly:
 
     const parsed = parseClaudeJSON<CarpoolResponse>(text);
 
+    // Enrich each ranked match with the target user's ID from the DB candidates
+    const candidateUserMap = new Map<string, string>(
+      candidates.map((c: { ride_id: string; user_id: string }) => [c.ride_id, c.user_id])
+    );
+    const enriched: CarpoolResponse = {
+      ...parsed,
+      ranked_matches: parsed.ranked_matches.map((m) => ({
+        ...m,
+        to_user_id: candidateUserMap.get(m.ride_id),
+      })),
+    };
+
     // Log to ai_suggestions
     await supabase.from('ai_suggestions').insert({
       user_id: userId,
@@ -131,11 +144,11 @@ Return JSON matching this schema exactly:
         origin_lat, origin_long, dest_lat, dest_long,
         role, candidates_count: candidates.length,
       },
-      ai_response: parsed,
+      ai_response: enriched,
       tokens_used: usage.input_tokens + usage.output_tokens,
     });
 
-    return new Response(JSON.stringify(parsed), {
+    return new Response(JSON.stringify(enriched), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
