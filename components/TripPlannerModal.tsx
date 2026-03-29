@@ -26,6 +26,7 @@ import {
   MapPin,
   Navigation2,
   ChevronDown,
+  ChevronUp,
   Calendar,
   Clock,
   Plus,
@@ -191,9 +192,43 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
   
   const slideAnim = useRef(new Animated.Value(0)).current;
 
+  // ── Minimize state ──────────────────────────────────────────────────────────
+  const [isMinimized, setIsMinimized] = useState(false);
+  const minimizeTranslate = useRef(new Animated.Value(0)).current;
+  const backdropOpacityAnim = useRef(new Animated.Value(0.35)).current;
+  const sheetHeightRef = useRef(0);
+  const MINI_BAR_H = 82; // handle(25) + header row(57)
+
+  const toggleMinimize = () => {
+    const nextMinimized = !isMinimized;
+    const offset = nextMinimized
+      ? (sheetHeightRef.current > 0 ? sheetHeightRef.current - MINI_BAR_H : height * 0.72)
+      : 0;
+    Animated.parallel([
+      Animated.spring(minimizeTranslate, {
+        toValue: offset,
+        friction: 9,
+        tension: 60,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropOpacityAnim, {
+        toValue: nextMinimized ? 0 : 0.35,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    setIsMinimized(nextMinimized);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
   React.useEffect(() => {
     if (visible) {
       Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start();
+    } else {
+      // Reset minimize state when modal hides
+      minimizeTranslate.setValue(0);
+      backdropOpacityAnim.setValue(0.35);
+      setIsMinimized(false);
     }
   }, [visible]);
 
@@ -423,6 +458,10 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
 
   const handleClose = () => {
     Keyboard.dismiss();
+    // Reset minimize state
+    minimizeTranslate.setValue(0);
+    backdropOpacityAnim.setValue(0.35);
+    setIsMinimized(false);
     // Reset all form state so the modal opens fresh next time
     setOriginDescription("");
     setDestDescription("");
@@ -449,20 +488,54 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.sheetWrapper}
+        pointerEvents="box-none"
       >
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={handleClose} />
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.handle} />
+        {/* Backdrop — dims map when expanded, transparent when minimized */}
+        <Animated.View
+          style={[styles.backdrop, { opacity: backdropOpacityAnim }]}
+          pointerEvents={isMinimized ? "none" : "auto"}
+        >
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={handleClose} />
+        </Animated.View>
 
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Plan Trip</Text>
-            <TouchableOpacity onPress={handleClose}>
-              <X size={24} color="#999" />
-            </TouchableOpacity>
-          </View>
+        <Animated.View
+          style={[styles.sheet, { transform: [{ translateY: minimizeTranslate }] }]}
+          onLayout={(e) => { sheetHeightRef.current = e.nativeEvent.layout.height; }}
+        >
+          {/* ── Handle — tap to minimize/expand ── */}
+          <TouchableOpacity onPress={toggleMinimize} activeOpacity={0.7} style={styles.handleContainer}>
+            <View style={styles.handle} />
+          </TouchableOpacity>
 
-          {/* Single scrollable body */}
+          {/* ── Header — changes when minimized ── */}
+          {isMinimized ? (
+            <View style={[styles.header, styles.miniHeader]}>
+              <TouchableOpacity onPress={toggleMinimize} style={styles.miniExpandArea} activeOpacity={0.7}>
+                <ChevronUp size={18} color={COLORS.primary} />
+                <Text style={styles.miniRouteText} numberOfLines={1}>
+                  {originDescription
+                    ? `${originDescription.split(",")[0]}${destDescription ? ` → ${destDescription.split(",")[0]}` : ""}`
+                    : "Tap to expand"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleClose} hitSlop={8}>
+                <X size={20} color="#999" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.header}>
+              <TouchableOpacity onPress={toggleMinimize} hitSlop={8}>
+                <ChevronDown size={20} color={COLORS.gray} />
+              </TouchableOpacity>
+              <Text style={styles.title}>Plan Trip</Text>
+              <TouchableOpacity onPress={handleClose}>
+                <X size={24} color="#999" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* ── Scrollable body — hidden while minimized (state is preserved) ── */}
+          {!isMinimized && (
           <ScrollView
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -678,9 +751,10 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
               </>
             )}
           </ScrollView>
+          )}
 
-          {/* Submit button — pinned to bottom, only visible when ready */}
-          {modeReady && (
+          {/* Submit button — pinned to bottom, hidden while minimized */}
+          {!isMinimized && modeReady && (
             <View style={styles.submitBtn}>
               <TouchableOpacity
                 style={[styles.btn, !(role === "rider" || selectedMode) && styles.btnDisabled]}
@@ -716,7 +790,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    padding: 24,
+    paddingHorizontal: 24,
     paddingBottom: 32,
     maxHeight: height * 0.92,
     shadowColor: "#000",
@@ -724,22 +798,42 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
   },
-  handle: { 
-    width: 40, 
-    height: 5, 
-    backgroundColor: "#E0E0E0", 
-    borderRadius: 10, 
-    alignSelf: "center", 
-    marginBottom: 20 
+  handleContainer: {
+    alignItems: "center",
+    paddingTop: 12,
+    paddingBottom: 8,
   },
-  header: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
+  handle: {
+    width: 40,
+    height: 5,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 10,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20 
+    marginBottom: 20,
   },
-  title: { 
-    fontSize: 20, 
+  miniHeader: {
+    marginBottom: 0,
+    paddingVertical: 6,
+  },
+  miniExpandArea: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingRight: 12,
+  },
+  miniRouteText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.dark,
+  },
+  title: {
+    fontSize: 20,
     fontWeight: "bold",
     flex: 1,
     textAlign: 'center',
