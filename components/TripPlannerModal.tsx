@@ -67,9 +67,10 @@ interface CustomAddressInputProps {
   icon: React.ReactNode;
   onSelect: (data: { description: string; location: { lat: number; lng: number } }) => void;
   inputRef?: React.RefObject<TextInput | null>;
+  initialValue?: string;
 }
-const CustomAddressInput = ({ placeholder, icon, onSelect, inputRef }: CustomAddressInputProps) => {
-  const [text, setText] = useState("");
+const CustomAddressInput = ({ placeholder, icon, onSelect, inputRef, initialValue }: CustomAddressInputProps) => {
+  const [text, setText] = useState(initialValue ?? "");
   const [results, setResults] = useState<any[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -150,9 +151,11 @@ interface TripPlannerModalProps {
     scheduledTime?: Date;
   }) => void;
   initialMode?: string; // Pre-select a transport mode when opened from AI Planner
+  initialOrigin?: { lat: number; lng: number; description: string }; // Pre-fill origin from AI Planner
+  initialDest?: { lat: number; lng: number; description: string };   // Pre-fill destination from AI Planner
 }
 
-const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, onTripStart, initialMode }) => {
+const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, onTripStart, initialMode, initialOrigin, initialDest }) => {
   const { showToast } = useToast();
   const [step, setStep] = useState<"location" | "mode">("location");
   const [role, setRole] = useState<"solo" | "driver" | "rider">("solo");
@@ -174,6 +177,9 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
   const [carpoolCandidates, setCarpoolCandidates] = useState<any[]>([]);
   const [isLoadingCarpool, setIsLoadingCarpool] = useState(false);
   const [carpoolFetched, setCarpoolFetched] = useState(false);
+
+  // Key used to force re-mount address inputs (so they reset when modal closes/pre-fills)
+  const [addressMountKey, setAddressMountKey] = useState(0);
 
   // Scheduling state - default to 15 minutes from now so trips appear in "Upcoming"
   const [scheduledDate, setScheduledDate] = useState(() => {
@@ -206,6 +212,22 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       }
     }
   }, [visible, initialMode]);
+
+  // Pre-fill origin & destination when opened from AI Planner with pre-set locations
+  React.useEffect(() => {
+    if (!visible) return;
+    if (initialOrigin) {
+      setOriginDescription(initialOrigin.description);
+      setOriginCoords({ lat: initialOrigin.lat, lng: initialOrigin.lng });
+    }
+    if (initialDest) {
+      setDestDescription(initialDest.description);
+      setDestCoords({ lat: initialDest.lat, lng: initialDest.lng });
+    }
+    if (initialOrigin || initialDest) {
+      setAddressMountKey(k => k + 1); // Re-mount inputs so they show the pre-filled values
+    }
+  }, [visible, initialOrigin, initialDest]);
 
   // Calculate route distance when origin and destination are set
   React.useEffect(() => {
@@ -401,8 +423,16 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
 
   const handleClose = () => {
     Keyboard.dismiss();
+    // Reset all form state so the modal opens fresh next time
+    setOriginDescription("");
+    setDestDescription("");
+    setOriginCoords(null);
+    setDestCoords(null);
+    setSelectedMode(null);
+    setRole("solo");
     setCarpoolCandidates([]);
     setCarpoolFetched(false);
+    setAddressMountKey(k => k + 1); // Re-mount address inputs fresh
     onClose();
   };
 
@@ -440,8 +470,10 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
           >
             {/* ── Location Inputs ── */}
             <CustomAddressInput
+              key={`origin-${addressMountKey}`}
               placeholder="Origin"
               icon={<Navigation2 size={20} color={COLORS.green} />}
+              initialValue={originDescription}
               onSelect={(data) => {
                 setOriginDescription(data.description);
                 setOriginCoords({ lat: data.location.lat, lng: data.location.lng });
@@ -482,8 +514,10 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
             )}
 
             <CustomAddressInput
+              key={`dest-${addressMountKey}`}
               placeholder="Destination"
               icon={<MapPin size={20} color={COLORS.red} />}
+              initialValue={destDescription}
               onSelect={(data) => {
                 setDestDescription(data.description);
                 setDestCoords({ lat: data.location.lat, lng: data.location.lng });

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  TextInput,
+  Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -26,7 +28,10 @@ import {
   Clock,
   Euro,
   Navigation,
+  MapPin,
+  Pencil,
 } from "lucide-react-native";
+import { MAPBOX_TOKEN } from "../../lib/config";
 import { supabase } from "../../lib/supabase";
 import { useAIStore, CommuteSuggestion } from "../../store/useAIStore";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -361,6 +366,128 @@ function LocalInsightsPanel({
   );
 }
 
+// ─── Planner Location type ────────────────────────────────────────────────────
+
+export interface PlannerLocation {
+  lat: number;
+  lng: number;
+  description: string;
+}
+
+// ─── Inline geocoding input for AI Planner ────────────────────────────────────
+
+interface PlannerAddressInputProps {
+  placeholder: string;
+  value: string;
+  onSelect: (loc: PlannerLocation) => void;
+  TC: ReturnType<typeof getThemeColors>;
+}
+
+function PlannerAddressInput({ placeholder, value, onSelect, TC }: PlannerAddressInputProps) {
+  const [text, setText] = useState(value);
+  const [results, setResults] = useState<any[]>([]);
+  const [isFocused, setIsFocused] = useState(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync external value changes (e.g. when profile loads)
+  useEffect(() => { setText(value); }, [value]);
+
+  const searchPlaces = (searchText: string) => {
+    setText(searchText);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    if (searchText.length < 3) { setResults([]); return; }
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchText)}.json?access_token=${MAPBOX_TOKEN}&limit=5&types=address,place,locality,neighborhood`;
+        const res = await fetch(url);
+        const json = await res.json();
+        setResults(json.features ?? []);
+      } catch (_) { /* silent */ }
+    }, 350);
+  };
+
+  const handleSelect = (feature: any) => {
+    Keyboard.dismiss();
+    const [lng, lat] = feature.geometry.coordinates;
+    setText(feature.place_name);
+    setResults([]);
+    setIsFocused(false);
+    onSelect({ lat, lng, description: feature.place_name });
+  };
+
+  return (
+    <View style={{ marginBottom: 4 }}>
+      <View style={[plannerInputStyles.row, { backgroundColor: TC.surface2, borderColor: isFocused ? COLORS.primary : 'transparent' }]}>
+        <MapPin size={15} color={COLORS.primary} />
+        <TextInput
+          style={[plannerInputStyles.input, { color: TC.text }]}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.gray}
+          value={text}
+          onChangeText={searchPlaces}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {text.length > 0 && isFocused && (
+          <TouchableOpacity onPress={() => { setText(""); setResults([]); }}>
+            <Text style={{ color: COLORS.gray, fontSize: 16 }}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {isFocused && results.length > 0 && (
+        <View style={[plannerInputStyles.dropdown, { backgroundColor: TC.surface }]}>
+          {results.map((item, idx) => (
+            <TouchableOpacity
+              key={`${item.id}-${idx}`}
+              style={plannerInputStyles.dropdownItem}
+              onPress={() => handleSelect(item)}
+            >
+              <MapPin size={14} color={COLORS.gray} />
+              <Text style={[plannerInputStyles.dropdownText, { color: TC.text }]} numberOfLines={1}>
+                {item.place_name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+const plannerInputStyles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1.5,
+  },
+  input: { flex: 1, fontSize: 13, fontWeight: "500" },
+  dropdown: {
+    borderRadius: 12,
+    marginTop: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    zIndex: 999,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(0,0,0,0.06)",
+  },
+  dropdownText: { flex: 1, fontSize: 13 },
+});
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 interface UserProfile {
@@ -384,6 +511,10 @@ export default function AIPlannerScreen() {
   const [hasLocations, setHasLocations] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showCarpoolModal, setShowCarpoolModal] = useState(false);
+
+  // Editable planner locations (default to home→work, user can override here)
+  const [plannerOrigin, setPlannerOrigin] = useState<PlannerLocation | null>(null);
+  const [plannerDest, setPlannerDest] = useState<PlannerLocation | null>(null);
 
   const distKm = useMemo(() => {
     if (!userProfile?.home_lat || !userProfile?.home_long || !userProfile?.work_lat || !userProfile?.work_long) return 0;
@@ -410,6 +541,14 @@ export default function AIPlannerScreen() {
     const hasAddresses = !!(profile?.home_address && profile?.work_address);
     setHasLocations(hasAddresses);
 
+    // Initialise editable planner locations from profile (only if not already overridden)
+    if (profile?.home_lat && profile?.home_long && profile?.home_address) {
+      setPlannerOrigin({ lat: profile.home_lat, lng: profile.home_long, description: profile.home_address });
+    }
+    if (profile?.work_lat && profile?.work_long && profile?.work_address) {
+      setPlannerDest({ lat: profile.work_lat, lng: profile.work_long, description: profile.work_address });
+    }
+
     if (hasAddresses) {
       fetchCommuteSuggestions();
 
@@ -428,8 +567,42 @@ export default function AIPlannerScreen() {
   };
 
   const handlePlanIt = (mode: string) => {
-    // Navigate to the map/home tab — TripPlannerModal picks up the mode via query param
-    router.push({ pathname: "/(tabs)", params: { preset_mode: mode } });
+    // Navigate to the map/home tab — TripPlannerModal picks up mode + locations via query params
+    router.push({
+      pathname: "/(tabs)",
+      params: {
+        preset_mode: mode,
+        ...(plannerOrigin && {
+          preset_origin_lat: String(plannerOrigin.lat),
+          preset_origin_lng: String(plannerOrigin.lng),
+          preset_origin_desc: plannerOrigin.description,
+        }),
+        ...(plannerDest && {
+          preset_dest_lat: String(plannerDest.lat),
+          preset_dest_lng: String(plannerDest.lng),
+          preset_dest_desc: plannerDest.description,
+        }),
+      },
+    });
+  };
+
+  const handlePlanWithOther = () => {
+    // Open TripPlannerModal with locations pre-filled but no mode selected
+    router.push({
+      pathname: "/(tabs)",
+      params: {
+        ...(plannerOrigin && {
+          preset_origin_lat: String(plannerOrigin.lat),
+          preset_origin_lng: String(plannerOrigin.lng),
+          preset_origin_desc: plannerOrigin.description,
+        }),
+        ...(plannerDest && {
+          preset_dest_lat: String(plannerDest.lat),
+          preset_dest_lng: String(plannerDest.lng),
+          preset_dest_desc: plannerDest.description,
+        }),
+      },
+    });
   };
 
   const handleRefresh = () => {
@@ -453,7 +626,7 @@ export default function AIPlannerScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         {/* Profile completion banner */}
         {!hasLocations && (
@@ -470,6 +643,38 @@ export default function AIPlannerScreen() {
             </View>
             <ChevronRight size={18} color={COLORS.orange} />
           </TouchableOpacity>
+        )}
+
+        {/* ─── Editable commute route ───────────────────────────────── */}
+        {hasLocations && (
+          <View style={[styles.editableRouteCard, { backgroundColor: TC.surface }]}>
+            <View style={styles.editableRouteHeader}>
+              <Navigation size={14} color={COLORS.primary} />
+              <Text style={[styles.editableRouteTitle, { color: TC.textSecondary }]}>Your commute route</Text>
+            </View>
+
+            <PlannerAddressInput
+              placeholder="Home / Origin"
+              value={plannerOrigin?.description ?? userProfile?.home_address ?? ""}
+              onSelect={setPlannerOrigin}
+              TC={TC}
+            />
+            <View style={styles.editableRouteDivider} />
+            <PlannerAddressInput
+              placeholder="Work / Destination"
+              value={plannerDest?.description ?? userProfile?.work_address ?? ""}
+              onSelect={setPlannerDest}
+              TC={TC}
+            />
+
+            <TouchableOpacity
+              style={styles.planWithOtherBtn}
+              onPress={handlePlanWithOther}
+            >
+              <MapPin size={15} color={COLORS.primary} />
+              <Text style={styles.planWithOtherText}>Plan with custom mode →</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Hero insight card */}
@@ -640,6 +845,48 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   scroll: { flex: 1, paddingHorizontal: 16 },
+
+  // Editable commute route card
+  editableRouteCard: {
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    zIndex: 10,
+  },
+  editableRouteHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 10,
+  },
+  editableRouteTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  editableRouteDivider: {
+    height: 8,
+  },
+  planWithOtherBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.light,
+    borderRadius: 12,
+  },
+  planWithOtherText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.primary,
+  },
 
   // Profile completion banner — yellow left-border style
   completionBanner: {

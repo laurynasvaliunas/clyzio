@@ -319,7 +319,15 @@ export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
   const cameraRef = useRef<Camera>(null);
   const router = useRouter();
-  const { preset_mode } = useLocalSearchParams<{ preset_mode?: string }>();
+  const { preset_mode, preset_origin_lat, preset_origin_lng, preset_origin_desc, preset_dest_lat, preset_dest_lng, preset_dest_desc } = useLocalSearchParams<{
+    preset_mode?: string;
+    preset_origin_lat?: string;
+    preset_origin_lng?: string;
+    preset_origin_desc?: string;
+    preset_dest_lat?: string;
+    preset_dest_lng?: string;
+    preset_dest_desc?: string;
+  }>();
   const { isDark } = useTheme();
   const TC = getThemeColors(isDark);
   const { showToast } = useToast();
@@ -332,6 +340,8 @@ export default function MapScreen() {
   const [locationGranted, setLocationGranted] = useState(false);
   const [showPlanner, setShowPlanner] = useState(false);
   const [pendingPresetMode, setPendingPresetMode] = useState<string | null>(null);
+  const [pendingPresetOrigin, setPendingPresetOrigin] = useState<{ lat: number; lng: number; description: string } | null>(null);
+  const [pendingPresetDest, setPendingPresetDest] = useState<{ lat: number; lng: number; description: string } | null>(null);
   const [activeTrip, setActiveTrip] = useState<any>(null);
   const [routeCoords, setRouteCoords] = useState<number[][] | null>(null);
 
@@ -447,13 +457,30 @@ export default function MapScreen() {
     }, [fetchCommuteSuggestions])
   );
 
-  // ✅ Auto-open TripPlannerModal with pre-selected mode when navigated from AI Planner
+  // ✅ Auto-open TripPlannerModal with pre-selected mode + locations when navigated from AI Planner
   useEffect(() => {
+    const hasParams = preset_mode || preset_origin_lat || preset_dest_lat;
+    if (!hasParams) return;
+
     if (preset_mode && typeof preset_mode === 'string') {
       setPendingPresetMode(preset_mode);
-      setShowPlanner(true);
     }
-  }, [preset_mode]);
+    if (preset_origin_lat && preset_origin_lng && preset_origin_desc) {
+      setPendingPresetOrigin({
+        lat: parseFloat(preset_origin_lat),
+        lng: parseFloat(preset_origin_lng),
+        description: preset_origin_desc,
+      });
+    }
+    if (preset_dest_lat && preset_dest_lng && preset_dest_desc) {
+      setPendingPresetDest({
+        lat: parseFloat(preset_dest_lat),
+        lng: parseFloat(preset_dest_lng),
+        description: preset_dest_desc,
+      });
+    }
+    setShowPlanner(true);
+  }, [preset_mode, preset_origin_lat, preset_origin_lng, preset_origin_desc, preset_dest_lat, preset_dest_lng, preset_dest_desc]);
 
   /**
    * ✅ POST-TRIP MAP RESET
@@ -929,9 +956,16 @@ export default function MapScreen() {
       {/* ✅ ISOLATED MODAL - Memoized, never re-renders parent */}
       <TripPlannerModal
         visible={showPlanner}
-        onClose={() => { setShowPlanner(false); setPendingPresetMode(null); }}
+        onClose={() => {
+          setShowPlanner(false);
+          setPendingPresetMode(null);
+          setPendingPresetOrigin(null);
+          setPendingPresetDest(null);
+        }}
         onTripStart={handleTripStart}
         initialMode={pendingPresetMode ?? undefined}
+        initialOrigin={pendingPresetOrigin ?? undefined}
+        initialDest={pendingPresetDest ?? undefined}
       />
 
       {/* ✅ SEARCHING OVERLAY: Shows during driver/rider search, hidden when viewing map */}
