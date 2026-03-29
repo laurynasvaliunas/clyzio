@@ -35,6 +35,7 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
 import { computeLocalModes } from "../lib/commuteUtils";
@@ -158,6 +159,9 @@ interface TripPlannerModalProps {
 
 const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, onTripStart, initialMode, initialOrigin, initialDest }) => {
   const { showToast } = useToast();
+  const insets = useSafeAreaInsets();
+  // Tab bar height = standard 49px + device bottom safe area (home indicator)
+  const TAB_BAR_HEIGHT = 49 + insets.bottom;
   const [step, setStep] = useState<"location" | "mode">("location");
   const [role, setRole] = useState<"solo" | "driver" | "rider">("solo");
   
@@ -201,8 +205,13 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
 
   const toggleMinimize = () => {
     const nextMinimized = !isMinimized;
+    // Translate down by (sheetHeight - miniBar - tabBar) so the mini bar floats
+    // just above the tab bar rather than sliding behind it.
+    const tabBarOffset = TAB_BAR_HEIGHT + 8; // 8px breathing room above tab bar
     const offset = nextMinimized
-      ? (sheetHeightRef.current > 0 ? sheetHeightRef.current - MINI_BAR_H : height * 0.72)
+      ? (sheetHeightRef.current > 0
+          ? sheetHeightRef.current - MINI_BAR_H - tabBarOffset
+          : height * 0.55)
       : 0;
     Animated.parallel([
       Animated.spring(minimizeTranslate, {
