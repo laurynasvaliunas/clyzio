@@ -310,21 +310,32 @@ function RootLayoutContent() {
   }, [isAuthenticated, segments]);
 
   useEffect(() => {
-    // Register for push notifications
-    registerForPushNotificationsAsync().then((token) => setExpoPushToken(token));
+    // Register for push notifications and store token in DB
+    registerForPushNotificationsAsync().then(async (token) => {
+      setExpoPushToken(token);
+      if (token) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('profiles').update({ expo_push_token: token }).eq('id', user.id);
+        }
+      }
+    });
 
     // Check if AI-powered notifications should be sent on app open
     checkAndSendAINotifications().catch(() => {});
-
 
     // Listen for incoming notifications
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
       console.log("Notification received:", notification);
     });
 
-    // Listen for user tapping on notification
+    // Listen for user tapping on notification — deep-link into daily commute flow
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       console.log("Notification response:", response);
+      const screen = response.notification.request.content.data?.screen;
+      if (screen === 'daily-commute') {
+        router.push('/daily-commute');
+      }
     });
 
     return () => {
@@ -365,6 +376,7 @@ function RootLayoutContent() {
           <Stack.Screen name="trip" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
           <Stack.Screen name="legal" options={{ headerShown: false, presentation: "modal" }} />
+          <Stack.Screen name="daily-commute" options={{ headerShown: false, presentation: "modal" }} />
         </Stack>
         <IncomingSuggestionBanner />
       </View>
