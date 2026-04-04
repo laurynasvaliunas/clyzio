@@ -186,12 +186,8 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
   submitIntent: async (params) => {
     set({ isLoading: true, error: null });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
       const { data, error } = await supabase.functions.invoke("submit-trip-intent", {
         body: params,
-        headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       if (error) throw error;
@@ -207,12 +203,8 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
   respondAsDriver: async (params) => {
     set({ isLoading: true, error: null });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
       const { error } = await supabase.functions.invoke("driver-respond-to-matches", {
         body: params,
-        headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       if (error) throw error;
@@ -229,12 +221,8 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
   respondAsPassenger: async (params) => {
     set({ isLoading: true, error: null });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-
       const { error } = await supabase.functions.invoke("passenger-respond-to-match", {
         body: params,
-        headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       if (error) throw error;

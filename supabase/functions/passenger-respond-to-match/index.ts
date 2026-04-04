@@ -34,10 +34,13 @@ Deno.serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    if (authError || !user) {
+    let userId: string;
+    try {
+      const jwt = authHeader.replace("Bearer ", "");
+      const payload = JSON.parse(atob(jwt.split(".")[1]));
+      userId = payload.sub;
+      if (!userId) throw new Error("no sub");
+    } catch {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
@@ -47,7 +50,7 @@ Deno.serve(async (req) => {
       .from("trip_intent_matches")
       .select("driver_user_id, passenger_intent_id, driver_intent_id, trip_date, pickup_lat, pickup_long, proposed_departure")
       .eq("id", match_id)
-      .eq("passenger_user_id", user.id)
+      .eq("passenger_user_id", userId)
       .single();
 
     if (matchError || !match) {
@@ -57,7 +60,7 @@ Deno.serve(async (req) => {
     const { data: passengerProfile } = await supabase
       .from("profiles")
       .select("first_name")
-      .eq("id", user.id)
+      .eq("id", userId)
       .single();
     const passengerName = passengerProfile?.first_name ?? "Your passenger";
 
@@ -72,7 +75,7 @@ Deno.serve(async (req) => {
         .from("rides")
         .insert({
           driver_id: match.driver_user_id,
-          rider_id: user.id,
+          rider_id: userId,
           status: "scheduled",
           origin_lat: match.pickup_lat ?? 0,
           origin_long: match.pickup_long ?? 0,

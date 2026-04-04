@@ -34,10 +34,13 @@ Deno.serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    if (authError || !user) {
+    let userId: string;
+    try {
+      const jwt = authHeader.replace("Bearer ", "");
+      const payload = JSON.parse(atob(jwt.split(".")[1]));
+      userId = payload.sub;
+      if (!userId) throw new Error("no sub");
+    } catch {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
@@ -52,7 +55,7 @@ Deno.serve(async (req) => {
     const { data: driverProfile } = await supabase
       .from("profiles")
       .select("first_name")
-      .eq("id", user.id)
+      .eq("id", userId)
       .single();
     const driverName = driverProfile?.first_name ?? "Your driver";
 
@@ -73,7 +76,7 @@ Deno.serve(async (req) => {
         .from("trip_intent_matches")
         .update(updates)
         .eq("id", matchId)
-        .eq("driver_user_id", user.id)
+        .eq("driver_user_id", userId)
         .eq("status", "pending_driver_review")
         .select("passenger_user_id")
         .single();
@@ -100,7 +103,7 @@ Deno.serve(async (req) => {
         .from("trip_intent_matches")
         .update({ status: "cancelled_by_driver", updated_at: new Date().toISOString() })
         .eq("id", matchId)
-        .eq("driver_user_id", user.id)
+        .eq("driver_user_id", userId)
         .eq("status", "pending_driver_review");
     }
 

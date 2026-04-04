@@ -18,15 +18,18 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Auth — verify the user JWT
+    // Auth — JWT already validated by gateway (verify_jwt: true); extract sub from payload
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    if (authError || !user) {
+    let userId: string;
+    try {
+      const jwt = authHeader.replace("Bearer ", "");
+      const payload = JSON.parse(atob(jwt.split(".")[1]));
+      userId = payload.sub;
+      if (!userId) throw new Error("no sub");
+    } catch {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
@@ -41,7 +44,7 @@ Deno.serve(async (req) => {
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("home_lat, home_long, work_lat, work_long")
-      .eq("id", user.id)
+      .eq("id", userId)
       .single();
 
     if (profileError) {
@@ -68,7 +71,7 @@ Deno.serve(async (req) => {
     const { data: existing } = await supabase
       .from("trip_intents")
       .select("id")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("trip_date", targetDate)
       .maybeSingle();
 
@@ -92,7 +95,7 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase
         .from("trip_intents")
         .insert({
-          user_id: user.id,
+          user_id: userId,
           role,
           passenger_capacity: role === "driver" ? (passenger_capacity ?? null) : null,
           departure_time: role === "driver" ? (departure_time ?? null) : null,
