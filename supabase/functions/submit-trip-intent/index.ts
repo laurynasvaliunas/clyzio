@@ -1,12 +1,12 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -14,19 +14,28 @@ serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
     );
 
-    // Auth
+    // Auth — verify the user JWT
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
 
     const body = await req.json();
     const { role, passenger_capacity, departure_time, required_arrival_time, trip_date } = body;
+
+    if (!role || !["driver", "passenger"].includes(role)) {
+      return new Response(JSON.stringify({ error: "Invalid role" }), { status: 400, headers: corsHeaders });
+    }
 
     // Load user's home/work coords from profile
     const { data: profile, error: profileError } = await supabase
@@ -35,7 +44,14 @@ serve(async (req) => {
       .eq("id", user.id)
       .single();
 
-    if (profileError || !profile?.home_lat || !profile?.work_lat) {
+    if (profileError) {
+      return new Response(
+        JSON.stringify({ error: `Profile query failed: ${profileError.message}` }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
+    if (!profile || profile.home_lat == null || profile.work_lat == null) {
       return new Response(
         JSON.stringify({ error: "Profile home/work locations not set. Please update your profile." }),
         { status: 400, headers: corsHeaders }
@@ -48,13 +64,13 @@ serve(async (req) => {
       return d.toISOString().split("T")[0];
     })();
 
-    // Upsert — one intent per user per date
+    // Check for existing intent for this date
     const { data: existing } = await supabase
       .from("trip_intents")
       .select("id")
       .eq("user_id", user.id)
       .eq("trip_date", targetDate)
-      .single();
+      .maybeSingle();
 
     let intent;
     if (existing) {

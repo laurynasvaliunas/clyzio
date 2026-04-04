@@ -505,7 +505,7 @@ export default function AIPlannerScreen() {
   const { isDark } = useTheme();
   const TC = getThemeColors(isDark);
   const {
-    commuteResult, isLoadingCommute, commuteError, fetchCommuteSuggestions,
+    commuteResult, isLoadingCommute, commuteError, fetchCommuteSuggestions, clearCommuteResult,
     carpoolResult, isLoadingCarpool, fetchCarpoolMatches, clearCarpoolResult,
   } = useAIStore();
   const [hasLocations, setHasLocations] = useState(true);
@@ -516,14 +516,39 @@ export default function AIPlannerScreen() {
   const [plannerOrigin, setPlannerOrigin] = useState<PlannerLocation | null>(null);
   const [plannerDest, setPlannerDest] = useState<PlannerLocation | null>(null);
 
+  // Use plannerOrigin/Dest when set (user-edited), fall back to profile coords
   const distKm = useMemo(() => {
-    if (!userProfile?.home_lat || !userProfile?.home_long || !userProfile?.work_lat || !userProfile?.work_long) return 0;
-    return haversineKm(userProfile.home_lat, userProfile.home_long, userProfile.work_lat, userProfile.work_long);
-  }, [userProfile]);
+    const oLat = plannerOrigin?.lat ?? userProfile?.home_lat;
+    const oLng = plannerOrigin?.lng ?? userProfile?.home_long;
+    const dLat = plannerDest?.lat ?? userProfile?.work_lat;
+    const dLng = plannerDest?.lng ?? userProfile?.work_long;
+    if (!oLat || !oLng || !dLat || !dLng) return 0;
+    return haversineKm(oLat, oLng, dLat, dLng);
+  }, [plannerOrigin, plannerDest, userProfile]);
+
+  // Re-fetch carpool and clear AI cache when user changes a location
+  const isInitialLoad = useRef(true);
+  useEffect(() => {
+    if (isInitialLoad.current) return; // skip on mount
+    if (!plannerOrigin || !plannerDest) return;
+    fetchCarpoolMatches({
+      origin_lat:     plannerOrigin.lat,
+      origin_long:    plannerOrigin.lng,
+      dest_lat:       plannerDest.lat,
+      dest_long:      plannerDest.lng,
+      departure_time: new Date().toISOString(),
+      role:           "rider",
+    }).catch(() => {});
+    // Clear cached AI suggestions so the new distKm-based local panel shows
+    clearCommuteResult();
+  }, [plannerOrigin, plannerDest]);
 
   useFocusEffect(
     useCallback(() => {
-      checkLocationsAndFetch();
+      isInitialLoad.current = true;
+      checkLocationsAndFetch().finally(() => {
+        isInitialLoad.current = false;
+      });
     }, [])
   );
 
@@ -710,8 +735,8 @@ export default function AIPlannerScreen() {
             {distKm > 0 ? (
               <LocalInsightsPanel
                 distKm={distKm}
-                homeAddress={userProfile?.home_address ?? ""}
-                workAddress={userProfile?.work_address ?? ""}
+                homeAddress={plannerOrigin?.description ?? userProfile?.home_address ?? ""}
+                workAddress={plannerDest?.description ?? userProfile?.work_address ?? ""}
                 onPlanIt={handlePlanIt}
                 TC={TC}
               />
@@ -740,8 +765,19 @@ export default function AIPlannerScreen() {
           />
         ))}
 
-        {/* Empty state when locations are set but no result yet */}
-        {hasLocations && !isLoadingCommute && !commuteResult && !commuteError && (
+        {/* Local insights when AI result was cleared after location change */}
+        {hasLocations && !isLoadingCommute && !commuteResult && !commuteError && distKm > 0 && !isInitialLoad.current && (
+          <LocalInsightsPanel
+            distKm={distKm}
+            homeAddress={plannerOrigin?.description ?? userProfile?.home_address ?? ""}
+            workAddress={plannerDest?.description ?? userProfile?.work_address ?? ""}
+            onPlanIt={handlePlanIt}
+            TC={TC}
+          />
+        )}
+
+        {/* Empty state when locations are set but no result yet (initial load) */}
+        {hasLocations && !isLoadingCommute && !commuteResult && !commuteError && distKm === 0 && (
           <View style={[styles.emptyCard, { backgroundColor: TC.surface }]}>
             <Sparkles size={32} color={COLORS.primary} />
             <Text style={[styles.emptyTitle, { color: TC.text }]}>Ready to suggest your green commute</Text>

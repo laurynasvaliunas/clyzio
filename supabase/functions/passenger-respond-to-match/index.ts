@@ -1,12 +1,12 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-async function sendPushNotification(token: string, title: string, body: string, data?: Record<string, unknown>) {
+async function sendPush(token: string, title: string, body: string, data?: Record<string, unknown>) {
   try {
     await fetch("https://exp.host/--/api/v2/push/send", {
       method: "POST",
@@ -18,7 +18,7 @@ async function sendPushNotification(token: string, title: string, body: string, 
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -26,18 +26,23 @@ serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
     );
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
 
     const { match_id, accepted } = await req.json() as { match_id: string; accepted: boolean };
 
-    // Fetch match to verify passenger and get driver info
     const { data: match, error: matchError } = await supabase
       .from("trip_intent_matches")
       .select("driver_user_id, passenger_intent_id, driver_intent_id, trip_date, pickup_lat, pickup_long, proposed_departure")
@@ -49,7 +54,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Match not found" }), { status: 404, headers: corsHeaders });
     }
 
-    // Get passenger first name
     const { data: passengerProfile } = await supabase
       .from("profiles")
       .select("first_name")
@@ -57,25 +61,23 @@ serve(async (req) => {
       .single();
     const passengerName = passengerProfile?.first_name ?? "Your passenger";
 
-    // Get driver push token
     const { data: driverProfile } = await supabase
       .from("profiles")
-      .select("expo_push_token")
+      .select("expo_push_token, work_lat, work_long")
       .eq("id", match.driver_user_id)
       .single();
 
     if (accepted) {
-      // Create a ride record
       const { data: rideData } = await supabase
         .from("rides")
         .insert({
           driver_id: match.driver_user_id,
           rider_id: user.id,
           status: "scheduled",
-          origin_lat: match.pickup_lat,
-          origin_long: match.pickup_long,
-          dest_lat: 0, // will be filled by driver's work location — placeholder
-          dest_long: 0,
+          origin_lat: match.pickup_lat ?? 0,
+          origin_long: match.pickup_long ?? 0,
+          dest_lat: driverProfile?.work_lat ?? 0,
+          dest_long: driverProfile?.work_long ?? 0,
           scheduled_at: new Date(`${match.trip_date}T${match.proposed_departure ?? "08:00"}:00`).toISOString(),
           transport_mode: "carpool",
           transport_label: "Carpool",
@@ -94,13 +96,11 @@ serve(async (req) => {
 
       if (confirmError) throw confirmError;
 
-      // Update both intents to matched
       await supabase.from("trip_intents").update({ status: "matched" }).eq("id", match.passenger_intent_id);
       await supabase.from("trip_intents").update({ status: "matched" }).eq("id", match.driver_intent_id);
 
-      // Notify driver
       if (driverProfile?.expo_push_token) {
-        await sendPushNotification(
+        await sendPush(
           driverProfile.expo_push_token,
           "Ride Confirmed!",
           `${passengerName} confirmed your commute tomorrow. You're all set!`,
@@ -112,15 +112,13 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } else {
-      // Declined
       await supabase
         .from("trip_intent_matches")
         .update({ status: "cancelled_by_passenger", updated_at: new Date().toISOString() })
         .eq("id", match_id);
 
-      // Notify driver
       if (driverProfile?.expo_push_token) {
-        await sendPushNotification(
+        await sendPush(
           driverProfile.expo_push_token,
           "Match Declined",
           `${passengerName} declined the ride. Check for other matches.`,
