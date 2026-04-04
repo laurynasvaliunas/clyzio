@@ -127,28 +127,36 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
 
       const tomorrow = getTomorrowDate();
 
-      const { data: intent } = await supabase
+      const { data: intent, error: intentError } = await supabase
         .from("trip_intents")
         .select("*")
         .eq("user_id", user.id)
         .eq("trip_date", tomorrow)
-        .single();
+        .maybeSingle();
 
-      if (!intent) {
+      if (intentError) {
+        // Real DB/RLS error — don't wipe current step, just stop loading
+        set({ isLoading: false });
+        return;
+      }
+
+      if (!intent || intent.status === "expired") {
         set({ step: "role_select", intent: null, matches: [], isLoading: false });
         return;
       }
 
-      // Load matches
-      const { data: matches } = await supabase
-        .from("trip_intent_matches")
-        .select(`
-          *,
-          passenger_profile:profiles!trip_intent_matches_passenger_user_id_fkey(first_name, home_lat, home_long),
-          driver_profile:profiles!trip_intent_matches_driver_user_id_fkey(first_name)
-        `)
-        .or(`driver_user_id.eq.${user.id},passenger_user_id.eq.${user.id}`)
-        .eq("trip_date", tomorrow);
+      // Load matches — use intent ID to avoid RLS ambiguity with .or()
+      const matchFilter = intent.role === "driver"
+        ? supabase
+            .from("trip_intent_matches")
+            .select(`*, passenger_profile:profiles!trip_intent_matches_passenger_user_id_fkey(first_name, home_lat, home_long), driver_profile:profiles!trip_intent_matches_driver_user_id_fkey(first_name)`)
+            .eq("driver_intent_id", intent.id)
+        : supabase
+            .from("trip_intent_matches")
+            .select(`*, passenger_profile:profiles!trip_intent_matches_passenger_user_id_fkey(first_name, home_lat, home_long), driver_profile:profiles!trip_intent_matches_driver_user_id_fkey(first_name)`)
+            .eq("passenger_intent_id", intent.id);
+
+      const { data: matches } = await matchFilter;
 
       const activeMatches = (matches ?? []).filter(
         m => !["cancelled_by_driver", "cancelled_by_passenger", "expired"].includes(m.status)
