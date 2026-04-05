@@ -42,6 +42,8 @@ yarn-error.*
 
 # Secrets — never commit
 .env
+google-service-account.json
+sentry.properties
 
 # Generated implementation docs
 /*.md

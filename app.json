@@ -78,11 +78,19 @@
         }
       ]
     ],
+    "updates": {
+      "url": "https://u.expo.dev/565dc638-6385-4dcf-885d-8abd3f0d9c30",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "extra": {
       "router": {},
       "eas": {
         "projectId": "565dc638-6385-4dcf-885d-8abd3f0d9c30"
-      }
+      },
+      "privacyPolicyUrl": "https://www.clyzio.com/privacy"
     },
     "owner": "clyzio"
   }
