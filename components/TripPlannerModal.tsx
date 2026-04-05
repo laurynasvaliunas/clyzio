@@ -152,12 +152,13 @@ interface TripPlannerModalProps {
     role: string;
     scheduledTime?: Date;
   }) => void;
+  onDailyCommute?: () => void;
   initialMode?: string; // Pre-select a transport mode when opened from AI Planner
   initialOrigin?: { lat: number; lng: number; description: string }; // Pre-fill origin from AI Planner
   initialDest?: { lat: number; lng: number; description: string };   // Pre-fill destination from AI Planner
 }
 
-const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, onTripStart, initialMode, initialOrigin, initialDest }) => {
+const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, onTripStart, onDailyCommute, initialMode, initialOrigin, initialDest }) => {
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   // Tab bar height = standard 49px + device bottom safe area (home indicator)
@@ -605,6 +606,24 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                 setDestCoords({ lat: data.location.lat, lng: data.location.lng });
               }}
             />
+
+            {/* ── Daily Commute shortcut ── */}
+            {!!onDailyCommute && (
+              <TouchableOpacity
+                style={styles.dailyCommuteRow}
+                onPress={() => { onClose(); onDailyCommute(); }}
+                activeOpacity={0.8}
+              >
+                <View style={styles.dailyCommuteIcon}>
+                  <Users size={18} color="#26C6DA" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.dailyCommuteTitle}>Plan Tomorrow's Commute</Text>
+                  <Text style={styles.dailyCommuteSub}>Find a carpool match before 17:00</Text>
+                </View>
+                <ChevronDown size={16} color="#90A4AE" style={{ transform: [{ rotate: "-90deg" }] }} />
+              </TouchableOpacity>
+            )}
 
             {/* ── Mode Section — appears once both addresses are filled ── */}
             {modeReady && (
@@ -1076,6 +1095,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#006064",
     lineHeight: 18,
+  },
+
+  // Daily commute shortcut row
+  dailyCommuteRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#E0F7FA",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#B2EBF2",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  dailyCommuteIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dailyCommuteTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#006064",
+  },
+  dailyCommuteSub: {
+    fontSize: 12,
+    color: "#546E7A",
+    marginTop: 1,
   },
 
   // Carpool match count badge (below mode tiles)

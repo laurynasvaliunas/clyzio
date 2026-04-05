@@ -346,9 +346,6 @@ export default function ActivityScreen() {
   const [loading, setLoading] = useState(true);
   const [rides, setRides] = useState<Ride[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
-  const [hasExistingIntent, setHasExistingIntent] = useState(false);
-  const isBeforeDeadline = new Date().getHours() < 17;
-  
   // Trip completion modal state
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completionData, setCompletionData] = useState({
@@ -373,20 +370,6 @@ export default function ActivityScreen() {
         return;
       }
       setUserId(user.id);
-
-      // Check for existing tomorrow intent (for "Plan Tomorrow" banner)
-      const tomorrow = (() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 1);
-        return d.toISOString().split("T")[0];
-      })();
-      const { data: intentData } = await supabase
-        .from("trip_intents")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("trip_date", tomorrow)
-        .maybeSingle();
-      setHasExistingIntent(!!intentData);
 
       const now = new Date().toISOString();
 
@@ -621,26 +604,6 @@ export default function ActivityScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Plan Tomorrow's Commute banner */}
-      {!hasExistingIntent && isBeforeDeadline && (
-        <TouchableOpacity
-          style={styles.planBanner}
-          onPress={() => router.push("/daily-commute")}
-          activeOpacity={0.85}
-        >
-          <View style={styles.planBannerLeft}>
-            <View style={styles.planBannerIcon}>
-              <Users size={20} color={COLORS.primary} />
-            </View>
-            <View>
-              <Text style={styles.planBannerTitle}>Plan Tomorrow's Commute</Text>
-              <Text style={styles.planBannerSub}>Find a carpool match before 17:00</Text>
-            </View>
-          </View>
-          <ChevronRight size={18} color={COLORS.gray} />
-        </TouchableOpacity>
-      )}
-
       {/* Tab Switcher */}
       <View style={styles.tabContainer}>
         <View style={[styles.tabSwitcher, { backgroundColor: TC.surface }]}>
@@ -730,44 +693,6 @@ const styles = StyleSheet.create({
   filterBtn: {
     padding: 8,
     borderRadius: 10,
-  },
-
-  // ===== PLAN TOMORROW BANNER =====
-  planBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginHorizontal: 16,
-    marginBottom: 10,
-    backgroundColor: COLORS.light,
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#B2EBF2",
-  },
-  planBannerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
-  },
-  planBannerIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.white,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  planBannerTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.primaryDark,
-  },
-  planBannerSub: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 1,
   },
 
   // ===== TAB SWITCHER =====
