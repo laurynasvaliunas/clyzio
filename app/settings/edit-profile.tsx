@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Image,
   Switch,
+  Modal,
+  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -26,6 +28,9 @@ import {
   Building2,
   MapPin,
   Briefcase,
+  ChevronDown,
+  Fuel,
+  Check,
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import AddressInput from "../../components/AddressInput";
@@ -44,6 +49,17 @@ const COLORS = {
   grayLight: "#F1F5F9",
 };
 
+const FUEL_TYPES = [
+  { id: "petrol",   label: "Petrol",           emoji: "⛽" },
+  { id: "diesel",   label: "Diesel",           emoji: "🛢️" },
+  { id: "hybrid",   label: "Hybrid",           emoji: "⚡⛽" },
+  { id: "electric", label: "Electric (BEV)",   emoji: "⚡" },
+  { id: "phev",     label: "Plug-in Hybrid (PHEV)", emoji: "🔌" },
+  { id: "lpg",      label: "LPG / Autogas",    emoji: "🔵" },
+  { id: "hydrogen", label: "Hydrogen",          emoji: "💧" },
+  { id: "cng",      label: "CNG (Natural Gas)", emoji: "🟢" },
+];
+
 interface ProfileData {
   first_name: string;
   last_name: string;
@@ -54,6 +70,7 @@ interface ProfileData {
   car_model: string;
   car_color: string;
   car_plate: string;
+  car_fuel_type: string;
   home_address: string;
   home_lat: number | null;
   home_long: number | null;
@@ -70,6 +87,7 @@ export default function EditProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [showFuelPicker, setShowFuelPicker] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
     last_name: "",
@@ -80,6 +98,7 @@ export default function EditProfileScreen() {
     car_model: "",
     car_color: "",
     car_plate: "",
+    car_fuel_type: "",
     home_address: "",
     home_lat: null,
     home_long: null,
@@ -104,7 +123,7 @@ export default function EditProfileScreen() {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("first_name, last_name, phone, department, avatar_url, car_make, car_model, car_color, car_plate, home_address, home_lat, home_long, work_address, work_lat, work_long, is_public")
+        .select("first_name, last_name, phone, department, avatar_url, car_make, car_model, car_color, car_plate, car_fuel_type, home_address, home_lat, home_long, work_address, work_lat, work_long, is_public")
         .eq("id", user.id)
         .single();
 
@@ -119,6 +138,7 @@ export default function EditProfileScreen() {
           car_model: data.car_model || "",
           car_color: data.car_color || "",
           car_plate: data.car_plate || "",
+          car_fuel_type: data.car_fuel_type || "",
           home_address: data.home_address || "",
           home_lat: data.home_lat ?? null,
           home_long: data.home_long ?? null,
@@ -234,6 +254,7 @@ export default function EditProfileScreen() {
           car_model: profile.car_model,
           car_color: profile.car_color,
           car_plate: profile.car_plate,
+          car_fuel_type: profile.car_fuel_type || null,
           home_address: profile.home_address || null,
           home_lat: profile.home_lat,
           home_long: profile.home_long,
@@ -369,12 +390,13 @@ export default function EditProfileScreen() {
           </View>
           <Text style={styles.sectionSubtitle}>For drivers offering rides</Text>
 
+          {/* Brand + Model */}
           <View style={styles.inputRow}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>Make</Text>
+              <Text style={styles.inputLabel}>Brand</Text>
               <TextInput
                 style={styles.input}
-                placeholder=""
+                placeholder="e.g. Toyota"
                 placeholderTextColor={COLORS.gray}
                 value={profile.car_make}
                 onChangeText={(v) => updateField("car_make", v)}
@@ -384,7 +406,7 @@ export default function EditProfileScreen() {
               <Text style={styles.inputLabel}>Model</Text>
               <TextInput
                 style={styles.input}
-                placeholder=""
+                placeholder="e.g. Prius"
                 placeholderTextColor={COLORS.gray}
                 value={profile.car_model}
                 onChangeText={(v) => updateField("car_model", v)}
@@ -392,6 +414,25 @@ export default function EditProfileScreen() {
             </View>
           </View>
 
+          {/* Fuel Type */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Fuel Type</Text>
+            <TouchableOpacity
+              style={styles.inputWithIcon}
+              onPress={() => setShowFuelPicker(true)}
+              activeOpacity={0.7}
+            >
+              <Fuel size={18} color={profile.car_fuel_type ? COLORS.primary : COLORS.gray} />
+              <Text style={[styles.inputInner, { flex: 1, paddingTop: 0, paddingBottom: 0, lineHeight: 20, color: profile.car_fuel_type ? COLORS.dark : COLORS.gray }]}>
+                {profile.car_fuel_type
+                  ? `${FUEL_TYPES.find(f => f.id === profile.car_fuel_type)?.emoji ?? ""} ${FUEL_TYPES.find(f => f.id === profile.car_fuel_type)?.label ?? profile.car_fuel_type}`
+                  : "Select fuel type"}
+              </Text>
+              <ChevronDown size={16} color={COLORS.gray} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Color + Plate */}
           <View style={styles.inputRow}>
             <View style={[styles.inputGroup, { flex: 1 }]}>
               <Text style={styles.inputLabel}>Color</Text>
@@ -422,6 +463,48 @@ export default function EditProfileScreen() {
             </View>
           </View>
         </View>
+
+        {/* Fuel Type Picker Modal */}
+        <Modal
+          visible={showFuelPicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowFuelPicker(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowFuelPicker(false)}
+          />
+          <View style={styles.fuelSheet}>
+            <View style={styles.fuelSheetHandle} />
+            <Text style={styles.fuelSheetTitle}>Select Fuel Type</Text>
+            <FlatList
+              data={FUEL_TYPES}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => {
+                const selected = profile.car_fuel_type === item.id;
+                return (
+                  <TouchableOpacity
+                    style={[styles.fuelOption, selected && styles.fuelOptionSelected]}
+                    onPress={() => {
+                      updateField("car_fuel_type", item.id);
+                      setShowFuelPicker(false);
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.fuelEmoji}>{item.emoji}</Text>
+                    <Text style={[styles.fuelLabel, selected && { color: COLORS.primary, fontWeight: "700" }]}>
+                      {item.label}
+                    </Text>
+                    {selected && <Check size={18} color={COLORS.primary} />}
+                  </TouchableOpacity>
+                );
+              }}
+              ItemSeparatorComponent={() => <View style={styles.fuelSeparator} />}
+            />
+          </View>
+        </Modal>
 
         {/* Commute Details */}
         <View style={styles.section}>
@@ -628,5 +711,64 @@ const styles = StyleSheet.create({
   },
   toggleLabel: { fontSize: 15, fontWeight: "600", color: COLORS.dark, marginBottom: 2 },
   toggleSub: { fontSize: 12, color: COLORS.gray, lineHeight: 16 },
+
+  // ── Fuel picker modal ──────────────────────────────────────────────────────
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  fuelSheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  fuelSheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.grayLight,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  fuelSheetTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: COLORS.dark,
+    marginBottom: 16,
+  },
+  fuelOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    gap: 12,
+    borderRadius: 12,
+  },
+  fuelOptionSelected: {
+    backgroundColor: COLORS.light,
+    paddingHorizontal: 12,
+  },
+  fuelEmoji: {
+    fontSize: 22,
+    width: 30,
+    textAlign: "center",
+  },
+  fuelLabel: {
+    flex: 1,
+    fontSize: 15,
+    color: COLORS.dark,
+  },
+  fuelSeparator: {
+    height: 1,
+    backgroundColor: COLORS.grayLight,
+    marginHorizontal: 4,
+  },
 });
 
