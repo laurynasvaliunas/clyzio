@@ -18,7 +18,9 @@ import { supabase } from "../lib/supabase";
 import { checkAndSendAINotifications } from "../lib/aiNotifications";
 import { useAIStore } from "../store/useAIStore";
 import { useTripStore } from "../store/useTripStore";
+import { useNotificationToastStore } from "../store/useNotificationToastStore";
 import IncomingSuggestionBanner from "../components/IncomingSuggestionBanner";
+import InAppNotificationToast from "../components/InAppNotificationToast";
 import "../global.css";
 
 // Brand Colors (matching logo)
@@ -30,13 +32,14 @@ const COLORS = {
   background: "#F5FAFA",
 };
 
-// Configure notification handler
+// Configure notification handler — suppress system banner in-foreground;
+// we show our own styled in-app toast via InAppNotificationToast instead.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
+    shouldShowAlert: false,   // ← no system banner while app is open
+    shouldPlaySound: false,
     shouldSetBadge: true,
-    shouldShowBanner: true,
+    shouldShowBanner: false,
     shouldShowList: true,
   }),
 });
@@ -256,6 +259,7 @@ function RootLayoutContent() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { subscribeToIncomingSuggestions, unsubscribeFromSuggestions } = useAIStore();
   const setUserBaselineFromFuelType = useTripStore((s) => s.setUserBaselineFromFuelType);
+  const pushToast = useNotificationToastStore((s) => s.push);
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>("");
   const notificationListener = useRef<Notifications.EventSubscription>(undefined!);
   const responseListener = useRef<Notifications.EventSubscription>(undefined!);
@@ -342,9 +346,17 @@ function RootLayoutContent() {
     // Check if AI-powered notifications should be sent on app open
     checkAndSendAINotifications().catch(() => {});
 
-    // Listen for incoming notifications
+    // Intercept incoming notifications → show styled in-app toast instead of system banner
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
-      console.log("Notification received:", notification);
+      const { title, body, data } = notification.request.content;
+      if (title) {
+        pushToast({
+          title: title as string,
+          body: (body as string) ?? "",
+          screen: (data?.screen as string) ?? undefined,
+          type: undefined as any, // inferred from title by the store
+        });
+      }
     });
 
     // Listen for user tapping on notification — deep-link into daily commute flow
@@ -397,6 +409,7 @@ function RootLayoutContent() {
           <Stack.Screen name="daily-commute" options={{ headerShown: false, presentation: "modal" }} />
         </Stack>
         <IncomingSuggestionBanner />
+        <InAppNotificationToast />
       </View>
     </SafeAreaProvider>
   );
