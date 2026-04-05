@@ -17,6 +17,7 @@ import { ToastProvider } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
 import { checkAndSendAINotifications } from "../lib/aiNotifications";
 import { useAIStore } from "../store/useAIStore";
+import { useTripStore } from "../store/useTripStore";
 import IncomingSuggestionBanner from "../components/IncomingSuggestionBanner";
 import "../global.css";
 
@@ -254,6 +255,7 @@ function RootLayoutContent() {
   const [isReady, setIsReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { subscribeToIncomingSuggestions, unsubscribeFromSuggestions } = useAIStore();
+  const setUserBaselineFromFuelType = useTripStore((s) => s.setUserBaselineFromFuelType);
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>("");
   const notificationListener = useRef<Notifications.EventSubscription>(undefined!);
   const responseListener = useRef<Notifications.EventSubscription>(undefined!);
@@ -292,6 +294,22 @@ function RootLayoutContent() {
     return () => {
       unsubscribeFromSuggestions();
     };
+  }, [isAuthenticated]);
+
+  // Seed trip store CO2 baseline from user's car fuel type on sign-in
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('car_fuel_type')
+        .eq('id', user.id)
+        .single();
+      if (data?.car_fuel_type) {
+        setUserBaselineFromFuelType(data.car_fuel_type);
+      }
+    });
   }, [isAuthenticated]);
 
   // Handle navigation based on auth state

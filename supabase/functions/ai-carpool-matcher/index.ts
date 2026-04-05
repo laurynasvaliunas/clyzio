@@ -2,16 +2,18 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { callClaude, parseClaudeJSON } from '../_shared/anthropic.ts';
 import { verifyAuth } from '../_shared/auth.ts';
 
-const SYSTEM_PROMPT = `You are Clyzio's AI Carpool Matcher. Your job is to rank and explain carpool compatibility between a user and candidate rides based on geographic proximity, timing, and route alignment.
+function buildSystemPrompt(baselineCO2: number, fuelType: string): string {
+  return `You are Clyzio's AI Carpool Matcher. Your job is to rank and explain carpool compatibility between a user and candidate rides based on geographic proximity, timing, and route alignment.
 
 Return ONLY valid JSON matching the exact schema provided — no markdown, no explanation.
 
 Rules:
 - compatibility_score is 0-100: 80+ = excellent match, 60-79 = good, 40-59 = fair, <40 = poor
 - Always reference the distance_to_origin_km when explaining matches
-- co2_saving_kg should reflect actual saving for one person per trip vs driving alone (0.192 kg/km baseline)
+- co2_saving_kg should reflect actual saving for one person per trip vs driving alone (user drives a ${fuelType} car at ${baselineCO2} kg CO₂/km — DEFRA/EEA 2024)
 - Be honest: if no candidates are a good match, say so in best_match_summary
 - If there are no candidates at all, return an empty ranked_matches array`;
+}
 
 interface CarpoolMatch {
   ride_id: string;
@@ -50,6 +52,20 @@ Deno.serve(async (req: Request) => {
     if (!origin_lat || !origin_long || !dest_lat || !dest_long) {
       throw new Error('origin_lat, origin_long, dest_lat, dest_long are required');
     }
+
+    // Fetch user's fuel type / CO2 baseline from profile
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('car_fuel_type, baseline_co2')
+      .eq('id', userId)
+      .single();
+
+    const FUEL_CO2_FACTORS: Record<string, number> = {
+      petrol: 0.192, diesel: 0.171, hybrid: 0.110, phev: 0.075,
+      electric: 0.053, lpg: 0.162, hydrogen: 0.020, cng: 0.157,
+    };
+    const fuelType: string = profileData?.car_fuel_type || 'petrol';
+    const baselineCO2: number = FUEL_CO2_FACTORS[fuelType] ?? profileData?.baseline_co2 ?? 0.192;
 
     // Find carpool candidates via RPC
     const { data: candidates, error: candidatesError } = await supabase.rpc(
@@ -91,6 +107,7 @@ Deno.serve(async (req: Request) => {
 - Departure: ${departure_time ?? 'now'}
 - Trip distance (straight-line): ${tripDistanceKm.toFixed(1)} km
 - Max detour willing: ${max_detour_km} km
+- User's car: ${fuelType} (${baselineCO2} kg CO₂/km baseline)
 
 Candidate matches found (sorted by distance to pickup):
 ${JSON.stringify(candidates, null, 2)}
@@ -116,7 +133,7 @@ Return JSON matching this schema exactly:
 }`;
 
     const { text, usage } = await callClaude({
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(baselineCO2, fuelType),
       user: userMessage,
       model: 'claude-haiku-4-5-20251001',
       maxTokens: 768,

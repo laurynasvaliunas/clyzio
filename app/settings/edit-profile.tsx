@@ -35,6 +35,7 @@ import {
 import { supabase } from "../../lib/supabase";
 import AddressInput from "../../components/AddressInput";
 import { useToast } from "../../contexts/ToastContext";
+import { getFuelBaseCO2 } from "../../lib/commuteUtils";
 
 // Brand Colors
 const COLORS = {
@@ -255,6 +256,8 @@ export default function EditProfileScreen() {
           car_color: profile.car_color,
           car_plate: profile.car_plate,
           car_fuel_type: profile.car_fuel_type || null,
+          // Auto-derive baseline_co2 from fuel type so AI planner and trip savings use real numbers
+          baseline_co2: getFuelBaseCO2(profile.car_fuel_type || null),
           home_address: profile.home_address || null,
           home_lat: profile.home_lat,
           home_long: profile.home_long,

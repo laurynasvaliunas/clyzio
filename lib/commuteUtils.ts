@@ -10,6 +10,39 @@ export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// ─── Fuel-Type CO₂ Factors ────────────────────────────────────────────────────
+// Sources: DEFRA UK GHG Conversion Factors 2024, EEA Transport Emission Factors,
+//          IPCC AR6 WG3 Ch.10, GHG Protocol Scope 3 Standard.
+// All values in kg CO₂e per km for an average passenger car.
+export const FUEL_CO2_FACTORS: Record<string, number> = {
+  petrol:   0.192, // DEFRA 2024 — average petrol passenger car
+  diesel:   0.171, // DEFRA 2024 — diesel is ~11% more fuel-efficient per km
+  hybrid:   0.110, // EEA — self-charging HEV (e.g. Toyota Prius class)
+  phev:     0.075, // EEA — PHEV assuming ~50% electric share in real-world use
+  electric: 0.053, // EU grid average 2024 (EEA): ~0.233 kgCO₂/kWh × ~0.2 kWh/km
+  lpg:      0.162, // DEFRA 2024 — LPG / autogas
+  hydrogen: 0.020, // IEA — green hydrogen via electrolysis, renewable energy
+  cng:      0.157, // DEFRA 2024 — compressed natural gas
+};
+
+/**
+ * Returns the CO₂ emission factor (kg/km) for a given fuel type id.
+ * Falls back to the petrol baseline if the fuel type is unknown or not set.
+ */
+export function getFuelBaseCO2(fuelType?: string | null): number {
+  if (!fuelType) return FUEL_CO2_FACTORS.petrol;
+  return FUEL_CO2_FACTORS[fuelType] ?? FUEL_CO2_FACTORS.petrol;
+}
+
+/**
+ * Human-readable label for a fuel type's CO₂ factor for display in UI.
+ * e.g. "Electric — 0.053 kg/km (EU grid 2024)"
+ */
+export function fuelCO2Label(fuelType?: string | null): string {
+  const factor = getFuelBaseCO2(fuelType);
+  return `${factor} kg CO₂/km`;
+}
+
 export interface LocalMode {
   id: string;
   label: string;
@@ -30,7 +63,8 @@ export const MODES: LocalMode[] = [
   { id: "carpool",  label: "Carpool",          icon: "carpool", co2PerKm: 0.096, speedKmh: 35, costPerKm: 0.10, color: "#26C6DA", tag: "Social & Green", tagColor: "#26C6DA" },
 ];
 
-export const CAR_CO2 = 0.192;    // kg/km baseline (solo gas car)
+// Default fallback (petrol solo car) — use getFuelBaseCO2() for user-specific baseline
+export const CAR_CO2 = FUEL_CO2_FACTORS.petrol;  // 0.192 kg/km
 export const CAR_COST = 0.30;    // €/km driving alone
 export const WORKING_DAYS = 22;  // working days per month
 
@@ -45,11 +79,20 @@ export interface ComputedMode extends LocalMode {
  * Returns eligible transport modes for a given trip distance,
  * enriched with computed CO₂, time, and cost savings.
  *
+ * @param distKm        One-way trip distance in km
+ * @param maxModes      Maximum number of modes to return (default 3)
+ * @param baselineCO2   User's actual car CO₂ factor in kg/km (from getFuelBaseCO2).
+ *                      Defaults to petrol baseline (0.192) if not provided.
+ *
  * Filters:
  * - Walking excluded if distance > 4 km
  * - Cycling excluded if distance > 20 km
  */
-export function computeLocalModes(distKm: number, maxModes = 3): ComputedMode[] {
+export function computeLocalModes(
+  distKm: number,
+  maxModes = 3,
+  baselineCO2: number = CAR_CO2,
+): ComputedMode[] {
   const eligible = MODES.filter(m => {
     if (m.id === "walking" && distKm > 4) return false;
     if (m.id === "bike" && distKm > 20) return false;
@@ -58,7 +101,7 @@ export function computeLocalModes(distKm: number, maxModes = 3): ComputedMode[] 
 
   return eligible.slice(0, maxModes).map(m => {
     const tripCO2 = m.co2PerKm * distKm;
-    const carCO2 = CAR_CO2 * distKm;
+    const carCO2 = baselineCO2 * distKm;
     const reductionPct = carCO2 > 0 ? Math.round((1 - tripCO2 / carCO2) * 100) : 100;
     const timeMin = Math.round((distKm / m.speedKmh) * 60);
     const monthlySaving = Math.round((CAR_COST - m.costPerKm) * distKm * 2 * WORKING_DAYS);

@@ -86,7 +86,8 @@ Deno.serve(async (req: Request) => {
 - Home: ${context.home_address || 'Not set'}${context.home_lat ? ` (${context.home_lat?.toFixed(4)}, ${context.home_long?.toFixed(4)})` : ''}
 - Work: ${context.work_address || 'Not set'}${context.work_lat ? ` (${context.work_lat?.toFixed(4)}, ${context.work_long?.toFixed(4)})` : ''}
 - Current main transport mode: ${context.baseline_co2_mode || 'Car (Gasoline)'}
-- Baseline CO2 per km: ${context.baseline_co2 || 0.192} kg
+- Car fuel type: ${context.car_fuel_type || 'petrol'}
+- Baseline CO2 per km: ${context.baseline_co2 || 0.192} kg (DEFRA/EEA 2024 standard for ${context.car_fuel_type || 'petrol'} vehicle)
 - Usual working days: ${formatWorkingDays(context.preferred_departure_days)}
 - Preferred departure time: ${context.preferred_departure_time || '08:00'}
 - Car available: ${context.is_driver ? `Yes (${[context.car_make, context.car_model].filter(Boolean).join(' ') || 'own car'})` : 'No'}

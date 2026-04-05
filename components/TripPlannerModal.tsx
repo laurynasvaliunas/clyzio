@@ -38,7 +38,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
-import { computeLocalModes } from "../lib/commuteUtils";
+import { computeLocalModes, getFuelBaseCO2 } from "../lib/commuteUtils";
 
 import { MAPBOX_TOKEN } from "../lib/config";
 const { height } = Dimensions.get("window");
@@ -54,13 +54,14 @@ const COLORS = {
   red: "#EF4444",
 };
 
-const TRANSPORT_MODES = [
-  { id: "walking", label: "Walking", icon: Footprints, co2: 0, color: "#4CAF50" },
-  { id: "bike", label: "Bike / Scooter", icon: Bike, co2: 0, color: "#FF9800" },
-  { id: "ebike", label: "E-Bike / E-Scooter", icon: Zap, co2: 0.023, color: "#E91E63" },
-  { id: "moto", label: "Motorbike", icon: NavIcon, co2: 0.09, color: "#9C27B0" },
-  { id: "public", label: "Public Transport", icon: Bus, co2: 0.04, color: "#7C3AED" },
-  { id: "my_car", label: "My Car", icon: Car, co2: 0.192, color: COLORS.primary }, // Default gas car, will be updated with user's actual car
+// Base transport modes — "my_car" co2 is patched at runtime from user's fuel type
+const BASE_TRANSPORT_MODES = [
+  { id: "walking", label: "Walking",           icon: Footprints, co2: 0,     color: "#4CAF50" },
+  { id: "bike",    label: "Bike / Scooter",    icon: Bike,       co2: 0,     color: "#FF9800" },
+  { id: "ebike",   label: "E-Bike / E-Scooter",icon: Zap,        co2: 0.023, color: "#E91E63" },
+  { id: "moto",    label: "Motorbike",          icon: NavIcon,    co2: 0.090, color: "#9C27B0" },
+  { id: "public",  label: "Public Transport",   icon: Bus,        co2: 0.040, color: "#7C3AED" },
+  { id: "my_car",  label: "My Car",             icon: Car,        co2: 0.192, color: COLORS.primary },
 ];
 
 // --- ISOLATED INPUT COMPONENT ---
@@ -179,6 +180,14 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
   // Mode state
   const [selectedMode, setSelectedMode] = useState<any>(null);
   
+  // User's actual car CO₂ factor — fetched from profile on first open
+  const [userCarCO2, setUserCarCO2] = useState<number>(0.192);
+
+  // Build transport modes with the user's real car CO₂ factor applied to "my_car"
+  const TRANSPORT_MODES = BASE_TRANSPORT_MODES.map(m =>
+    m.id === "my_car" ? { ...m, co2: userCarCO2 } : m
+  );
+
   // Per-trip carpool candidate state
   const [carpoolCandidates, setCarpoolCandidates] = useState<any[]>([]);
   const [isLoadingCarpool, setIsLoadingCarpool] = useState(false);
@@ -230,6 +239,23 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     setIsMinimized(nextMinimized);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
+
+  // Fetch user's fuel type once on first open to set accurate "My Car" CO₂
+  React.useEffect(() => {
+    if (!visible) return;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("car_fuel_type")
+        .eq("id", user.id)
+        .single();
+      if (data?.car_fuel_type) {
+        setUserCarCO2(getFuelBaseCO2(data.car_fuel_type));
+      }
+    })();
+  }, [visible]);
 
   React.useEffect(() => {
     if (visible) {
@@ -386,10 +412,8 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         destCoords.lng
       );
 
-      // Calculate CO2 saved (in kg)
-      // Formula: distance * mode.co2 per km
-      // For baseline comparison, assume user would have driven a gas car (0.192 kg/km)
-      const baselineCO2 = distance * 0.192; // Gas car baseline
+      // Calculate CO2 saved vs user's actual car fuel type (not a fixed petrol assumption)
+      const baselineCO2 = distance * userCarCO2;
       const tripCO2 = distance * (selectedMode?.co2 || 0);
       const co2SavedKg = Math.max(0, baselineCO2 - tripCO2);
 
@@ -633,7 +657,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
 
                 {/* AI Insight Banner */}
                 {routeDistance > 0 && (() => {
-                  const best = computeLocalModes(routeDistance, 1)[0];
+                  const best = computeLocalModes(routeDistance, 1, userCarCO2)[0];
                   if (!best) return null;
                   return (
                     <View style={styles.tripInsightBanner}>
