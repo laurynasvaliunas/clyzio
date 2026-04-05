@@ -1,7 +1,6 @@
-import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "./supabase";
-import { sendLocalNotification } from "./notifications";
+import { deliverNotification } from "./notifications";
 
 const LAST_TIP_KEY = "ai_last_tip_sent_at";
 const LAST_SUMMARY_KEY = "ai_last_weekly_summary_at";
@@ -16,24 +15,25 @@ export const AINotifications = {
    * Called on app foreground — throttled to once per 24 hours.
    */
   aiCommuteTip: (tip: string) =>
-    sendLocalNotification("Green Commute Tip", tip),
+    deliverNotification("Green Commute Tip", tip),
 
   challengeProgress: (challengeName: string, pct: number) =>
-    sendLocalNotification(
+    deliverNotification(
       `Challenge: ${challengeName}`,
       `You're ${Math.round(pct)}% of the way there! Keep it up.`
     ),
 
   weeklyCO2Summary: (savedKg: number, treesEquiv: number) =>
-    sendLocalNotification(
+    deliverNotification(
       "Your Week in Green",
-      `You saved ${savedKg.toFixed(1)} kg CO2 this week — equivalent to ${treesEquiv} tree${treesEquiv === 1 ? "" : "s"}.`
+      `You saved ${savedKg.toFixed(1)} kg CO₂ this week — equivalent to ${treesEquiv} tree${treesEquiv === 1 ? "" : "s"}.`
     ),
 
   carpoolMatchAvailable: (firstName: string) =>
-    sendLocalNotification(
+    deliverNotification(
       "Carpool Match Found",
-      `${firstName} is heading the same direction. Check the map to connect!`
+      `${firstName} is heading the same direction. Check the map to connect!`,
+      "/(tabs)"
     ),
 };
 
@@ -112,31 +112,5 @@ async function maybeSendWeeklySummary(userId: string): Promise<void> {
   await AsyncStorage.setItem(LAST_SUMMARY_KEY, Date.now().toString());
 }
 
-/**
- * Schedule a local reminder before a user's next trip.
- * Call this when a trip is created with a scheduled_at time.
- */
-export async function scheduleRideReminder(
-  scheduledAt: string,
-  reminderMinutesBefore = 15
-): Promise<string | null> {
-  try {
-    const tripTime = new Date(scheduledAt).getTime();
-    const reminderTime = new Date(tripTime - reminderMinutesBefore * 60 * 1000);
-
-    if (reminderTime <= new Date()) return null; // Already past
-
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Trip Starting Soon",
-        body: `Your scheduled ride starts in ${reminderMinutesBefore} minutes.`,
-        sound: true,
-      },
-      trigger: { type: "date", date: reminderTime } as any,
-    });
-
-    return id;
-  } catch {
-    return null;
-  }
-}
+// scheduleRideReminder is now in lib/notifications.ts
+export { scheduleRideReminder } from "./notifications";
