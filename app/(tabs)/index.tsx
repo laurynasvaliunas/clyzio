@@ -19,6 +19,7 @@ import AISuggestionChip from "../../components/AISuggestionChip";
 import CarpoolMatchModal from "../../components/CarpoolMatchModal";
 import { supabase } from "../../lib/supabase";
 import { useAIStore } from "../../store/useAIStore";
+import { useDailyCommuteStore } from "../../store/useDailyCommuteStore";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
 import { useToast } from "../../contexts/ToastContext";
@@ -363,6 +364,9 @@ export default function MapScreen() {
   const [showCarpoolModal, setShowCarpoolModal] = useState(false);
   const { commuteResult, isLoadingCommute, fetchCommuteSuggestions, carpoolResult, isLoadingCarpool, fetchCarpoolMatches } = useAIStore();
 
+  // ✅ DAILY COMMUTE INTENT STATE
+  const { intent, matches, checkExistingIntent } = useDailyCommuteStore();
+
   /**
    * ✅ AUTO-CENTER TO USER LOCATION ON MOUNT
    * Requests permission, sets locationGranted state, and centers map.
@@ -455,6 +459,13 @@ export default function MapScreen() {
     useCallback(() => {
       fetchCommuteSuggestions().catch(() => {});
     }, [fetchCommuteSuggestions])
+  );
+
+  // ✅ Refresh daily commute intent status when map tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      checkExistingIntent().catch(() => {});
+    }, [])
   );
 
   // ✅ Auto-open TripPlannerModal with pre-selected mode + locations when navigated from AI Planner
@@ -938,6 +949,78 @@ export default function MapScreen() {
       {/* Header */}
       <BrandHeader userAvatar={userAvatar} userName={userName} />
 
+      {/* Daily Commute Intent Pill */}
+      {intent && intent.status !== "expired" && (() => {
+        const confirmedMatches = matches.filter(m => m.status === "confirmed");
+        const acceptedMatches = matches.filter(m => m.status === "driver_accepted");
+        const isDriver = intent.role === "driver";
+
+        let icon;
+        let label: string;
+        let sublabel: string | null = null;
+        let pillColor: string;
+
+        if (confirmedMatches.length > 0) {
+          // Ride confirmed
+          pillColor = "#4CAF50";
+          if (isDriver) {
+            const names = confirmedMatches.map(m => m.passenger_profile?.first_name ?? "Passenger").join(", ");
+            label = `${confirmedMatches.length} passenger${confirmedMatches.length > 1 ? "s" : ""} confirmed`;
+            sublabel = names;
+          } else {
+            const driverName = confirmedMatches[0].driver_profile?.first_name ?? "Driver";
+            label = `${driverName} confirmed your ride`;
+            sublabel = `Pickup ${confirmedMatches[0].proposed_pickup_time ?? confirmedMatches[0].proposed_departure ?? "tomorrow"}`;
+          }
+          icon = <Users size={14} color="#fff" />;
+        } else if (acceptedMatches.length > 0) {
+          // Pending passenger confirmation / driver waiting
+          pillColor = "#FDD835";
+          if (isDriver) {
+            label = `${acceptedMatches.length} passenger${acceptedMatches.length > 1 ? "s" : ""} awaiting reply`;
+          } else {
+            const driverName = acceptedMatches[0].driver_profile?.first_name ?? "Driver";
+            label = `${driverName} accepted you`;
+            sublabel = "Tap to confirm";
+          }
+          icon = <Car size={14} color="#006064" />;
+        } else if (intent.status === "pending") {
+          // Submitted, waiting for matching
+          pillColor = "#26C6DA";
+          label = isDriver ? "Driver intent submitted" : "Passenger intent submitted";
+          sublabel = "Matching at 17:30";
+          icon = isDriver ? <Car size={14} color="#fff" /> : <Users size={14} color="#fff" />;
+        } else {
+          return null;
+        }
+
+        const textColor = pillColor === "#FDD835" ? "#006064" : "#fff";
+        const seatsLabel = isDriver && intent.passenger_capacity != null
+          ? ` · ${confirmedMatches.length}/${intent.passenger_capacity} seats`
+          : "";
+
+        return (
+          <TouchableOpacity
+            style={[styles.intentPill, { backgroundColor: pillColor }]}
+            onPress={() => router.push("/daily-commute")}
+            activeOpacity={0.85}
+          >
+            {icon}
+            <View style={{ flex: 1, marginLeft: 6 }}>
+              <Text style={[styles.intentPillLabel, { color: textColor }]} numberOfLines={1}>
+                {label}{seatsLabel}
+              </Text>
+              {sublabel && (
+                <Text style={[styles.intentPillSub, { color: textColor, opacity: 0.8 }]} numberOfLines={1}>
+                  {sublabel}
+                </Text>
+              )}
+            </View>
+            <Text style={{ color: textColor, opacity: 0.7, fontSize: 12, fontWeight: "600" }}>›</Text>
+          </TouchableOpacity>
+        );
+      })()}
+
       {/* AI Suggestion Chip — shown above ActionDock when idle */}
       {!activeTrip && searchStatus === 'idle' && !chipDismissed && commuteResult?.insight && (
         <AISuggestionChip
@@ -1117,6 +1200,35 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "600",
   },
+  // ===== DAILY COMMUTE INTENT PILL =====
+  intentPill: {
+    position: "absolute",
+    top: 100,
+    alignSelf: "center",
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+    gap: 6,
+  },
+  intentPillLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    flex: 1,
+  },
+  intentPillSub: {
+    fontSize: 11,
+    fontWeight: "500",
+    marginTop: 1,
+  },
+
   // ===== MY LOCATION FAB =====
   myLocationBtn: {
     position: "absolute",
