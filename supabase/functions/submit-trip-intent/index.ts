@@ -1,10 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { corsHeaders } from '../_shared/cors.ts';
+import { verifyAuth } from '../_shared/auth.ts';
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,26 +7,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } }
-    );
-
-    // Auth — JWT already validated by gateway (verify_jwt: true); extract sub from payload
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    }
-    let userId: string;
-    try {
-      const jwt = authHeader.replace("Bearer ", "");
-      const payload = JSON.parse(atob(jwt.split(".")[1]));
-      userId = payload.sub;
-      if (!userId) throw new Error("no sub");
-    } catch {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    }
+    const { userId, supabase } = await verifyAuth(req);
 
     const body = await req.json();
     const { role, passenger_capacity, departure_time, required_arrival_time, trip_date } = body;

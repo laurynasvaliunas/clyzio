@@ -21,6 +21,7 @@ import { useTripStore } from "../store/useTripStore";
 import { useNotificationToastStore } from "../store/useNotificationToastStore";
 import IncomingSuggestionBanner from "../components/IncomingSuggestionBanner";
 import InAppNotificationToast from "../components/InAppNotificationToast";
+import ErrorBoundary from "../components/ErrorBoundary";
 import "../global.css";
 
 // Brand Colors (matching logo)
@@ -67,7 +68,7 @@ async function registerForPushNotificationsAsync() {
     }
     
     if (finalStatus !== "granted") {
-      console.log("Failed to get push notification permissions");
+      if (__DEV__) { console.log("Failed to get push notification permissions"); }
       return;
     }
     
@@ -77,13 +78,13 @@ async function registerForPushNotificationsAsync() {
       token = (await Notifications.getExpoPushTokenAsync({
         projectId: "565dc638-6385-4dcf-885d-8abd3f0d9c30",
       })).data;
-      console.log("Push token:", token);
+      if (__DEV__) { console.log("Push token:", token); }
     } catch (error) {
       // Expected in Expo Go - push tokens work in development/production builds
-      console.log("Push token not available (expected in Expo Go)");
+      if (__DEV__) { console.log("Push token not available (expected in Expo Go)"); }
     }
   } else {
-    console.log("Push notifications require a physical device");
+    if (__DEV__) { console.log("Push notifications require a physical device"); }
   }
 
   return token;
@@ -361,7 +362,7 @@ function RootLayoutContent() {
 
     // Listen for user tapping on notification — deep-link into daily commute flow
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      console.log("Notification response:", response);
+      if (__DEV__) { console.log("Notification response:", response); }
       const screen = response.notification.request.content.data?.screen;
       if (screen === 'daily-commute') {
         router.push('/daily-commute');
@@ -417,11 +418,13 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <RootLayoutContent />
-      </ToastProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <ToastProvider>
+          <RootLayoutContent />
+        </ToastProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

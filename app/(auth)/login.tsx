@@ -172,6 +172,32 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Forgot Password link — shown only during sign in */}
+        {!isSignUp && (
+          <TouchableOpacity
+            onPress={async () => {
+              if (!email.trim()) {
+                showToast({ title: 'Warning', message: 'Enter your email first', type: 'warning' });
+                return;
+              }
+              try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+                if (error) {
+                  showToast({ title: 'Error', message: error.message, type: 'error' });
+                } else {
+                  showToast({ title: 'Success', message: 'Password reset email sent! Check your inbox.', type: 'success' });
+                }
+              } catch (err: any) {
+                showToast({ title: 'Error', message: err.message || 'Something went wrong', type: 'error' });
+              }
+            }}
+            activeOpacity={0.7}
+            style={styles.forgotPasswordWrap}
+          >
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Terms acceptance checkbox — shown only during sign up */}
         {isSignUp && (
           <TouchableOpacity
@@ -376,6 +402,17 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: "600",
     textDecorationLine: "underline",
+  },
+
+  forgotPasswordWrap: {
+    alignSelf: "flex-end",
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  forgotPasswordText: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: "600",
   },
 
   ctaBtn: {

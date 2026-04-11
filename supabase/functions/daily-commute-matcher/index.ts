@@ -1,11 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.24.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { corsHeaders } from '../_shared/cors.ts';
+import { verifyAuth } from '../_shared/auth.ts';
 
 // ─── Geo helpers ─────────────────────────────────────────────────────────────
 
@@ -108,11 +104,19 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    { auth: { persistSession: false } }
-  );
+  // Try verifyAuth if an Authorization header is present; fall back to
+  // a service-role client so cron/scheduler invocations still work.
+  let supabase;
+  try {
+    const auth = await verifyAuth(req);
+    supabase = auth.supabase;
+  } catch {
+    supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
+    );
+  }
   const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
   const mapboxToken = Deno.env.get("MAPBOX_TOKEN") ?? Deno.env.get("EXPO_PUBLIC_MAPBOX_TOKEN") ?? "";
 

@@ -1,10 +1,5 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { corsHeaders } from '../_shared/cors.ts';
+import { verifyAuth } from '../_shared/auth.ts';
 
 async function sendPush(token: string, title: string, body: string, data?: Record<string, unknown>) {
   try {
@@ -24,25 +19,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } }
-    );
-
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    }
-    let userId: string;
-    try {
-      const jwt = authHeader.replace("Bearer ", "");
-      const payload = JSON.parse(atob(jwt.split(".")[1]));
-      userId = payload.sub;
-      if (!userId) throw new Error("no sub");
-    } catch {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
-    }
+    const { userId, supabase } = await verifyAuth(req);
 
     const { accepted_ids, declined_ids, detour_preference, custom_pickups } = await req.json() as {
       accepted_ids: string[];

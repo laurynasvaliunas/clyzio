@@ -1,3 +1,9 @@
+-- ╔══════════════════════════════════════════════════════════════╗
+-- ║  ⚠️  LOCAL DEVELOPMENT ONLY — DO NOT RUN IN PRODUCTION  ⚠️  ║
+-- ║  All users below have password: Test1234!                   ║
+-- ║  This file is for seeding local Supabase instances only.    ║
+-- ╚══════════════════════════════════════════════════════════════╝
+
 -- Clyzio Seed Data — 10 test users in Vilnius area
 -- All users have password: Test1234!
 -- Run this after all migrations have been applied.

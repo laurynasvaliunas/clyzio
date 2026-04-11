@@ -24,6 +24,8 @@ import {
   Trash2,
   ChevronRight,
   Building2,
+  Download,
+  Scale,
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 
@@ -178,6 +180,14 @@ export default function SettingsScreen() {
             <Text style={[styles.settingLabel, { color: TC.text }]}>Change Password</Text>
             <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: TC.surface }]} onPress={() => router.push("/settings/export-data")}>
+            <View style={[styles.iconBox, { backgroundColor: COLORS.primary + "20" }]}>
+              <Download size={20} color={COLORS.primary} />
+            </View>
+            <Text style={[styles.settingLabel, { color: TC.text }]}>Export My Data</Text>
+            <ChevronRight size={20} color={TC.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         {/* Manager Section — only shown to managers */}
@@ -248,6 +258,14 @@ export default function SettingsScreen() {
               <FileText size={20} color={COLORS.gray} />
             </View>
             <Text style={[styles.settingLabel, { color: TC.text }]}>Terms of Service</Text>
+            <ChevronRight size={20} color={TC.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.settingItem, { backgroundColor: TC.surface, borderColor: TC.border }]} onPress={() => router.push("/settings/licenses")}>
+            <View style={[styles.iconBox, { backgroundColor: COLORS.gray + "20" }]}>
+              <Scale size={20} color={COLORS.gray} />
+            </View>
+            <Text style={[styles.settingLabel, { color: TC.text }]}>Licenses</Text>
             <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
         </View>

@@ -502,7 +502,7 @@ export default function MapScreen() {
     useCallback(() => {
       // Don't reset if user is in the middle of booking or viewing success
       if (requestStatus !== 'idle' || selectedMatch || isViewingMap) {
-        console.log('⏸️ Skipping reset - user is interacting');
+        if (__DEV__) { console.log('⏸️ Skipping reset - user is interacting'); }
         return;
       }
 
@@ -523,7 +523,7 @@ export default function MapScreen() {
           // If no trips and we have state, reset the map
           if (!trips || trips.length === 0) {
             if (activeTrip || searchMode || nearbyCommuters.length > 0) {
-              console.log('🔄 Resetting map to initial state');
+              if (__DEV__) { console.log('🔄 Resetting map to initial state'); }
               setActiveTrip(null);
               setRouteCoords(null);
               setSearchMode(null);
@@ -669,7 +669,7 @@ export default function MapScreen() {
         profiles: profiles?.find((p: any) => p.id === ride[searchColumn]) || null,
       }));
 
-      console.log('✅ Found nearby commuters:', commutersWithProfiles.length);
+      if (__DEV__) { console.log('✅ Found nearby commuters:', commutersWithProfiles.length); }
       setNearbyCommuters(commutersWithProfiles);
       setSearchStatus(commutersWithProfiles.length > 0 ? 'matched' : 'waiting');
     } catch (error) {
@@ -684,7 +684,7 @@ export default function MapScreen() {
    * Initiates search mode for driver/rider roles
    */
   const handleTripStart = async (tripData: any) => {
-    console.log("✅ Trip Started:", tripData);
+    if (__DEV__) { console.log("✅ Trip Started:", tripData); }
     
     // Set active trip
     setActiveTrip(tripData);
@@ -871,7 +871,7 @@ export default function MapScreen() {
         style={styles.map}
         styleURL={isDark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street}
         logoEnabled={false}
-        attributionEnabled={false}
+        attributionEnabled={true}
         onDidFinishLoadingMap={centerToUserLocation}
       >
         <Camera

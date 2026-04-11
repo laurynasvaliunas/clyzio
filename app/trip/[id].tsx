@@ -402,7 +402,7 @@ export default function TripScreen() {
           style={styles.map}
           styleURL={Mapbox.StyleURL.Street}
           logoEnabled={false}
-          attributionEnabled={false}
+          attributionEnabled={true}
         >
           <Camera
             ref={cameraRef}

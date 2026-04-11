@@ -395,7 +395,7 @@ export default function ActivityScreen() {
       if (error) {
         console.error("❌ Error fetching rides:", error);
       } else {
-        console.log(`✅ Fetched ${data?.length || 0} rides for ${activeTab}:`, data);
+        if (__DEV__) { console.log(`✅ Fetched ${data?.length || 0} rides for ${activeTab}:`, data); }
         setRides(data || []);
       }
     } catch (error) {
