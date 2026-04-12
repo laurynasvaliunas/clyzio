@@ -34,7 +34,7 @@
     "production": {
       "ios": {
         "appleId": "",
-        "ascAppId": "",
+        "ascAppId": "6762083645",
         "appleTeamId": ""
       },
       "android": {
