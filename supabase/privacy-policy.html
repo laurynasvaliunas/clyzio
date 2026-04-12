@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Clyzio</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #EFF8F9;
+      color: #0F172A;
+      line-height: 1.7;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #006064 0%, #00838F 55%, #26C6DA 100%);
+      padding: 40px 24px 36px;
+      text-align: center;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: flex-start;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .logo-text {
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 2px;
+    }
+    .logo-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #FDD835;
+      margin-top: 5px;
+    }
+    header p {
+      color: rgba(255,255,255,0.8);
+      font-size: 14px;
+      letter-spacing: 0.3px;
+    }
+
+    /* ── Layout ── */
+    main {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── Meta bar ── */
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+    .meta-pill {
+      background: #fff;
+      border: 1px solid #E0F2F3;
+      border-radius: 50px;
+      padding: 6px 16px;
+      font-size: 13px;
+      color: #546E7A;
+    }
+    .meta-pill strong { color: #0F172A; }
+
+    /* ── Cards / Sections ── */
+    .section {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,96,100,0.07);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 24px;
+      border-bottom: 1px solid #E0F2F3;
+      cursor: pointer;
+    }
+    .section-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #E0F7FA, #B2EBF2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #006064;
+    }
+    .section-body {
+      padding: 20px 24px;
+    }
+
+    /* ── Typography ── */
+    h2 { font-size: 17px; font-weight: 700; color: #006064; }
+    h3 { font-size: 15px; font-weight: 700; color: #0F172A; margin: 20px 0 8px; }
+    p  { font-size: 14px; color: #37474F; margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+    ul { padding-left: 20px; margin-bottom: 12px; }
+    ul li { font-size: 14px; color: #37474F; margin-bottom: 6px; }
+    a { color: #00838F; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Data table ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .data-table th {
+      background: #F0FAFB;
+      color: #006064;
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid #E0F2F3;
+    }
+    .data-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #F0F4F5;
+      color: #37474F;
+      vertical-align: top;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: #FAFEFF; }
+    .tag {
+      display: inline-block;
+      background: #E0F7FA;
+      color: #006064;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      margin: 1px 2px;
+      white-space: nowrap;
+    }
+    .tag.red { background: #FFEBEE; color: #C62828; }
+    .tag.yellow { background: #FFF9C4; color: #795548; }
+    .tag.green { background: #E8F5E9; color: #2E7D32; }
+
+    /* ── Third parties ── */
+    .provider-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .provider-card {
+      background: #F5FAFA;
+      border: 1px solid #E0F2F3;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .provider-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0F172A;
+      margin-bottom: 4px;
+    }
+    .provider-role {
+      font-size: 12px;
+      color: #90A4AE;
+      margin-bottom: 8px;
+    }
+    .provider-data {
+      font-size: 12px;
+      color: #546E7A;
+      line-height: 1.5;
+    }
+
+    /* ── Rights list ── */
+    .rights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .right-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: #F5FAFA;
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .right-icon { font-size: 20px; flex-shrink: 0; }
+    .right-label { font-size: 13px; font-weight: 600; color: #0F172A; }
+    .right-desc { font-size: 12px; color: #90A4AE; margin-top: 2px; }
+
+    /* ── Notice box ── */
+    .notice {
+      background: #FFF8E1;
+      border: 1px solid #FFE082;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #795548;
+      line-height: 1.6;
+    }
+
+    /* ── Contact ── */
+    .contact-box {
+      background: linear-gradient(135deg, #E0F7FA, #B2EBF2);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+    }
+    .contact-box h3 { color: #006064; margin: 0 0 8px; }
+    .contact-box p { color: #37474F; margin-bottom: 12px; }
+    .contact-link {
+      display: inline-block;
+      background: linear-gradient(135deg, #26C6DA, #00ACC1);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 10px 28px;
+      border-radius: 50px;
+      text-decoration: none;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: #90A4AE;
+    }
+
+    @media (max-width: 600px) {
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px 10px; }
+      main { padding: 24px 16px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-text">CLYZIO</span>
+    <span class="logo-dot"></span>
+  </div>
+  <p>Privacy Policy &mdash; Green Commutes, Together</p>
+</header>
+
+<main>
+
+  <!-- Meta -->
+  <div class="meta">
+    <span class="meta-pill"><strong>Effective:</strong> 12 April 2026</span>
+    <span class="meta-pill"><strong>Last updated:</strong> 12 April 2026</span>
+    <span class="meta-pill"><strong>Applies to:</strong> Clyzio iOS &amp; Android apps</span>
+    <span class="meta-pill"><strong>Controller:</strong> Clyzio</span>
+  </div>
+
+  <!-- Intro -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">👋</div>
+      <span class="section-title">1. Introduction</span>
+    </div>
+    <div class="section-body">
+      <p>Welcome to Clyzio ("we", "our", "us"). Clyzio is a mobile app that helps employees coordinate sustainable commutes through AI-powered carpool matching, CO₂ tracking, and company sustainability programmes.</p>
+      <p>This Privacy Policy explains what personal data we collect, why we collect it, who we share it with, and how you can exercise your rights. We are committed to handling your data responsibly and in accordance with the <strong>EU General Data Protection Regulation (GDPR)</strong> and applicable national laws.</p>
+      <p>By using Clyzio, you agree to the practices described in this policy. If you do not agree, please do not use the app.</p>
+    </div>
+  </div>
+
+  <!-- Data Controller -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🏢</div>
+      <span class="section-title">2. Data Controller</span>
+    </div>
+    <div class="section-body">
+      <p>The data controller responsible for your personal data is:</p>
+      <p>
+        <strong>Clyzio</strong><br />
+        Email: <a href="mailto:info@clyzio.com">info@clyzio.com</a><br />
+        Privacy enquiries: <a href="mailto:privacy@clyzio.com">privacy@clyzio.com</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Data We Collect -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📋</div>
+      <span class="section-title">3. Data We Collect &amp; Why</span>
+    </div>
+    <div class="section-body">
+
+      <h3>3.1 Account &amp; Identity</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>Data</th><th>Purpose</th><th>Legal Basis</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Email address</td>
+            <td>Account creation, sign-in, email communications, company identification by domain</td>
+            <td><span class="tag">Contract</span></td>
+          </tr>
+          <tr>
+            <td>Password (hashed, never stored in plain text)</td>
+            <td>Account authentication</td>
+            <td><span class="tag">Contract</span></td>
+          </tr>
+          <tr>
+            <td>First &amp; last name</td>
+            <td>Display to carpool partners, AI personalisation</td>
+            <td><span class="tag">Contract</span></td>
+          </tr>
+          <tr>
+            <td>Phone number</td>
+            <td>Shown to confirmed carpool partners for coordination</td>
+            <td><span class="tag">Consent</span></td>
+          </tr>
+          <tr>
+            <td>Profile photo</td>
+            <td>Displayed on your profile and to carpool partners</td>
+            <td><span class="tag">Consent</span></td>
+          </tr>
+          <tr>
+            <td>Company &amp; department</td>
+            <td>Company leaderboards, sustainability challenges, manager dashboard</td>
+            <td><span class="tag">Contract</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>3.2 Location Data</h3>
+      <div class="notice" style="margin-bottom:16px;">
+        ⚠️ Clyzio collects precise GPS location data. This is core to the carpool matching feature and is required for the app to function. You may revoke location permissions at any time in device Settings, but this will disable carpool matching.
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Data</th><th>Purpose</th><th>Legal Basis</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Home address &amp; GPS coordinates</td>
+            <td>Carpool matching, AI commute suggestions, route planning</td>
+            <td><span class="tag">Consent</span></td>
+          </tr>
+          <tr>
+            <td>Work address &amp; GPS coordinates</td>
+            <td>Carpool matching, AI commute suggestions, route planning</td>
+            <td><span class="tag">Consent</span></td>
+          </tr>
+          <tr>
+            <td>Real-time GPS location (foreground)</td>
+            <td>Live map display, ride origin/destination capture</td>
+            <td><span class="tag">Consent</span></td>
+          </tr>
+          <tr>
+            <td>Background GPS location</td>
+            <td>Active trip tracking, proximity-based push notifications</td>
+            <td><span class="tag yellow">Consent (explicit)</span></td>
+          </tr>
+          <tr>
+            <td>Trip pickup &amp; drop-off points</td>
+            <td>Stored with each ride record for match history</td>
+            <td><span class="tag">Contract</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>3.3 Vehicle &amp; Commute Information</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>Data</th><th>Purpose</th><th>Legal Basis</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Car make, model, colour, licence plate</td>
+            <td>Displayed to confirmed carpool partners for identification</td>
+            <td><span class="tag">Consent</span></td>
+          </tr>
+          <tr>
+            <td>Car fuel type</td>
+            <td>Calculate your personal CO₂ baseline using DEFRA/EEA 2024 emissions factors</td>
+            <td><span class="tag">Contract</span></td>
+          </tr>
+          <tr>
+            <td>Preferred departure time &amp; working days</td>
+            <td>AI commute planning, daily carpool matching</td>
+            <td><span class="tag">Contract</span></td>
+          </tr>
+          <tr>
+            <td>Commuting habits (transport modes per day)</td>
+            <td>AI personalisation, CO₂ savings calculation</td>
+            <td><span class="tag">Contract</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>3.4 Trip History &amp; Sustainability</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>Data</th><th>Purpose</th><th>Legal Basis</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Trip records (origin, destination, mode, distance, date)</td>
+            <td>CO₂ savings tracking, personal stats, company leaderboards</td>
+            <td><span class="tag">Contract</span></td>
+          </tr>
+          <tr>
+            <td>CO₂ savings (per trip &amp; cumulative)</td>
+            <td>Personal stats, company ESG reporting, leaderboards</td>
+            <td><span class="tag">Legitimate Interest</span></td>
+          </tr>
+          <tr>
+            <td>Transport mode usage history</td>
+            <td>AI suggestion input, company sustainability reports</td>
+            <td><span class="tag">Legitimate Interest</span></td>
+          </tr>
+          <tr>
+            <td>Gamification data (XP, level, badges)</td>
+            <td>Engagement, leaderboards, rewards</td>
+            <td><span class="tag">Legitimate Interest</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>3.5 AI &amp; Matching</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>Data</th><th>Purpose</th><th>Legal Basis</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>AI suggestion inputs &amp; outputs</td>
+            <td>Generate personalised commute plans; logged for audit, replay, and service improvement</td>
+            <td><span class="tag">Legitimate Interest</span></td>
+          </tr>
+          <tr>
+            <td>Carpool match proposals (AI compatibility score, reasoning)</td>
+            <td>Show ranked matches; improve matching accuracy</td>
+            <td><span class="tag">Contract</span></td>
+          </tr>
+          <tr>
+            <td>Daily trip intents (role, times, locations)</td>
+            <td>Next-day carpool batch matching (expires same day 17:00)</td>
+            <td><span class="tag">Contract</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>3.6 Messaging</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>Data</th><th>Purpose</th><th>Legal Basis</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>In-app chat messages between carpool partners</td>
+            <td>Ride coordination (pickup details, timing changes)</td>
+            <td><span class="tag">Contract</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>3.7 Technical &amp; Device</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>Data</th><th>Purpose</th><th>Legal Basis</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Expo push notification token</td>
+            <td>Deliver push notifications (match found, ride confirmed, badges)</td>
+            <td><span class="tag">Consent</span></td>
+          </tr>
+          <tr>
+            <td>Crash reports &amp; error stack traces (Sentry)</td>
+            <td>Bug detection and app stability</td>
+            <td><span class="tag">Legitimate Interest</span></td>
+          </tr>
+          <tr>
+            <td>Session replay data (Sentry, 10% of sessions &amp; 100% on error)</td>
+            <td>Diagnose complex user-facing bugs</td>
+            <td><span class="tag">Legitimate Interest</span></td>
+          </tr>
+          <tr>
+            <td>App version, OS version, device model (via Sentry)</td>
+            <td>Reproduce and triage bugs per platform</td>
+            <td><span class="tag">Legitimate Interest</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- Third Parties -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🔗</div>
+      <span class="section-title">4. Third-Party Services &amp; Data Processors</span>
+    </div>
+    <div class="section-body">
+      <p style="margin-bottom:20px;">We use the following third-party data processors. Each has been evaluated for GDPR compliance. We do not sell your data to any third party.</p>
+      <div class="provider-grid">
+        <div class="provider-card">
+          <div class="provider-name">Supabase</div>
+          <div class="provider-role">Database, Authentication &amp; Realtime</div>
+          <div class="provider-data">Stores all user data, trip records, messages. Database hosted in <strong>EU (West)</strong>. Supabase Auth handles password hashing and JWT tokens.</div>
+        </div>
+        <div class="provider-card">
+          <div class="provider-name">Anthropic Claude</div>
+          <div class="provider-role">AI Commute &amp; Carpool Matching</div>
+          <div class="provider-data">Receives your name, home/work addresses, commuting habits, and vehicle data to generate carpool suggestions and commute plans. Data is used for inference only and not retained by Anthropic for training.</div>
+        </div>
+        <div class="provider-card">
+          <div class="provider-name">Mapbox</div>
+          <div class="provider-role">Mapping &amp; Geocoding</div>
+          <div class="provider-data">Receives origin/destination GPS coordinates to render maps, calculate routes, and reverse-geocode pickup locations to human-readable addresses.</div>
+        </div>
+        <div class="provider-card">
+          <div class="provider-name">Sentry</div>
+          <div class="provider-role">Error &amp; Crash Reporting</div>
+          <div class="provider-data">Receives crash reports, stack traces, and session replay data. Hosted in <strong>Germany (EU)</strong>. Your user ID is sent but no names or emails. Data retained 30 days by default.</div>
+        </div>
+        <div class="provider-card">
+          <div class="provider-name">Expo</div>
+          <div class="provider-role">Push Notifications &amp; OTA Updates</div>
+          <div class="provider-data">Expo's push service routes notifications to Apple APNs and Google FCM using your push token. Expo Updates delivers over-the-air app updates.</div>
+        </div>
+        <div class="provider-card">
+          <div class="provider-name">Apple APNs / Google FCM</div>
+          <div class="provider-role">Push Notification Delivery</div>
+          <div class="provider-data">Notification payload (title, body, screen deep-link) is delivered through Apple's and Google's push infrastructure to your device.</div>
+        </div>
+      </div>
+      <p style="margin-top:20px;">We also share limited profile data (name, vehicle details, phone number) directly with <strong>other Clyzio users</strong> once a carpool match is confirmed. You control what vehicle and contact information is visible by editing your profile.</p>
+    </div>
+  </div>
+
+  <!-- Device Permissions -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📱</div>
+      <span class="section-title">5. Device Permissions Requested</span>
+    </div>
+    <div class="section-body">
+      <table class="data-table">
+        <thead>
+          <tr><th>Permission</th><th>iOS</th><th>Android</th><th>Why It's Needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Location — While Using</strong></td>
+            <td><span class="tag green">Required</span></td>
+            <td><span class="tag green">Required</span></td>
+            <td>Show map, capture ride origin/destination, find nearby carpool candidates</td>
+          </tr>
+          <tr>
+            <td><strong>Location — Always (Background)</strong></td>
+            <td><span class="tag yellow">Optional</span></td>
+            <td><span class="tag yellow">Optional</span></td>
+            <td>Track active trips, send proximity notifications. You will be asked separately for this permission.</td>
+          </tr>
+          <tr>
+            <td><strong>Push Notifications</strong></td>
+            <td><span class="tag yellow">Optional</span></td>
+            <td><span class="tag yellow">Optional</span></td>
+            <td>Match alerts, ride confirmations, badge unlocks, daily commute reminders</td>
+          </tr>
+          <tr>
+            <td><strong>Camera</strong></td>
+            <td><span class="tag yellow">Optional</span></td>
+            <td><span class="tag yellow">Optional</span></td>
+            <td>Take a profile photo</td>
+          </tr>
+          <tr>
+            <td><strong>Photo Library</strong></td>
+            <td><span class="tag yellow">Optional</span></td>
+            <td><span class="tag yellow">Optional</span></td>
+            <td>Choose an existing photo as your profile picture</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Retention -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🗓️</div>
+      <span class="section-title">6. Data Retention</span>
+    </div>
+    <div class="section-body">
+      <table class="data-table">
+        <thead>
+          <tr><th>Data Category</th><th>Retention Period</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Account &amp; profile data</td><td>Until account deletion + 30 days for backups</td></tr>
+          <tr><td>Trip history &amp; ride records</td><td>Until account deletion</td></tr>
+          <tr><td>In-app messages</td><td>Until account deletion</td></tr>
+          <tr><td>Daily trip intents</td><td>Auto-deleted 24 hours after the intent's trip date</td></tr>
+          <tr><td>Carpool match proposals</td><td>Auto-expire 48 hours after creation if not acted on</td></tr>
+          <tr><td>AI suggestion logs</td><td>Until account deletion</td></tr>
+          <tr><td>Sentry crash &amp; session data</td><td>30 days (Sentry default)</td></tr>
+          <tr><td>Push notification tokens</td><td>Until account deletion or token rotation</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:16px;">When you delete your account, all personally identifiable data is cascade-deleted from our database within 30 days, including your profile, trips, messages, AI logs, and vehicle information. Anonymised, aggregated data (e.g. company-level CO₂ totals) may be retained.</p>
+    </div>
+  </div>
+
+  <!-- Your Rights -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">⚖️</div>
+      <span class="section-title">7. Your Rights (GDPR)</span>
+    </div>
+    <div class="section-body">
+      <div class="rights-grid">
+        <div class="right-item">
+          <span class="right-icon">👁️</span>
+          <div>
+            <div class="right-label">Access</div>
+            <div class="right-desc">Request a copy of all data we hold about you</div>
+          </div>
+        </div>
+        <div class="right-item">
+          <span class="right-icon">✏️</span>
+          <div>
+            <div class="right-label">Rectification</div>
+            <div class="right-desc">Correct inaccurate or incomplete data</div>
+          </div>
+        </div>
+        <div class="right-item">
+          <span class="right-icon">🗑️</span>
+          <div>
+            <div class="right-label">Erasure</div>
+            <div class="right-desc">Delete your account and all personal data</div>
+          </div>
+        </div>
+        <div class="right-item">
+          <span class="right-icon">⏸️</span>
+          <div>
+            <div class="right-label">Restriction</div>
+            <div class="right-desc">Restrict how we process your data in certain circumstances</div>
+          </div>
+        </div>
+        <div class="right-item">
+          <span class="right-icon">📦</span>
+          <div>
+            <div class="right-label">Portability</div>
+            <div class="right-desc">Export your data in a machine-readable format (Article 20)</div>
+          </div>
+        </div>
+        <div class="right-item">
+          <span class="right-icon">🚫</span>
+          <div>
+            <div class="right-label">Objection</div>
+            <div class="right-desc">Object to processing based on legitimate interests</div>
+          </div>
+        </div>
+        <div class="right-item">
+          <span class="right-icon">🤖</span>
+          <div>
+            <div class="right-label">Automated Decisions</div>
+            <div class="right-desc">Request human review of AI-generated carpool matches</div>
+          </div>
+        </div>
+        <div class="right-item">
+          <span class="right-icon">↩️</span>
+          <div>
+            <div class="right-label">Withdraw Consent</div>
+            <div class="right-desc">Withdraw consent (e.g. location) at any time in device Settings</div>
+          </div>
+        </div>
+      </div>
+      <p style="margin-top:20px;">To exercise any of these rights, contact us at <a href="mailto:privacy@clyzio.com">privacy@clyzio.com</a>. We will respond within <strong>30 days</strong>. You can also use the in-app settings to export your data or delete your account directly.</p>
+    </div>
+  </div>
+
+  <!-- Security -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🔒</div>
+      <span class="section-title">8. Security</span>
+    </div>
+    <div class="section-body">
+      <ul>
+        <li>All data is transmitted over <strong>TLS 1.2+</strong> encrypted connections.</li>
+        <li>Passwords are hashed using <strong>bcrypt</strong> via Supabase Auth — we never store plain-text passwords.</li>
+        <li>Database access is controlled by <strong>Row Level Security (RLS)</strong> — users can only read and write their own data.</li>
+        <li>Location data is only accessible to other users when a carpool match is confirmed.</li>
+        <li>Vehicle details (licence plate, colour) are only shown to your confirmed carpool partners.</li>
+        <li>AI inputs sent to Anthropic are transmitted securely and not used for model training.</li>
+        <li>Crash data sent to Sentry contains only your opaque user ID, not your name or email.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Children -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🧒</div>
+      <span class="section-title">9. Children's Privacy</span>
+    </div>
+    <div class="section-body">
+      <p>Clyzio is designed for workplace commute coordination and is intended for users aged <strong>16 and older</strong>. We do not knowingly collect personal data from children under 16. If you believe a child has provided us with personal data, please contact us at <a href="mailto:privacy@clyzio.com">privacy@clyzio.com</a> and we will delete it promptly.</p>
+    </div>
+  </div>
+
+  <!-- International Transfers -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">🌍</div>
+      <span class="section-title">10. International Data Transfers</span>
+    </div>
+    <div class="section-body">
+      <p>Your primary data is stored in <strong>EU data centres</strong> (Supabase EU West region; Sentry Germany). Some data is processed outside the EEA:</p>
+      <ul>
+        <li><strong>Anthropic (USA)</strong> — AI inference. Anthropic is certified under the EU–US Data Privacy Framework and uses Standard Contractual Clauses (SCCs) for international transfers.</li>
+        <li><strong>Mapbox (USA)</strong> — Geocoding and routing. Mapbox complies with GDPR via SCCs.</li>
+        <li><strong>Expo (USA)</strong> — Push notification routing. Expo uses SCCs for transfers to the EEA.</li>
+      </ul>
+      <p>All international transfers are governed by appropriate safeguards as required by GDPR Chapter V.</p>
+    </div>
+  </div>
+
+  <!-- Changes -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon">📝</div>
+      <span class="section-title">11. Changes to This Policy</span>
+    </div>
+    <div class="section-body">
+      <p>We may update this Privacy Policy from time to time. When we make material changes, we will notify you via a push notification and/or email, and update the "Last updated" date at the top of this page. Continued use of Clyzio after changes take effect constitutes acceptance of the revised policy.</p>
+    </div>
+  </div>
+
+  <!-- Contact -->
+  <div class="contact-box">
+    <h3>Questions about your privacy?</h3>
+    <p>We're happy to help. Reach our privacy team directly.</p>
+    <a href="mailto:privacy@clyzio.com" class="contact-link">Contact Us</a>
+  </div>
+
+</main>
+
+<footer>
+  &copy; 2026 Clyzio &mdash; All rights reserved &mdash; <a href="mailto:privacy@clyzio.com">privacy@clyzio.com</a>
+</footer>
+
+</body>
+</html>
