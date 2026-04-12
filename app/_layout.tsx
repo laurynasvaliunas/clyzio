@@ -22,7 +22,11 @@ import { useNotificationToastStore } from "../store/useNotificationToastStore";
 import IncomingSuggestionBanner from "../components/IncomingSuggestionBanner";
 import InAppNotificationToast from "../components/InAppNotificationToast";
 import ErrorBoundary from "../components/ErrorBoundary";
+import { initSentry, setSentryUser, clearSentryUser, Sentry } from "../lib/sentry";
 import "../global.css";
+
+// Initialise Sentry as early as possible — before any component renders
+initSentry();
 
 // Brand Colors (matching logo)
 const COLORS = {
@@ -282,6 +286,11 @@ function RootLayoutContent() {
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
+      if (session?.user?.id) {
+        setSentryUser(session.user.id);
+      } else {
+        clearSentryUser();
+      }
     });
 
     return () => {
@@ -416,7 +425,7 @@ function RootLayoutContent() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -427,6 +436,9 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
+
+// Sentry.wrap enables automatic JS error capture + native crash reporting
+export default Sentry.wrap(RootLayout);
 
 const styles = StyleSheet.create({});
 
