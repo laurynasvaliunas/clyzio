@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.clyzio.app",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Clyzio uses your location to show your position on the map, plan routes, and match you with nearby commuters.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Clyzio uses your location in the background to track active trips and notify you of nearby carpool matches.",
