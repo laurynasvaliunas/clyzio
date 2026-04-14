@@ -64,7 +64,7 @@
       [
         "@rnmapbox/maps",
         {
-          "RNMapboxMapsDownloadToken": "sk.placeholder"
+          "RNMAPBOX_MAPS_DOWNLOAD_TOKEN": "sk.placeholder"
         }
       ],
       [
