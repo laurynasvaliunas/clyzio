@@ -12,6 +12,9 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import Constants from "expo-constants";
+import * as Linking from "expo-linking";
+import { parseLink, toRoutePath } from "../lib/deepLinks";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 import { ToastProvider } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
@@ -77,14 +80,18 @@ async function registerForPushNotificationsAsync() {
     }
     
     try {
-      // Note: Push tokens require projectId in Expo Go - this is expected to fail
-      // In production builds, this will work correctly
-      token = (await Notifications.getExpoPushTokenAsync({
-        projectId: "565dc638-6385-4dcf-885d-8abd3f0d9c30",
-      })).data;
-      if (__DEV__) { console.log("Push token:", token); }
-    } catch (error) {
-      // Expected in Expo Go - push tokens work in development/production builds
+      // Resolve EAS projectId dynamically from app.config.ts — avoids drift if
+      // the project is ever rotated.
+      const projectId =
+        (Constants as any)?.expoConfig?.extra?.eas?.projectId ||
+        (Constants as any)?.easConfig?.projectId;
+      if (!projectId) {
+        if (__DEV__) { console.log("Push token skipped — missing EAS projectId"); }
+        return token;
+      }
+      token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+      if (__DEV__) { console.log("Push token registered"); }
+    } catch (_error) {
       if (__DEV__) { console.log("Push token not available (expected in Expo Go)"); }
     }
   } else {
@@ -298,6 +305,21 @@ function RootLayoutContent() {
     };
   }, []);
 
+  // Handle incoming deep links (clyzio:// + https://clyzio.app/) — routes to
+  // the right expo-router path. Guarded against navigating before the router
+  // has mounted by running inside a microtask.
+  useEffect(() => {
+    const handle = (url: string | null) => {
+      if (!url) return;
+      const target = parseLink(url);
+      const path = toRoutePath(target);
+      if (path) setTimeout(() => router.push(path as any), 0);
+    };
+    Linking.getInitialURL().then(handle);
+    const sub = Linking.addEventListener('url', (ev) => handle(ev.url));
+    return () => sub.remove();
+  }, [router]);
+
   // Subscribe to incoming carpool suggestions when authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -331,12 +353,13 @@ function RootLayoutContent() {
     if (isAuthenticated === null) return; // Still loading
 
     const inAuthGroup = segments[0] === '(auth)';
+    // Public (no auth required) screens — Terms / Privacy / Licenses pages
+    // must be reachable without login for App Store / Play Store review.
+    const inPublicGroup = segments[0] === 'legal';
 
-    if (!isAuthenticated && !inAuthGroup) {
-      // Not authenticated, redirect to login
+    if (!isAuthenticated && !inAuthGroup && !inPublicGroup) {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
-      // Authenticated but in auth screens, redirect to app
       router.replace('/(tabs)');
     }
   }, [isAuthenticated, segments]);
@@ -392,8 +415,11 @@ function RootLayoutContent() {
     setIsReady(true);
   };
 
-  // Show animated splash until ready
-  if (!isReady) {
+  // Show animated splash until BOTH the intro animation has played out AND
+  // the auth session has been resolved. Previously we only waited on `isReady`
+  // which meant a fraction of a second of unauthenticated tabs flashed before
+  // the redirect effect ran.
+  if (!isReady || isAuthenticated === null) {
     return (
       <SafeAreaProvider>
         <AnimatedSplash onAnimationComplete={handleAnimationComplete} />

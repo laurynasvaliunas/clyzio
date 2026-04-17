@@ -51,8 +51,10 @@ export async function callClaude(req: ClaudeRequest): Promise<ClaudeResult> {
   });
 
   if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Claude API error ${response.status}: ${errorBody}`);
+    // Log full upstream response server-side; surface only a stable code upstream.
+    const errorBody = await response.text().catch(() => '<unreadable>');
+    console.error(`claude api ${response.status}: ${errorBody.slice(0, 500)}`);
+    throw new Error('claude_upstream_error');
   }
 
   const data = await response.json();
@@ -67,11 +69,12 @@ export async function callClaude(req: ClaudeRequest): Promise<ClaudeResult> {
  * Strips markdown code fences if Claude wrapped the JSON in them.
  */
 export function parseClaudeJSON<T>(text: string): T {
-  // Strip markdown fences like ```json ... ```
   const cleaned = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim();
   try {
     return JSON.parse(cleaned) as T;
   } catch {
-    throw new Error(`Failed to parse Claude response as JSON: ${cleaned.slice(0, 200)}`);
+    // Log truncated raw text server-side only. Never echo to client.
+    console.error('claude json parse failed; raw head:', cleaned.slice(0, 200));
+    throw new Error('ai_parse_error');
   }
 }

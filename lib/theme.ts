@@ -1,17 +1,30 @@
-export const getThemeColors = (isDark: boolean) => ({
-  background: isDark ? '#000000' : '#F5FAFA',
-  surface: isDark ? '#1C1C1E' : '#FFFFFF',
-  surface2: isDark ? '#2C2C2E' : '#F0F4F5',
-  text: isDark ? '#FFFFFF' : '#0F172A',
-  textSecondary: isDark ? 'rgba(255,255,255,0.5)' : '#90A4AE',
-  border: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-  // Brand — same in both modes
-  primary: '#26C6DA',
-  accent: '#FDD835',
-  dark: '#006064',
-  green: '#4CAF50',
-  red: '#EF4444',
-  white: '#FFFFFF',
-  inputBg: isDark ? '#2C2C2E' : '#F0F9FA',
-  placeholder: isDark ? 'rgba(255,255,255,0.3)' : '#90A4AE',
-});
+import { brand, semantic, neutral, getPalette } from './theme/tokens';
+
+/**
+ * Back-compat shim. The design system now lives in `lib/theme/tokens.ts`;
+ * this file is kept so the many screens that import `getThemeColors` from
+ * `lib/theme` keep working during the progressive migration. New code should
+ * import from `lib/theme/tokens` (or the `useTokens` hook).
+ */
+export const getThemeColors = (isDark: boolean) => {
+  const p = getPalette(isDark);
+  return {
+    background: p.background,
+    surface: p.surface,
+    surface2: p.surface2,
+    text: p.text,
+    textSecondary: p.textSecondary,
+    border: p.border,
+    primary: brand.primary,
+    accent: brand.accent,
+    dark: brand.primaryDarker,
+    green: semantic.success,
+    red: semantic.danger,
+    white: neutral.white,
+    inputBg: p.inputBg,
+    placeholder: p.placeholder,
+  };
+};
+
+export { brand, semantic, neutral, getPalette };
+export * from './theme/tokens';

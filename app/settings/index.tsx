@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Switch,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -44,11 +43,9 @@ const COLORS = {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { theme, isDark, setTheme } = useTheme(); // Use theme context
+  const { theme, isDark, setTheme } = useTheme();
   const TC = getThemeColors(isDark);
   const { showToast } = useToast();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const darkModeEnabled = isDark;
   const [isManager, setIsManager] = useState(false);
 
   useEffect(() => {
@@ -125,19 +122,33 @@ export default function SettingsScreen() {
                   style: "destructive",
                   onPress: async () => {
                     try {
-                      const { data: { user } } = await supabase.auth.getUser();
-                      if (user) {
-                        // Delete user profile
-                        await supabase.from("profiles").delete().eq("id", user.id);
-                        
-                        // Sign out
-                        await supabase.auth.signOut();
-                        
-                        showToast({ title: 'Account Deleted', message: 'Your account has been permanently deleted.', type: 'info' });
-                        router.replace("/(auth)/login");
-                      }
+                      // Calls the `delete-account` Edge Function with the user's
+                      // JWT. That function uses the service role to cascade the
+                      // deletion through `auth.users` -> `profiles` (RLS would
+                      // previously block a client-side delete and silently
+                      // leave orphan auth rows behind).
+                      const { data, error } = await supabase.functions.invoke(
+                        "delete-account",
+                        { body: { confirm: true } },
+                      );
+                      if (error) throw error;
+                      if (data?.error) throw new Error(data.error);
+
+                      await supabase.auth.signOut();
+                      showToast({
+                        title: "Account Deleted",
+                        message: "Your account has been permanently deleted.",
+                        type: "info",
+                      });
+                      router.replace("/(auth)/login");
                     } catch (error: any) {
-                      showToast({ title: 'Error', message: error.message, type: 'error' });
+                      showToast({
+                        title: "Error",
+                        message:
+                          error?.message ??
+                          "Could not delete account. Please try again.",
+                        type: "error",
+                      });
                     }
                   },
                 },
@@ -211,33 +222,58 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Preferences</Text>
 
-          <View style={[styles.settingItem, { backgroundColor: TC.surface }]}>
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: TC.surface }]}
+            onPress={() => router.push('/settings/notifications')}
+            accessibilityRole="button"
+          >
             <View style={[styles.iconBox, { backgroundColor: COLORS.green + "20" }]}>
               <Bell size={20} color={COLORS.green} />
             </View>
             <Text style={[styles.settingLabel, { color: TC.text }]}>Notifications</Text>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: COLORS.grayLight, true: COLORS.primary + "60" }}
-              thumbColor={notificationsEnabled ? COLORS.primary : COLORS.gray}
-            />
-          </View>
+            <ChevronRight size={20} color={TC.textSecondary} />
+          </TouchableOpacity>
 
-          <View style={[styles.settingItem, { backgroundColor: TC.surface }]}>
+          <View style={[styles.settingItem, { backgroundColor: TC.surface, flexWrap: 'wrap' }]}>
             <View style={[styles.iconBox, { backgroundColor: COLORS.dark + "20" }]}>
               <Moon size={20} color={COLORS.dark} />
             </View>
-            <Text style={[styles.settingLabel, { color: TC.text }]}>Dark Mode</Text>
-            <Switch
-              value={darkModeEnabled}
-              onValueChange={async (value) => {
-                // Toggle between dark and light (not system)
-                await setTheme(value ? 'dark' : 'light');
-              }}
-              trackColor={{ false: COLORS.grayLight, true: COLORS.primary + "60" }}
-              thumbColor={darkModeEnabled ? COLORS.primary : COLORS.gray}
-            />
+            <Text style={[styles.settingLabel, { color: TC.text }]}>Appearance</Text>
+            <View
+              style={{ flexDirection: 'row', gap: 6 }}
+              accessibilityRole="radiogroup"
+              accessibilityLabel="Appearance"
+            >
+              {(["light", "system", "dark"] as const).map((mode) => {
+                const active = theme === mode;
+                return (
+                  <TouchableOpacity
+                    key={mode}
+                    onPress={() => setTheme(mode)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`${mode} mode`}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 999,
+                      backgroundColor: active ? COLORS.primary : TC.surface2 ?? COLORS.grayLight,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "600",
+                        color: active ? COLORS.white : TC.textSecondary,
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {mode}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         </View>
 

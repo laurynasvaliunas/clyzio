@@ -1,81 +1,77 @@
 import { corsHeaders } from '../_shared/cors.ts';
 import { verifyAuth } from '../_shared/auth.ts';
+import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
+import { parseBody, SubmitTripIntentSchema } from '../_shared/validate.ts';
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
 
+  let userId: string;
+  let supabase;
   try {
-    const { userId, supabase } = await verifyAuth(req);
+    ({ userId, supabase } = await verifyAuth(req));
+  } catch {
+    return respondError(401, 'unauthorized');
+  }
 
-    const body = await req.json();
-    const { role, passenger_capacity, departure_time, required_arrival_time, trip_date } = body;
+  const parsed = await parseBody(req, SubmitTripIntentSchema);
+  if (!parsed.ok) return parsed.response;
+  const { role, passenger_capacity, departure_time, required_arrival_time, trip_date } = parsed.data;
 
-    if (!role || !["driver", "passenger"].includes(role)) {
-      return new Response(JSON.stringify({ error: "Invalid role" }), { status: 400, headers: corsHeaders });
-    }
-
-    // Load user's home/work coords from profile
+  try {
     const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("home_lat, home_long, work_lat, work_long")
-      .eq("id", userId)
+      .from('profiles')
+      .select('home_lat, home_long, work_lat, work_long')
+      .eq('id', userId)
       .single();
 
     if (profileError) {
-      return new Response(
-        JSON.stringify({ error: `Profile query failed: ${profileError.message}` }),
-        { status: 500, headers: corsHeaders }
-      );
+      console.error('submit-trip-intent profile err:', profileError.message);
+      return respondError(500, 'internal_error', 'profile_query_failed');
     }
 
     if (!profile || profile.home_lat == null || profile.work_lat == null) {
-      return new Response(
-        JSON.stringify({ error: "Profile home/work locations not set. Please update your profile." }),
-        { status: 400, headers: corsHeaders }
-      );
+      return respondError(400, 'bad_request', 'missing_home_or_work_location');
     }
 
     const targetDate = trip_date ?? (() => {
       const d = new Date();
       d.setDate(d.getDate() + 1);
-      return d.toISOString().split("T")[0];
+      return d.toISOString().split('T')[0];
     })();
 
-    // Check for existing intent for this date
     const { data: existing } = await supabase
-      .from("trip_intents")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("trip_date", targetDate)
+      .from('trip_intents')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('trip_date', targetDate)
       .maybeSingle();
+
+    const basePayload = {
+      role,
+      passenger_capacity: role === 'driver' ? (passenger_capacity ?? null) : null,
+      departure_time: role === 'driver' ? (departure_time ?? null) : null,
+      required_arrival_time: role === 'passenger' ? (required_arrival_time ?? null) : null,
+    };
 
     let intent;
     if (existing) {
       const { data, error } = await supabase
-        .from("trip_intents")
-        .update({
-          role,
-          passenger_capacity: role === "driver" ? (passenger_capacity ?? null) : null,
-          departure_time: role === "driver" ? (departure_time ?? null) : null,
-          required_arrival_time: role === "passenger" ? (required_arrival_time ?? null) : null,
-          status: "pending",
-        })
-        .eq("id", existing.id)
+        .from('trip_intents')
+        .update({ ...basePayload, status: 'pending' })
+        .eq('id', existing.id)
         .select()
         .single();
       if (error) throw error;
       intent = data;
     } else {
       const { data, error } = await supabase
-        .from("trip_intents")
+        .from('trip_intents')
         .insert({
           user_id: userId,
-          role,
-          passenger_capacity: role === "driver" ? (passenger_capacity ?? null) : null,
-          departure_time: role === "driver" ? (departure_time ?? null) : null,
-          required_arrival_time: role === "passenger" ? (required_arrival_time ?? null) : null,
+          ...basePayload,
           trip_date: targetDate,
           home_lat: profile.home_lat,
           home_long: profile.home_long,
@@ -88,14 +84,8 @@ Deno.serve(async (req) => {
       intent = data;
     }
 
-    return new Response(JSON.stringify({ intent }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respondJSON({ intent });
   } catch (err) {
-    console.error("submit-trip-intent error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respondInternalError('submit-trip-intent', err);
   }
 });

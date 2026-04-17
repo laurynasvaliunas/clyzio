@@ -13,7 +13,9 @@ export interface ToastItem {
 
 interface NotificationToastState {
   queue: ToastItem[];
-  push: (item: Omit<ToastItem, "id" | "createdAt">) => void;
+  // `type` is optional — if omitted, inferType(title) picks one. This matches
+  // the ergonomic call-sites in `lib/notifications.ts`.
+  push: (item: Omit<ToastItem, "id" | "createdAt" | "type"> & { type?: ToastType }) => void;
   dismiss: (id: string) => void;
   clear: () => void;
 }

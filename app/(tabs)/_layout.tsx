@@ -47,7 +47,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Map",
-          accessibilityLabel: "Map tab",
+          tabBarAccessibilityLabel: "Map tab",
           tabBarIcon: ({ color, focused }) => (
             <View
               style={{
@@ -65,7 +65,7 @@ export default function TabsLayout() {
         name="activity"
         options={{
           title: "Activity",
-          accessibilityLabel: "Activity tab",
+          tabBarAccessibilityLabel: "Activity tab",
           tabBarIcon: ({ color, focused }) => (
             <View
               style={{
@@ -83,7 +83,7 @@ export default function TabsLayout() {
         name="stats"
         options={{
           title: "Impact",
-          accessibilityLabel: "Impact tab",
+          tabBarAccessibilityLabel: "Impact tab",
           tabBarIcon: ({ color, focused }) => (
             <View
               style={{
@@ -101,7 +101,7 @@ export default function TabsLayout() {
         name="ai-planner"
         options={{
           title: "AI Plan",
-          accessibilityLabel: "AI Plan tab",
+          tabBarAccessibilityLabel: "AI Plan tab",
           tabBarIcon: ({ color, focused }) => (
             <View
               style={{
@@ -119,7 +119,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: "Profile",
-          accessibilityLabel: "Profile tab",
+          tabBarAccessibilityLabel: "Profile tab",
           tabBarIcon: ({ color, focused }) => (
             <View
               style={{

@@ -19,6 +19,8 @@ import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserL
 import * as Location from "expo-location";
 import { MessageCircle, Shield, X, Phone, AlertTriangle, Car, Footprints, Bike, Zap, Bus, Navigation as NavIcon, Circle, MapPin } from "lucide-react-native";
 import ChatModal from "../../components/ChatModal";
+import SOSSheet from "../../components/SOSSheet";
+import RatingSheet from "../../components/RatingSheet";
 import { useToast } from "../../contexts/ToastContext";
 
 interface Ride {
@@ -89,6 +91,8 @@ export default function TripScreen() {
   const [showChatModal, setShowChatModal] = useState(false);
   const [showSafetyModal, setShowSafetyModal] = useState(false);
   const [showArrivalModal, setShowArrivalModal] = useState(false);
+  const [showSOSSheet, setShowSOSSheet] = useState(false);
+  const [showRatingSheet, setShowRatingSheet] = useState(false);
 
   // Fetch current user
   useEffect(() => {
@@ -103,44 +107,50 @@ export default function TripScreen() {
 
   // Fetch ride details and partner info
   useEffect(() => {
+    // Wait until we know who the user is — the early-return used to skip
+    // setIsLoading(false), leaving the screen stuck on a spinner forever when
+    // the auth session was slow to resolve.
+    if (!id || !currentUserId) return;
+
+    let cancelled = false;
     const fetchRideData = async () => {
-      if (!id || !currentUserId) return;
-
-      // Fetch ride
-      const { data: rideData, error: rideError } = await supabase
-        .from("rides")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (rideError) {
-        console.error("Error fetching ride:", rideError);
-        showToast({ title: 'Error', message: 'Could not load ride details', type: 'error' });
-        setIsLoading(false);
-        return;
-      }
-
-      setRide(rideData);
-
-      // Determine who the partner is (the other person)
-      const partnerId = rideData.driver_id === currentUserId 
-        ? rideData.rider_id 
-        : rideData.driver_id;
-
-      if (partnerId) {
-        const { data: profileData } = await supabase
-          .from("profiles")
+      try {
+        const { data: rideData, error: rideError } = await supabase
+          .from("rides")
           .select("*")
-          .eq("id", partnerId)
+          .eq("id", id)
           .single();
 
-        setPartner(profileData);
-      }
+        if (cancelled) return;
 
-      setIsLoading(false);
+        if (rideError) {
+          console.error("Error fetching ride:", rideError);
+          showToast({ title: 'Error', message: 'Could not load ride details', type: 'error' });
+          return;
+        }
+
+        setRide(rideData);
+
+        const partnerId = rideData.driver_id === currentUserId
+          ? rideData.rider_id
+          : rideData.driver_id;
+
+        if (partnerId) {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", partnerId)
+            .single();
+
+          if (!cancelled) setPartner(profileData);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
     };
 
     fetchRideData();
+    return () => { cancelled = true; };
   }, [id, currentUserId]);
 
   // GPS Auto-Arrival Logic
@@ -292,7 +302,15 @@ export default function TripScreen() {
     }
 
     showToast({ title: 'Trip Complete!', message: `You earned ${xpEarned} XP and saved ${co2Saved.toFixed(2)} kg CO₂!`, type: 'success' });
-    router.push("/(tabs)/activity");
+
+    // Only prompt for a rating on shared carpool trips (where there's an
+    // actual partner to rate). Solo walking / cycling trips skip this.
+    const isCarpool = !!(ride.driver_id && ride.rider_id);
+    if (isCarpool) {
+      setShowRatingSheet(true);
+    } else {
+      router.push("/(tabs)/activity");
+    }
   };
 
   // Cancel ride
@@ -315,16 +333,11 @@ export default function TripScreen() {
     ]);
   };
 
-  // Safety actions
+  // Safety actions — upgraded SOS sheet is rendered separately; this is
+  // only the trigger used by the legacy button inside the safety modal.
   const handleEmergencyCall = () => {
-    Alert.alert("Emergency Call", "Call emergency services?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Call 112",
-        style: "destructive",
-        onPress: () => Linking.openURL("tel:112"),
-      },
-    ]);
+    setShowSafetyModal(false);
+    setShowSOSSheet(true);
   };
 
   const handleShareRide = () => {
@@ -630,6 +643,27 @@ export default function TripScreen() {
           rideId={id as string}
           currentUserId={currentUserId}
           partnerName={partnerName}
+        />
+      )}
+
+      {/* SOS sheet — locale-aware emergency number + live-location share */}
+      <SOSSheet
+        visible={showSOSSheet}
+        onClose={() => setShowSOSSheet(false)}
+        rideId={id as string}
+      />
+
+      {/* Post-trip rating (only shown for carpool rides, see handleCompleteTr) */}
+      {currentUserId && partner && (
+        <RatingSheet
+          visible={showRatingSheet}
+          rideId={id as string}
+          ratedId={partner.id}
+          partnerName={partnerName}
+          onClose={() => {
+            setShowRatingSheet(false);
+            router.push("/(tabs)/activity");
+          }}
         />
       )}
 

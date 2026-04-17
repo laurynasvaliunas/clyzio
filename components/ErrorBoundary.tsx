@@ -1,6 +1,7 @@
 import React, { Component, ReactNode } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { captureError, Sentry } from "../lib/sentry";
 
 interface Props {
   children: ReactNode;
@@ -8,24 +9,44 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  eventId: string | null;
 }
 
+/**
+ * Root-level error boundary.
+ *
+ * Previously this only called `console.error`, so crash reports never reached
+ * our monitoring. It now forwards every caught error to Sentry with the React
+ * component stack attached, and exposes the resulting event ID on the fallback
+ * screen so users can reference it in a support message.
+ */
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, eventId: null };
   }
 
-  static getDerivedStateFromError(_error: Error): State {
+  static getDerivedStateFromError(_error: Error): Partial<State> {
     return { hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    if (__DEV__) {
+      console.error("ErrorBoundary caught an error:", error, errorInfo);
+    }
+    try {
+      const eventId = Sentry.captureException(error, {
+        contexts: { react: { componentStack: errorInfo.componentStack } },
+      });
+      captureError(error, { feature: "error-boundary" });
+      this.setState({ eventId: typeof eventId === "string" ? eventId : null });
+    } catch {
+      /* Sentry not initialised — already logged above */
+    }
   }
 
   handleReset = () => {
-    this.setState({ hasError: false });
+    this.setState({ hasError: false, eventId: null });
   };
 
   render() {
@@ -41,10 +62,17 @@ class ErrorBoundary extends Component<Props, State> {
               An unexpected error occurred. Please try again and the issue may
               resolve itself.
             </Text>
+            {this.state.eventId ? (
+              <Text style={styles.eventId} accessibilityLabel="error id">
+                Reference: {this.state.eventId.slice(0, 8)}
+              </Text>
+            ) : null}
             <TouchableOpacity
               style={styles.button}
               onPress={this.handleReset}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Try again"
             >
               <Text style={styles.buttonText}>Try Again</Text>
             </TouchableOpacity>
@@ -91,7 +119,13 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.7)",
     textAlign: "center",
     lineHeight: 22,
-    marginBottom: 36,
+    marginBottom: 18,
+  },
+  eventId: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.5)",
+    marginBottom: 18,
+    fontVariant: ["tabular-nums"],
   },
   button: {
     backgroundColor: "#26C6DA",

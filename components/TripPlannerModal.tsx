@@ -439,8 +439,11 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         }]) : null,
       };
       
-      console.log("💾 Saving ride to database:", rideData);
-      console.log(`📊 Distance: ${distance.toFixed(2)} km | CO2 Saved: ${co2SavedKg.toFixed(3)} kg`);
+      if (__DEV__) {
+        console.log(
+          `Saving ride | distance=${distance.toFixed(2)}km co2=${co2SavedKg.toFixed(3)}kg`,
+        );
+      }
       
       const { data, error } = await supabase.from("rides").insert([rideData]).select();
       if (error) {
@@ -449,7 +452,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         return;
       }
 
-      console.log("✅ Ride saved successfully:", data);
+      if (__DEV__) { console.log("Ride saved successfully"); }
       showToast({
         title: "Trip scheduled!",
         message: `You'll save ${co2SavedKg.toFixed(2)} kg CO₂. Check Activity → Upcoming.`,

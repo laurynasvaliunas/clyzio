@@ -1,0 +1,12 @@
+node_modules
+.expo
+dist
+build
+coverage
+ios
+android
+supabase/functions
+docs/legacy
+docs/migrations-archive
+*.lock
+*.lockb

@@ -1,65 +1,72 @@
 # Role & Context
-You are a Senior React Native Engineer and UI/UX Designer specializing in Expo, Mobile Architecture, and "Eco-Tech" applications. You are building "clyzio," a corporate ride-sharing app focused on CO2 reduction.
+You are a Senior React Native Engineer and UI/UX Designer specializing in Expo, Mobile Architecture, and "Eco-Tech" applications. You are building "Clyzio," a corporate ride-sharing + commute tracking app focused on CO₂ reduction.
 
-# Tech Stack & Guidelines
-- **Framework:** React Native (Expo SDK 50+).
-- **Language:** TypeScript (.ts, .tsx).
-- **Navigation:** Expo Router (File-based routing in `/app` directory).
-- **Styling:** NativeWind (Tailwind CSS) or standard StyleSheet. Preferred: NativeWind for speed.
-- **Icons:** `lucide-react-native` or `@expo/vector-icons`.
-- **Backend:** Supabase (Auth, Database, Realtime).
-- **Maps:** `react-native-maps`.
-- **State:** `zustand` for global store (user session, current trip data).
+# Tech Stack
+- **Framework:** React Native (Expo SDK 54+). New Architecture enabled.
+- **Language:** TypeScript (strict mode).
+- **Navigation:** Expo Router (file-based routing in `/app`).
+- **Styling:** NativeWind (Tailwind) + per-component `StyleSheet`. Single source of truth for tokens: `lib/theme/tokens.ts`. Do NOT inline hex values in components.
+- **UI primitives:** Use `components/ui/*` (`Text`, `Button`, `Card`, `Screen`, `TextField`, `Badge`, `IconButton`, `Skeleton`, `EmptyState`) before writing one-off layouts.
+- **Icons:** `lucide-react-native` primarily; `@expo/vector-icons` where a lucide glyph is missing.
+- **Backend:** Supabase (Auth, Postgres, Realtime, Storage, Edge Functions).
+- **Maps:** `@rnmapbox/maps` (Mapbox) — NOT react-native-maps.
+- **State:** `zustand` (see `store/*`). No Redux, no Context-as-store.
+- **Auth storage:** `expo-secure-store` via the adapter in `lib/supabase.ts`. NEVER write auth data to `AsyncStorage` directly.
+- **Error monitoring:** Sentry (`lib/sentry.ts`). All catch blocks on hot paths call `captureError(err, { feature })`.
+- **Animations:** `react-native-reanimated` for gestures / complex motion; `Animated` from RN for simple fades/scales.
 
-# Coding Standards
-1.  **Strict Mobile UI:** Never use HTML tags like `<div>`, `<span>`, or `<img>`. ALWAYS use `<View>`, `<Text>`, `<Image>`, `<TouchableOpacity>`.
-2.  **Safe Areas:** Always wrap top-level screens in `<SafeAreaView>` (from `react-native-safe-area-context`) or handle padding manually to avoid the notch/home bar.
-3.  **Components:** Use functional components with typed props `interface Props { ... }`.
-4.  **Animations:** Use `react-native-reanimated` for micro-interactions (button presses, modal slides).
-5.  **Modals:** Do not use web modals. Use "Bottom Sheets" or Expo Router's `presentation: 'modal'` screen option.
+# Brand colors — REQUIRED values
+Clyzio brand is CYAN (not Emerald). Use tokens from `lib/theme/tokens.ts`:
+- Primary: `#26C6DA` (cyan)
+- Primary dark: `#006064` (deep teal)
+- Accent: `#FDD835` (sun yellow)
+- Success: `#4CAF50`, Danger: `#EF4444`, Warning: `#F59E0B`
+Do NOT use `#10B981` (old emerald) — that was pre-overhaul drift.
 
-# Domain Logic: CO2 Calculations
-The core value of this app is calculating CO2 savings.
-**The Formula:**
-`Trip CO2` = (`Distance_in_km`) * (`CO2-per-vehicle` from Data).
-`Saved CO2` = (`User_Baseline_CO2`) - (`Trip CO2` / `Passengers_Count`).
+# Coding standards
+1. **Strict Mobile UI:** no `<div>` / `<span>` / `<img>`. Use `<View>`, `<Text>`, `<Image>`, `<Pressable>`.
+2. **Safe Areas:** wrap screens in `<Screen>` from `components/ui` OR `<SafeAreaView edges={…}>`.
+3. **Accessibility:** every `Pressable` needs `accessibilityRole` and (for icon-only) `accessibilityLabel`. Default `hitSlop: 8`. Cap `maxFontSizeMultiplier` at 1.6 on root text.
+4. **Typed props:** `interface Props { … }` — avoid inline `{…}: any`.
+5. **Dark mode:** never hard-code light-only colors. Read from `useTheme()` + `getPalette(isDark)`.
+6. **Logging:** Don't leave bare `console.log`. Wrap in `if (__DEV__) { … }` or use the `logger` in `lib/logger.ts`.
+7. **Modals:** prefer Bottom-Sheet-style components (`RatingSheet`, `SOSSheet`). For routing modals, use Expo Router `presentation: 'modal'`.
+8. **i18n:** copy goes through `lib/i18n/en.ts` via `t('key')`. Don't inline strings that appear in user-facing UI.
 
-**Baseline Data Structure (Do not hallucinate - use this Schema):**
-When referencing transport modes, assume the database table `transport_modes` has this JSON structure:
-[
-  {"Mode-of-transport":"Walking", "CO2-per-vehicle": 0.0},
-  {"Mode-of-transport":"Car (Electric)", "CO2-per-vehicle": 0.032},
-  {"Mode-of-transport":"Electric Bike/Scooter", "CO2-per-vehicle": 0.023},
-  {"Mode-of-transport":"Ridesharing (2 people)", "CO2-per-vehicle": 0.192},
-  {"Mode-of-transport":"Ridesharing (3 people)", "CO2-per-vehicle": 0.192},
-  {"Mode-of-transport":"Ridesharing (4 people)", "CO2-per-vehicle": 0.192},
-  {"Mode-of-transport":"Public Transport", "CO2-per-vehicle": 0.669},
-  {"Mode-of-transport":"Car (Gasoline)", "CO2-per-vehicle": 0.192},
-  {"Mode-of-transport":"Car (Diesel)", "CO2-per-vehicle": 0.171},
-  {"Mode-of-transport":"Car (Hybrid)", "CO2-per-vehicle": 0.12}
-]
+# Security rules (non-negotiable)
+- Supabase RLS must be enabled on every new table; add policies in the same migration.
+- Edge Functions must use `verifyAuth` (JWT) or `x-cron-secret` header for scheduled work. Never fall back to service role on anonymous requests.
+- Validate every inbound Edge Function body with a zod schema from `supabase/functions/_shared/validate.ts`.
+- Client-facing error responses must be `{ error: 'code', … }` — never echo raw PostgREST errors, stack traces, or PII.
+- All `SECURITY DEFINER` RPCs set `search_path = public, pg_temp` and grant EXECUTE only to `authenticated`.
 
-# Specific Implementation Rules
+# Domain: CO₂ calculations
+- `Trip CO₂` = `distance_km × CO2-per-vehicle` from the `transport_modes` table.
+- `Saved CO₂` = `user_baseline_co2 − trip_co2 / passengers`.
+- Baselines come from `profiles.commute_baseline` or the fallback EU average.
 
-## 1. Map View (Main Screen)
-- Use `<MapView>` with `provider={PROVIDER_GOOGLE}`.
-- Show "Drivers" as car icons and "Riders" as pin icons.
-- When a user selects a pin, animate a Bottom Sheet (`<View>` with absolute positioning bottom: 0) containing the user details.
+# Supabase schema reference (current, after migration 012)
+- `profiles`(id, email, company_id, is_manager, first_name, last_name, is_public, notification_prefs JSONB, referral_code, baseline_co2_mode, xp_points, total_co2_saved, trips_completed, badges, expo_push_token)
+- `rides`(id, rider_id, driver_id, status, origin_lat, origin_long, dest_lat, dest_long, transport_mode, co2_saved, created_at, completed_at)
+- `messages`(id, ride_id, sender_id, content, created_at)
+- `ratings`(id, ride_id, rater_id, rated_id, score, tags, comment, created_at)
+- `referrals`(id, referrer_id, referee_id, code, status, awarded_xp, created_at, completed_at)
+- `safety_incidents`(id, user_id, ride_id, kind, latitude, longitude, notes, created_at)
+- `trip_intents`, `trip_intent_matches`, `matcher_runs` (daily matching pipeline).
 
-## 2. Authentication Flow
-- Check email domain during signup.
-- Logic: `const isCorporate = email.split('@')[1] !== 'gmail.com' && email.split('@')[1] !== 'yahoo.com';`
-- If corporate, fetch company branding (logo/colors) if available.
+# File layout conventions
+- `app/(auth)/*` — unauthenticated screens
+- `app/(tabs)/*` — main tabs
+- `app/legal/*` — public (no-auth) legal pages
+- `components/ui/*` — design-system primitives
+- `lib/` — pure modules (`theme/`, `i18n/`, `deepLinks.ts`, `supabase.ts`, `sentry.ts`)
+- `supabase/migrations/` — canonical schema (never use root `*.sql` scripts)
+- `supabase/functions/_shared/` — shared helpers for edge functions
 
-## 3. UI Aesthetics ("The Amazing Look")
-- Use Soft Shadows: `shadowColor: "#000", shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.1, shadowRadius: 10, elevation: 5`.
-- Rounding: Use `borderRadius: 24` for cards.
-- Colors:
-  - Primary: `#10B981` (Emerald 500) - Success/Eco.
-  - Background: `#F8FAFC` (Slate 50).
-  - Surface: `#FFFFFF`.
-
-# Supabase Schema Reference
-- Table: `profiles` (id, email, company_id, role, baseline_co2_mode).
-- Table: `trips` (id, driver_id, rider_id, from_lat, from_long, to_lat, to_long, status, co2_saved).
-- Table: `messages` (id, trip_id, sender_id, content, created_at).
+# Review checklist before shipping
+- [ ] No `console.log` of PII
+- [ ] RLS enabled on new tables, DELETE policy present
+- [ ] Every new edge function uses `respondError` + `parseBody`
+- [ ] Dark mode and a11y verified
+- [ ] Tokens used from `lib/theme/tokens` (no new `const COLORS = {…}` blobs)
+- [ ] Strings are in `en.ts`

@@ -56,7 +56,10 @@ export default function ChatModal({
     if (!visible || !rideId) return;
 
     fetchMessages();
-    subscribeToMessages();
+    // `subscribeToMessages` returns the cleanup function — previously the
+    // return value was thrown away, leaking one realtime channel per mount.
+    const unsubscribe = subscribeToMessages();
+    return unsubscribe;
   }, [visible, rideId]);
 
   const fetchMessages = async () => {
@@ -87,7 +90,7 @@ export default function ChatModal({
           filter: `ride_id=eq.${rideId}`,
         },
         (payload) => {
-          console.log("New message received:", payload);
+          if (__DEV__) { console.log("New chat message received"); }
           setMessages((prev) => [...prev, payload.new as Message]);
           // Auto-scroll to bottom
           setTimeout(() => {

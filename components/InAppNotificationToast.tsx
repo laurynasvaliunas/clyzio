@@ -41,7 +41,7 @@ function ToastCard({ item }: { item: ToastItem }) {
   const slideY = useRef(new Animated.Value(-120)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const progressWidth = useRef(new Animated.Value(1)).current;
-  const dismissTimer = useRef<ReturnType<typeof setTimeout>>();
+  const dismissTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const config = TYPE_CONFIG[item.type];
   const Icon = config.icon;

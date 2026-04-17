@@ -1,6 +1,8 @@
 import { corsHeaders } from '../_shared/cors.ts';
 import { callClaude, parseClaudeJSON } from '../_shared/anthropic.ts';
 import { verifyAuth } from '../_shared/auth.ts';
+import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
+import { parseBody, AISustainabilityReportSchema } from '../_shared/validate.ts';
 
 const SYSTEM_PROMPT = `You are Clyzio's ESG Intelligence Engine. You analyze corporate commuting data and produce actionable sustainability insights for HR and sustainability managers.
 
@@ -59,28 +61,40 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let userId: string;
+  let supabase;
   try {
-    const { userId, supabase } = await verifyAuth(req);
+    ({ userId, supabase } = await verifyAuth(req));
+  } catch {
+    return respondError(401, 'unauthorized');
+  }
 
-    // Verify the user is a manager with a company
+  const parsed = await parseBody(req, AISustainabilityReportSchema);
+  if (!parsed.ok) return parsed.response;
+  const timePeriod: TimePeriod = (parsed.data.time_period as TimePeriod) ?? 'month';
+
+  try {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('is_manager, company_id, first_name, company_name')
       .eq('id', userId)
       .single();
 
-    if (profileError) throw new Error(`DB error: ${profileError.message}`);
-    if (!profile?.is_manager) throw new Error('Unauthorized: manager role required');
-    if (!profile?.company_id) throw new Error('No company linked to this manager account');
-
-    const body = await req.json().catch(() => ({}));
-    const timePeriod: TimePeriod = body?.time_period ?? 'month';
+    if (profileError) {
+      console.error('sustainability profile err:', profileError.message);
+      return respondError(500, 'internal_error', 'profile_query_failed');
+    }
+    if (!profile?.is_manager) return respondError(403, 'forbidden', 'manager_required');
+    if (!profile?.company_id) return respondError(400, 'bad_request', 'company_required');
 
     // Get comprehensive company stats
     const { data: stats, error: statsError } = await supabase
       .rpc('get_company_stats', { p_company_id: profile.company_id });
 
-    if (statsError) throw new Error(`Stats error: ${statsError.message}`);
+    if (statsError) {
+      console.error('sustainability stats err:', statsError.message);
+      return respondError(500, 'internal_error', 'stats_unavailable');
+    }
 
     // Estimate cost savings (fuel + parking)
     const avgDistanceKm = 15; // typical one-way commute
@@ -170,15 +184,8 @@ Generate a comprehensive ESG sustainability report. Return JSON matching this sc
       tokens_used: usage.input_tokens + usage.output_tokens,
     });
 
-    return new Response(JSON.stringify(parsed), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return respondJSON(parsed);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = message.includes('Unauthorized') ? 401 : 500;
-    return new Response(JSON.stringify({ error: message }), {
-      status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return respondInternalError('ai-sustainability-report', err);
   }
 });

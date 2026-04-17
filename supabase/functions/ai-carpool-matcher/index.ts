@@ -1,6 +1,8 @@
 import { corsHeaders } from '../_shared/cors.ts';
 import { callClaude, parseClaudeJSON } from '../_shared/anthropic.ts';
 import { verifyAuth } from '../_shared/auth.ts';
+import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
+import { parseBody, AICarpoolMatcherSchema } from '../_shared/validate.ts';
 
 function buildSystemPrompt(baselineCO2: number, fuelType: string): string {
   return `You are Clyzio's AI Carpool Matcher. Your job is to rank and explain carpool compatibility between a user and candidate rides based on geographic proximity, timing, and route alignment.
@@ -35,23 +37,19 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let userId: string;
+  let supabase;
   try {
-    const { userId, supabase } = await verifyAuth(req);
-    const body = await req.json();
+    ({ userId, supabase } = await verifyAuth(req));
+  } catch {
+    return respondError(401, 'unauthorized');
+  }
 
-    const {
-      origin_lat,
-      origin_long,
-      dest_lat,
-      dest_long,
-      departure_time,
-      role = 'rider',
-      max_detour_km = 3,
-    } = body;
+  const parsed = await parseBody(req, AICarpoolMatcherSchema);
+  if (!parsed.ok) return parsed.response;
+  const { origin_lat, origin_long, dest_lat, dest_long, departure_time, role, max_detour_km } = parsed.data;
 
-    if (!origin_lat || !origin_long || !dest_lat || !dest_long) {
-      throw new Error('origin_lat, origin_long, dest_lat, dest_long are required');
-    }
+  try {
 
     // Fetch user's fuel type / CO2 baseline from profile
     const { data: profileData } = await supabase
@@ -82,17 +80,18 @@ Deno.serve(async (req: Request) => {
       }
     );
 
-    if (candidatesError) throw new Error(`DB error: ${candidatesError.message}`);
+    if (candidatesError) {
+      console.error('candidates rpc err:', candidatesError.message);
+      return respondError(500, 'internal_error', 'candidates_unavailable');
+    }
 
-    // If no candidates found, return early without calling Claude
     if (!candidates || candidates.length === 0) {
       const emptyResponse: CarpoolResponse = {
         ranked_matches: [],
-        best_match_summary: 'No commuters found nearby for your route right now. Try searching again later or post your own trip for others to join.',
+        best_match_summary:
+          'No commuters found nearby for your route right now. Try searching again later or post your own trip for others to join.',
       };
-      return new Response(JSON.stringify(emptyResponse), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return respondJSON(emptyResponse);
     }
 
     // Estimate straight-line trip distance
@@ -165,15 +164,8 @@ Return JSON matching this schema exactly:
       tokens_used: usage.input_tokens + usage.output_tokens,
     });
 
-    return new Response(JSON.stringify(enriched), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return respondJSON(enriched);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = message.includes('Unauthorized') ? 401 : 500;
-    return new Response(JSON.stringify({ error: message }), {
-      status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return respondInternalError('ai-carpool-matcher', err);
   }
 });

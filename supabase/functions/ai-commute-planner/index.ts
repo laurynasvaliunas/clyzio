@@ -1,6 +1,8 @@
 import { corsHeaders } from '../_shared/cors.ts';
 import { callClaude, parseClaudeJSON } from '../_shared/anthropic.ts';
 import { verifyAuth } from '../_shared/auth.ts';
+import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
+import { parseBody, AICommutePlannerSchema } from '../_shared/validate.ts';
 
 const CACHE_TTL_HOURS = 6;
 
@@ -42,17 +44,29 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let userId: string;
+  let supabase;
   try {
-    const { userId, supabase } = await verifyAuth(req);
-    const body = await req.json().catch(() => ({}));
-    const forceRefresh = body?.force_refresh === true;
+    ({ userId, supabase } = await verifyAuth(req));
+  } catch {
+    return respondError(401, 'unauthorized');
+  }
+
+  const parsed = await parseBody(req, AICommutePlannerSchema);
+  if (!parsed.ok) return parsed.response;
+  const forceRefresh = parsed.data.force_refresh === true;
+
+  try {
 
     // 1. Get full commute context from DB
     const { data: context, error: contextError } = await supabase
       .rpc('get_user_commute_context', { p_user_id: userId });
 
-    if (contextError) throw new Error(`DB error: ${contextError.message}`);
-    if (!context) throw new Error('User profile not found');
+    if (contextError) {
+      console.error('commute-context err:', contextError.message);
+      return respondError(500, 'internal_error', 'context_unavailable');
+    }
+    if (!context) return respondError(404, 'not_found', 'profile_not_found');
 
     // 2. Check cache (skip if force_refresh or no home/work address set yet)
     const hasLocations = context.home_address && context.work_address;
@@ -68,9 +82,7 @@ Deno.serve(async (req: Request) => {
           .single();
 
         if (profile?.ai_suggestions_cache) {
-          return new Response(JSON.stringify(profile.ai_suggestions_cache), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+          return respondJSON(profile.ai_suggestions_cache);
         }
       }
     }
@@ -140,16 +152,9 @@ Provide exactly 3 commute suggestions. Return JSON matching this schema exactly:
       ai_cache_updated_at: new Date().toISOString(),
     }).eq('id', userId);
 
-    return new Response(JSON.stringify(parsed), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return respondJSON(parsed);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    const status = message.includes('Unauthorized') ? 401 : 500;
-    return new Response(JSON.stringify({ error: message }), {
-      status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return respondInternalError('ai-commute-planner', err);
   }
 });
 
