@@ -23,7 +23,6 @@
       "channel": "preview"
     },
     "production": {
-      "autoIncrement": true,
       "channel": "production",
       "env": {
         "EXPO_PUBLIC_SENTRY_DSN": "https://f75232a410f4cd510313214479b7b11c@o4511206443581440.ingest.de.sentry.io/4511206560694352"
