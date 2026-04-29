@@ -1,7 +1,7 @@
 import React, { Component, ReactNode } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { captureError, Sentry } from "../lib/sentry";
+import { Sentry } from "../lib/sentry";
 
 interface Props {
   children: ReactNode;
@@ -35,10 +35,13 @@ class ErrorBoundary extends Component<Props, State> {
       console.error("ErrorBoundary caught an error:", error, errorInfo);
     }
     try {
+      // H2: single capture call combining component stack + feature tag.
+      // (Previously this called both Sentry.captureException AND captureError,
+      // which created two events per crash and inflated the Sentry quota.)
       const eventId = Sentry.captureException(error, {
+        tags: { feature: "error-boundary" },
         contexts: { react: { componentStack: errorInfo.componentStack } },
       });
-      captureError(error, { feature: "error-boundary" });
       this.setState({ eventId: typeof eventId === "string" ? eventId : null });
     } catch {
       /* Sentry not initialised — already logged above */

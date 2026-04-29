@@ -25,7 +25,7 @@ import { useNotificationToastStore } from "../store/useNotificationToastStore";
 import IncomingSuggestionBanner from "../components/IncomingSuggestionBanner";
 import InAppNotificationToast from "../components/InAppNotificationToast";
 import ErrorBoundary from "../components/ErrorBoundary";
-import { initSentry, setSentryUser, clearSentryUser, Sentry } from "../lib/sentry";
+import { initSentry, setSentryUser, clearSentryUser, captureError, Sentry } from "../lib/sentry";
 import "../global.css";
 
 // Initialise Sentry as early as possible — before any component renders
@@ -305,20 +305,37 @@ function RootLayoutContent() {
     };
   }, []);
 
-  // Handle incoming deep links (clyzio:// + https://clyzio.app/) — routes to
-  // the right expo-router path. Guarded against navigating before the router
-  // has mounted by running inside a microtask.
+  // H4: deep-link handler queues URLs that arrive before the router/auth is
+  // ready, then drains the queue once `isReady && isAuthenticated !== null`.
+  // Previous implementation used `setTimeout(..., 0)` which dropped links
+  // silently if the router wasn't mounted yet (e.g. cold-start from a push
+  // notification or universal link).
+  const pendingDeepLinkRef = useRef<string | null>(null);
+
   useEffect(() => {
-    const handle = (url: string | null) => {
+    const enqueue = (url: string | null) => {
       if (!url) return;
+      pendingDeepLinkRef.current = url;
+    };
+    Linking.getInitialURL().then(enqueue);
+    const sub = Linking.addEventListener('url', (ev) => enqueue(ev.url));
+    return () => sub.remove();
+  }, []);
+
+  // Drain the pending deep link once the navigator is ready.
+  useEffect(() => {
+    if (!isReady || isAuthenticated === null) return;
+    const url = pendingDeepLinkRef.current;
+    if (!url) return;
+    pendingDeepLinkRef.current = null;
+    try {
       const target = parseLink(url);
       const path = toRoutePath(target);
-      if (path) setTimeout(() => router.push(path as any), 0);
-    };
-    Linking.getInitialURL().then(handle);
-    const sub = Linking.addEventListener('url', (ev) => handle(ev.url));
-    return () => sub.remove();
-  }, [router]);
+      if (path) router.push(path as any);
+    } catch (err) {
+      captureError(err, { feature: 'deep-link', url });
+    }
+  }, [isReady, isAuthenticated, router]);
 
   // Subscribe to incoming carpool suggestions when authenticated
   useEffect(() => {
@@ -365,16 +382,38 @@ function RootLayoutContent() {
   }, [isAuthenticated, segments]);
 
   useEffect(() => {
-    // Register for push notifications and store token in DB
-    registerForPushNotificationsAsync().then(async (token) => {
-      setExpoPushToken(token);
-      if (token) {
+    // H3: only register for push notifications once the user is authenticated.
+    // Registering before auth means the upsert below has no user.id to bind to,
+    // so the token is silently dropped and notifications never reach the device.
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await registerForPushNotificationsAsync();
+        if (cancelled) return;
+        setExpoPushToken(token);
+        if (!token) return;
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from('profiles').update({ expo_push_token: token }).eq('id', user.id);
+        if (!user || cancelled) return;
+        const { error } = await supabase
+          .from('profiles')
+          .update({ expo_push_token: token })
+          .eq('id', user.id);
+        if (error) {
+          captureError(error, { feature: 'push-token-register' });
         }
+      } catch (err) {
+        captureError(err, { feature: 'push-token-register' });
       }
-    });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  useEffect(() => {
 
     // Check if AI-powered notifications should be sent on app open
     checkAndSendAINotifications().catch(() => {});

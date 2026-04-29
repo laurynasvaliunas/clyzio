@@ -32,7 +32,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.clyzio.app',
-    buildNumber: '3',
+    buildNumber: '4',
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'Clyzio uses your location to show your position on the map, plan routes, and match you with nearby commuters.',
@@ -53,7 +53,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     edgeToEdgeEnabled: true,
     package: 'com.clyzio.app',
-    versionCode: 1,
+    versionCode: 2,
     permissions: [
       'android.permission.ACCESS_FINE_LOCATION',
       'android.permission.ACCESS_COARSE_LOCATION',

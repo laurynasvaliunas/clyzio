@@ -52,8 +52,10 @@ interface Profile {
   car_plate?: string;
 }
 
-import { MAPBOX_TOKEN } from "../../lib/config";
-Mapbox.setAccessToken(MAPBOX_TOKEN);
+import { MAPBOX_TOKEN, IS_MAPBOX_TOKEN_VALID } from "../../lib/config";
+if (IS_MAPBOX_TOKEN_VALID) {
+  Mapbox.setAccessToken(MAPBOX_TOKEN);
+}
 
 const COLORS = {
   primary: "#26C6DA",
@@ -207,6 +209,15 @@ export default function TripScreen() {
       }
     };
   }, [ride, isNavigating, showArrivalModal]);
+
+  // H5: explicitly drop the Mapbox MapView ref on unmount so the native
+  // instance can be released by RN's view recycler. Prevents memory creep
+  // when navigating in/out of trip details repeatedly.
+  useEffect(() => {
+    return () => {
+      mapRef.current = null;
+    };
+  }, []);
 
   // Haversine distance formula (returns km)
   const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -405,6 +416,20 @@ export default function TripScreen() {
     ride.dest_lat,
     ride.dest_long
   );
+
+  // C2 fallback: render placeholder if Mapbox token is missing/malformed.
+  if (!IS_MAPBOX_TOKEN_VALID) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: COLORS.dark, marginBottom: 8 }}>
+          Map unavailable
+        </Text>
+        <Text style={{ fontSize: 13, color: COLORS.gray400, textAlign: 'center' }}>
+          We couldn&apos;t load the trip map. Please reinstall the latest version of Clyzio.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

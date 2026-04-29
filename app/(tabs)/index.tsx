@@ -24,8 +24,10 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
 import { useToast } from "../../contexts/ToastContext";
 
-import { MAPBOX_TOKEN } from "../../lib/config";
-Mapbox.setAccessToken(MAPBOX_TOKEN);
+import { MAPBOX_TOKEN, IS_MAPBOX_TOKEN_VALID } from "../../lib/config";
+if (IS_MAPBOX_TOKEN_VALID) {
+  Mapbox.setAccessToken(MAPBOX_TOKEN);
+}
 
 const COLORS = {
   primary: "#26C6DA",
@@ -862,6 +864,21 @@ export default function MapScreen() {
     // Keep route visible, markers visible
     // User can continue browsing other matches or plan another trip
   }, []);
+
+  // Fallback UI when Mapbox token is missing/malformed at build time —
+  // prevents a blank white screen and gives Sentry a clear signal.
+  if (!IS_MAPBOX_TOKEN_VALID) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+        <Text style={{ fontSize: 16, fontWeight: '600', color: COLORS.dark, marginBottom: 8 }}>
+          Map unavailable
+        </Text>
+        <Text style={{ fontSize: 13, color: COLORS.gray, textAlign: 'center' }}>
+          We couldn&apos;t load the map. Please reinstall the latest version of Clyzio or contact support at info@clyzio.com.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

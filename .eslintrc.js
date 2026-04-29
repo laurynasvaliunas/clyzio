@@ -14,6 +14,26 @@ module.exports = {
     'docs/legacy/**',
     'docs/migrations-archive/**',
   ],
+  overrides: [
+    {
+      files: ['**/__tests__/**/*.{js,ts,tsx}', '**/*.{test,spec}.{js,ts,tsx}', 'jest.setup.*'],
+      env: {
+        jest: true,
+        node: true,
+      },
+      globals: {
+        jest: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeAll: 'readonly',
+        beforeEach: 'readonly',
+        afterAll: 'readonly',
+        afterEach: 'readonly',
+      },
+    },
+  ],
   rules: {
     'prettier/prettier': 'warn',
     'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
