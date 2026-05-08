@@ -8,6 +8,8 @@ import {
   Animated,
 } from "react-native";
 import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserLocation } from "@rnmapbox/maps";
+import { Image } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import { Car, Users, UserCircle, X, Sparkles } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -341,6 +343,11 @@ export default function MapScreen() {
 
   // ✅ MINIMAL STATE - Only trip result data
   const [locationGranted, setLocationGranted] = useState(false);
+  // Brand-coloured mask covers the empty Mapbox grid + UserLocation pulse
+  // until tiles finish loading. Without this, cold-starts flash a gray grid
+  // with the location-puck rings — looks like a broken/loading screen.
+  const [mapReady, setMapReady] = useState(false);
+  const mapMaskOpacity = useRef(new Animated.Value(1)).current;
   const [showPlanner, setShowPlanner] = useState(false);
   const [pendingPresetMode, setPendingPresetMode] = useState<string | null>(null);
   const [pendingPresetOrigin, setPendingPresetOrigin] = useState<{ lat: number; lng: number; description: string } | null>(null);
@@ -372,8 +379,18 @@ export default function MapScreen() {
   /**
    * ✅ AUTO-CENTER TO USER LOCATION ON MOUNT
    * Requests permission, sets locationGranted state, and centers map.
+   * Also clears the brand mask once Mapbox reports tiles loaded.
    */
   const centerToUserLocation = useCallback(async () => {
+    // Fade the brand mask out as soon as the map signals it's ready. Run in
+    // parallel with the location request so the user doesn't wait on GPS.
+    setMapReady(true);
+    Animated.timing(mapMaskOpacity, {
+      toValue: 0,
+      duration: 380,
+      useNativeDriver: true,
+    }).start();
+
     try {
       let granted = false;
       const { status } = await Location.getForegroundPermissionsAsync();
@@ -400,7 +417,24 @@ export default function MapScreen() {
     } catch (error) {
       console.error('Error getting location:', error);
     }
-  }, []);
+  }, [mapMaskOpacity]);
+
+  // Watchdog — if the map never reports ready (offline, slow tiles, etc.),
+  // drop the mask after 4 s anyway so the user isn't staring at a blank cyan
+  // wall. They'll see Mapbox's own loading state, which is at least correct
+  // brand-context once they're on the map.
+  useEffect(() => {
+    if (mapReady) return;
+    const t = setTimeout(() => {
+      setMapReady(true);
+      Animated.timing(mapMaskOpacity, {
+        toValue: 0,
+        duration: 380,
+        useNativeDriver: true,
+      }).start();
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [mapReady, mapMaskOpacity]);
 
   // centerToUserLocation is called via onDidFinishLoadingMap once the camera ref is ready
 
@@ -963,6 +997,30 @@ export default function MapScreen() {
         ))}
       </MapView>
 
+      {/* Brand mask — covers the empty Mapbox tile grid + UserLocation pulse
+          while tiles load on cold start. Fades out via onDidFinishLoadingMap
+          (or the 4 s watchdog if Mapbox never signals ready). */}
+      <Animated.View
+        pointerEvents={mapReady ? "none" : "auto"}
+        style={[styles.mapMask, { opacity: mapMaskOpacity }]}
+      >
+        <LinearGradient
+          colors={["#09E0E8", "#26C6DA"]}
+          style={StyleSheet.absoluteFill}
+        />
+        <Image
+          source={require("../../assets/icon.png")}
+          resizeMode="contain"
+          style={styles.mapMaskLogo}
+          accessibilityLabel="Clyzio"
+        />
+        <ActivityIndicator
+          size="small"
+          color="rgba(255,255,255,0.9)"
+          style={{ marginTop: 24 }}
+        />
+      </Animated.View>
+
       {/* Header */}
       <BrandHeader userAvatar={userAvatar} userName={userName} />
 
@@ -1213,7 +1271,24 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
   },
-  
+
+  // ===== MAP-LOAD BRAND MASK =====
+  mapMask: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 100,
+  },
+  mapMaskLogo: {
+    width: 120,
+    height: 120,
+    borderRadius: 28,
+    shadowColor: "#003040",
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+  },
+
   // ===== ACTIVE TRIP CARD =====
   activeCard: {
     position: "absolute",

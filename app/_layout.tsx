@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Animated,
   Easing,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Notifications from "expo-notifications";
@@ -110,7 +111,9 @@ const SPLASH_VERSION_KEY = "clyzio.splashSeen.version";
 const APP_VERSION =
   ((Constants as any)?.expoConfig?.version as string | undefined) ?? "1.0.0";
 
-// Animated Splash Screen Component — "GPS Pulse → Logo Reveal → Route Build"
+// Animated Splash Screen Component — clean, image-led brand reveal.
+// Single act: logo scales up with a subtle glow, tagline fades in, fade out.
+// First launch ≈ 1.6 s; repeat launches collapse to ≈ 600 ms via skipToEnd.
 function AnimatedSplash({
   onAnimationComplete,
   skipToEnd = false,
@@ -118,67 +121,27 @@ function AnimatedSplash({
   onAnimationComplete: () => void;
   skipToEnd?: boolean;
 }) {
-  // Act 1 — GPS ping rings
-  const ping0Scale = useRef(new Animated.Value(0.1)).current;
-  const ping1Scale = useRef(new Animated.Value(0.1)).current;
-  const ping2Scale = useRef(new Animated.Value(0.1)).current;
-  const ping0Opacity = useRef(new Animated.Value(0.7)).current;
-  const ping1Opacity = useRef(new Animated.Value(0.7)).current;
-  const ping2Opacity = useRef(new Animated.Value(0.7)).current;
-  const coreScale = useRef(new Animated.Value(0)).current;
-
-  // Act 2 — Letters: C L Y Z I O (individual refs — React hook rules)
-  const l0Op = useRef(new Animated.Value(0)).current;
-  const l1Op = useRef(new Animated.Value(0)).current;
-  const l2Op = useRef(new Animated.Value(0)).current;
-  const l3Op = useRef(new Animated.Value(0)).current;
-  const l4Op = useRef(new Animated.Value(0)).current;
-  const l5Op = useRef(new Animated.Value(0)).current;
-  const l0Y = useRef(new Animated.Value(14)).current;
-  const l1Y = useRef(new Animated.Value(14)).current;
-  const l2Y = useRef(new Animated.Value(14)).current;
-  const l3Y = useRef(new Animated.Value(14)).current;
-  const l4Y = useRef(new Animated.Value(14)).current;
-  const l5Y = useRef(new Animated.Value(14)).current;
-  const dotScale = useRef(new Animated.Value(0)).current;
-  const dotY = useRef(new Animated.Value(-18)).current;
-
-  // Act 3 — Route connector + tagline
-  const routeOriginOpacity = useRef(new Animated.Value(0)).current;
-  const lineScaleY = useRef(new Animated.Value(0)).current;
-  const destDotScale = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.7)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const glowScale = useRef(new Animated.Value(0.6)).current;
+  const glowOpacity = useRef(new Animated.Value(0)).current;
   const taglineOpacity = useRef(new Animated.Value(0)).current;
-  const taglineY = useRef(new Animated.Value(10)).current;
-
-  // Exit
+  const taglineY = useRef(new Animated.Value(8)).current;
   const containerOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    const pingScales = [ping0Scale, ping1Scale, ping2Scale];
-    const pingOpacities = [ping0Opacity, ping1Opacity, ping2Opacity];
-    const letterOps = [l0Op, l1Op, l2Op, l3Op, l4Op, l5Op];
-    const letterYs = [l0Y, l1Y, l2Y, l3Y, l4Y, l5Y];
-
-    // Repeat-launch fast path — jump every Animated.Value to its final state,
-    // hold for a beat, then fade. Total ≈ 750 ms vs. ~3.3 s for the full
-    // sequence. We deliberately skip ping rings (their final state is
-    // invisible anyway).
     if (skipToEnd) {
-      coreScale.setValue(1);
-      letterOps.forEach((op) => op.setValue(1));
-      letterYs.forEach((y) => y.setValue(0));
-      dotScale.setValue(1);
-      dotY.setValue(0);
-      routeOriginOpacity.setValue(1);
-      lineScaleY.setValue(1);
-      destDotScale.setValue(1);
+      logoScale.setValue(1);
+      logoOpacity.setValue(1);
+      glowScale.setValue(1);
+      glowOpacity.setValue(0.45);
       taglineOpacity.setValue(1);
       taglineY.setValue(0);
       Animated.sequence([
-        Animated.delay(450),
+        Animated.delay(350),
         Animated.timing(containerOpacity, {
           toValue: 0,
-          duration: 300,
+          duration: 280,
           easing: Easing.in(Easing.cubic),
           useNativeDriver: true,
         }),
@@ -186,113 +149,93 @@ function AnimatedSplash({
       return;
     }
 
-    // Act 1: GPS ping rings fire-and-forget (staggered 180ms)
-    [0, 180, 360].forEach((delay, i) => {
-      Animated.sequence([
-        Animated.delay(delay),
-        Animated.parallel([
-          Animated.timing(pingScales[i], { toValue: 2.8, duration: 900, useNativeDriver: true }),
-          Animated.timing(pingOpacities[i], { toValue: 0, duration: 900, useNativeDriver: true }),
-        ]),
-      ]).start();
-    });
-
-    // Letter animations
-    const letterAnims = letterOps.map((op, i) =>
-      Animated.parallel([
-        Animated.timing(op, { toValue: 1, duration: 220, useNativeDriver: true }),
-        Animated.spring(letterYs[i], { toValue: 0, friction: 8, tension: 50, useNativeDriver: true }),
-      ])
-    );
-
-    // Main sequence
     Animated.sequence([
-      // Core circle springs in
-      Animated.spring(coreScale, { toValue: 1, friction: 6, tension: 80, useNativeDriver: true }),
-      // Letters stagger in
-      Animated.stagger(110, letterAnims),
-      // Yellow accent dot bounces in
+      // Logo + soft halo scale and fade in together.
       Animated.parallel([
-        Animated.spring(dotScale, { toValue: 1, friction: 4, tension: 120, useNativeDriver: true }),
-        Animated.spring(dotY, { toValue: 0, friction: 4, tension: 120, useNativeDriver: true }),
+        Animated.spring(logoScale, {
+          toValue: 1,
+          friction: 7,
+          tension: 60,
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoOpacity, {
+          toValue: 1,
+          duration: 420,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowScale, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowOpacity, {
+          toValue: 0.45,
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
       ]),
-      // Route connector assembles
-      Animated.sequence([
-        Animated.timing(routeOriginOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
-        Animated.spring(lineScaleY, { toValue: 1, friction: 10, tension: 60, useNativeDriver: true }),
-        Animated.spring(destDotScale, { toValue: 1, friction: 4, tension: 100, useNativeDriver: true }),
-      ]),
-      // Tagline slides up
+      // Tagline slides up gently.
       Animated.parallel([
-        Animated.timing(taglineOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
-        Animated.timing(taglineY, { toValue: 0, duration: 350, useNativeDriver: true }),
+        Animated.timing(taglineOpacity, {
+          toValue: 1,
+          duration: 360,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(taglineY, {
+          toValue: 0,
+          duration: 360,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
       ]),
-      // Hold then exit
-      Animated.delay(400),
+      // Hold a beat so the brand registers.
+      Animated.delay(420),
+      // Smooth fade out.
       Animated.timing(containerOpacity, {
         toValue: 0,
-        duration: 500,
+        duration: 380,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
     ]).start(() => onAnimationComplete());
   }, []);
 
-  const pingScales = [ping0Scale, ping1Scale, ping2Scale];
-  const pingOpacities = [ping0Opacity, ping1Opacity, ping2Opacity];
-  const letterOps = [l0Op, l1Op, l2Op, l3Op, l4Op, l5Op];
-  const letterYs = [l0Y, l1Y, l2Y, l3Y, l4Y, l5Y];
-
   return (
     <Animated.View style={[splashStyles.root, { opacity: containerOpacity }]}>
-      <LinearGradient colors={["#006064", "#003040"]} style={StyleSheet.absoluteFill} />
-      <StatusBar barStyle="light-content" backgroundColor="#006064" />
+      <LinearGradient
+        colors={["#09E0E8", "#26C6DA"]}
+        style={StyleSheet.absoluteFill}
+      />
+      <StatusBar barStyle="light-content" backgroundColor="#09E0E8" />
 
-      {/* Act 1 — GPS ping rings + core dot */}
-      <View style={splashStyles.pingContainer}>
-        {[0, 1, 2].map(i => (
-          <Animated.View
-            key={i}
-            style={[
-              splashStyles.pingRing,
-              { transform: [{ scale: pingScales[i] }], opacity: pingOpacities[i] },
-            ]}
-          />
-        ))}
-        <Animated.View style={[splashStyles.pingCore, { transform: [{ scale: coreScale }] }]} />
-      </View>
-
-      {/* Act 2 — CLYZIO letters + accent dot */}
-      <View style={splashStyles.lettersRow}>
-        {["C", "L", "Y", "Z", "I", "O"].map((char, i) => (
-          <Animated.Text
-            key={char}
-            style={[
-              splashStyles.letterText,
-              { opacity: letterOps[i], transform: [{ translateY: letterYs[i] }] },
-            ]}
-          >
-            {char}
-          </Animated.Text>
-        ))}
+      <View style={splashStyles.logoWrap}>
         <Animated.View
           style={[
-            splashStyles.accentDot,
-            { transform: [{ scale: dotScale }, { translateY: dotY }] },
+            splashStyles.glow,
+            {
+              opacity: glowOpacity,
+              transform: [{ scale: glowScale }],
+            },
           ]}
+        />
+        <Animated.Image
+          source={require("../assets/icon.png")}
+          resizeMode="contain"
+          style={[
+            splashStyles.logo,
+            {
+              opacity: logoOpacity,
+              transform: [{ scale: logoScale }],
+            },
+          ]}
+          accessibilityLabel="Clyzio"
         />
       </View>
 
-      {/* Act 3 — Route connector */}
-      <View style={splashStyles.routeRow}>
-        <Animated.View style={[splashStyles.routeOriginDot, { opacity: routeOriginOpacity }]} />
-        <View style={splashStyles.routeLineWrap}>
-          <Animated.View style={[splashStyles.routeLine, { transform: [{ scaleY: lineScaleY }] }]} />
-        </View>
-        <Animated.View style={[splashStyles.routeDestDot, { transform: [{ scale: destDotScale }] }]} />
-      </View>
-
-      {/* Tagline */}
       <Animated.Text
         style={[
           splashStyles.tagline,
@@ -603,83 +546,35 @@ const splashStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Act 1 — ping rings
-  pingContainer: {
-    position: "absolute",
-    width: 120,
-    height: 120,
+  logoWrap: {
+    width: 160,
+    height: 160,
     alignItems: "center",
     justifyContent: "center",
   },
-  pingRing: {
+  // Soft halo behind the mark — gives depth without competing with the logo.
+  glow: {
     position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 1.5,
-    borderColor: "#26C6DA",
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "rgba(255,255,255,0.55)",
   },
-  pingCore: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#26C6DA",
+  logo: {
+    width: 140,
+    height: 140,
+    borderRadius: 32,
+    // Subtle drop shadow on iOS so the white O reads against the cyan halo.
+    shadowColor: "#003040",
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
   },
-  // Act 2 — letters
-  lettersRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginTop: 32,
-    position: "relative",
-  },
-  letterText: {
-    fontSize: 68,
-    fontWeight: "800",
-    color: "#26C6DA",
-    letterSpacing: -1,
-  },
-  accentDot: {
-    position: "absolute",
-    right: -10,
-    top: 4,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#FDD835",
-  },
-  // Act 3 — route connector
-  routeRow: {
-    alignItems: "center",
-    marginTop: 20,
-  },
-  routeOriginDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#26C6DA",
-  },
-  routeLineWrap: {
-    width: 2,
-    height: 32,
-    overflow: "hidden",
-  },
-  routeLine: {
-    width: 2,
-    height: 32,
-    backgroundColor: "rgba(38,198,218,0.35)",
-  },
-  routeDestDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#FDD835",
-  },
-  // Tagline
   tagline: {
+    marginTop: 36,
     fontSize: 15,
-    color: "rgba(255,255,255,0.8)",
-    fontWeight: "500",
-    marginTop: 28,
-    letterSpacing: 0.3,
+    color: "rgba(255,255,255,0.92)",
+    fontWeight: "600",
+    letterSpacing: 0.4,
   },
 });
