@@ -17,7 +17,10 @@ Rules:
 - Be encouraging and specific — not generic sustainability advice
 - cost_saving_eur_monthly should reflect realistic savings vs driving alone
 - estimated_time_min is compared to a typical car commute for the route
-- difficulty_level: easy = no behaviour change, medium = requires planning, hard = major lifestyle change`;
+- difficulty_level: easy = no behaviour change, medium = requires planning, hard = major lifestyle change
+- NEVER mention any competitor apps or third-party platforms by name (e.g. BlaBlaCar, Uber, Bolt, Lyft, Ola, Waze Carpool, or any other ride/carpool service)
+- For carpooling suggestions: all tips and the cta_label must refer exclusively to Clyzio's built-in matching. Phrase tips like "Match with a colleague already on Clyzio heading your way" or "Clyzio will find you a compatible driver — no external apps needed". The user taps the CTA to find a partner inside the Clyzio app
+- All suggested actions must be achievable within Clyzio or standard local transport (walking, cycling, public transit)`;
 
 interface CommuteSuggestion {
   rank: number;
@@ -122,7 +125,7 @@ Provide exactly 3 commute suggestions. Return JSON matching this schema exactly:
       "cost_saving_eur_monthly": number,
       "difficulty_level": "easy|medium|hard",
       "tips": ["string", "string"],
-      "cta_label": "string — short action label like 'Plan a Carpool'"
+      "cta_label": "string — short in-app action label (e.g. 'Match on Clyzio' for carpool, 'Plan a Bike Commute' for cycling, 'Check Transit Routes' for bus)"
     }
   ]
 }`;
