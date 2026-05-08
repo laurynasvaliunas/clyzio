@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserLocation } from "@rnmapbox/maps";
 import * as Location from "expo-location";
-import { Car, Users, UserCircle, X } from "lucide-react-native";
+import { Car, Users, UserCircle, X, Sparkles } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import BrandHeader from "../../components/BrandHeader";
@@ -1048,6 +1048,40 @@ export default function MapScreen() {
         />
       )}
 
+      {/* 1.3 — Map empty-state hint.
+          Shown when the user has nothing in flight: no active trip, not searching,
+          no live intent, and no nearby commuters or AI suggestion to engage with.
+          Helps first-time / low-density users orient themselves instead of staring
+          at a bare map. The ActionDock below is the actual CTA; this card is the
+          why. */}
+      {!showPlanner &&
+        !activeTrip &&
+        searchStatus === 'idle' &&
+        nearbyCommuters.length === 0 &&
+        (!intent || intent.status === 'expired') &&
+        (!commuteResult?.insight || chipDismissed) && (
+          <View
+            style={[styles.emptyStateCard, { backgroundColor: TC.surface, borderColor: TC.border }]}
+            accessibilityRole="summary"
+            accessibilityLabel="No commutes nearby"
+          >
+            <View style={styles.emptyStateIcon}>
+              <Sparkles size={20} color={COLORS.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.emptyStateTitle, { color: TC.text }]} numberOfLines={1}>
+                No commutes nearby — yet.
+              </Text>
+              <Text
+                style={[styles.emptyStateSub, { color: TC.textSecondary }]}
+                numberOfLines={2}
+              >
+                Be the first to plan one today, or invite a colleague to ride green together.
+              </Text>
+            </View>
+          </View>
+        )}
+
       {/* Action Dock */}
       {!showPlanner && !activeTrip && searchStatus === 'idle' && (
         <ActionDock onPress={() => setShowPlanner(true)} />
@@ -1244,6 +1278,45 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "500",
     marginTop: 1,
+  },
+
+  // ===== EMPTY STATE HINT (1.3) =====
+  // Floats above the ActionDock when the user has nothing in flight.
+  emptyStateCard: {
+    position: "absolute",
+    bottom: 180,
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  emptyStateIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(38,198,218,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyStateTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  emptyStateSub: {
+    fontSize: 12,
+    fontWeight: "400",
+    marginTop: 2,
+    lineHeight: 16,
   },
 
   // ===== MY LOCATION FAB =====

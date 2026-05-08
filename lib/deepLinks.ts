@@ -24,17 +24,23 @@ const WEB_HOST = 'clyzio.app';
 
 export function buildLink(t: Exclude<DeepLinkTarget, { type: 'unknown' }>): string {
   switch (t.type) {
-    case 'ride': return `${APP_SCHEME}ride/${t.id}`;
-    case 'profile': return `${APP_SCHEME}profile/${t.id}`;
-    case 'invite': return `${APP_SCHEME}invite/${t.code}`;
+    case 'ride':
+      return `${APP_SCHEME}ride/${t.id}`;
+    case 'profile':
+      return `${APP_SCHEME}profile/${t.id}`;
+    case 'invite':
+      return `${APP_SCHEME}invite/${t.code}`;
   }
 }
 
 export function buildWebLink(t: Exclude<DeepLinkTarget, { type: 'unknown' }>): string {
   switch (t.type) {
-    case 'ride': return `https://${WEB_HOST}/ride/${t.id}`;
-    case 'profile': return `https://${WEB_HOST}/profile/${t.id}`;
-    case 'invite': return `https://${WEB_HOST}/invite/${t.code}`;
+    case 'ride':
+      return `https://${WEB_HOST}/ride/${t.id}`;
+    case 'profile':
+      return `https://${WEB_HOST}/profile/${t.id}`;
+    case 'invite':
+      return `https://${WEB_HOST}/invite/${t.code}`;
   }
 }
 
@@ -56,9 +62,54 @@ export function parseLink(url: string): DeepLinkTarget {
 /** Expo-router pathname for a deep-link target. */
 export function toRoutePath(t: DeepLinkTarget): string | null {
   switch (t.type) {
-    case 'ride': return `/trip/${t.id}`;
-    case 'profile': return `/profile/${t.id}`;
-    case 'invite': return `/(auth)/onboarding?ref=${encodeURIComponent(t.code)}`;
-    default: return null;
+    case 'ride':
+      return `/trip/${t.id}`;
+    case 'profile':
+      return `/profile/${t.id}`;
+    case 'invite':
+      return `/(auth)/onboarding?ref=${encodeURIComponent(t.code)}`;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Push-notification → route dispatch table.
+ *
+ * Notifications carry a `data` payload (set when scheduling on the server).
+ * The `screen` field selects a destination; supplementary fields (rideId,
+ * code, etc.) are interpolated into the route. Returns `null` for unknown
+ * screens — the caller should log a Sentry breadcrumb so we can detect
+ * server-side typos or out-of-date clients.
+ *
+ * Why a table instead of a switch: easier to extend and grep, and a single
+ * source of truth shared by the cold-start + warm-start notification paths.
+ */
+export type NotificationData = Record<string, unknown> | null | undefined;
+
+export function notificationToRoute(data: NotificationData): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const screen = typeof (data as any).screen === 'string' ? (data as any).screen : null;
+  if (!screen) return null;
+
+  const rideId = typeof (data as any).rideId === 'string' ? (data as any).rideId : null;
+  const code = typeof (data as any).code === 'string' ? (data as any).code : null;
+
+  switch (screen) {
+    case 'daily-commute':
+      return '/daily-commute';
+    case 'trip-match':
+    case 'trip':
+      return rideId ? `/trip/${rideId}` : null;
+    case 'chat':
+      return rideId ? `/trip/${rideId}?openChat=1` : null;
+    case 'rating':
+      return rideId ? `/trip/${rideId}?openRating=1` : null;
+    case 'invite':
+      return code ? `/(auth)/onboarding?ref=${encodeURIComponent(code)}` : null;
+    case 'notifications':
+      return '/notifications';
+    default:
+      return null;
   }
 }

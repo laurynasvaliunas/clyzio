@@ -14,7 +14,8 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
-import { parseLink, toRoutePath } from "../lib/deepLinks";
+import * as SecureStore from "expo-secure-store";
+import { parseLink, toRoutePath, notificationToRoute } from "../lib/deepLinks";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 import { ToastProvider } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
@@ -66,16 +67,15 @@ async function registerForPushNotificationsAsync() {
   }
 
   if (Device.isDevice) {
+    // 1.1 — Don't prompt silently here. The priming screen (1.1) owns
+    // first-time consent so the user sees the *why* before the OS dialog.
+    // We only proceed if permission has already been granted (either by
+    // the priming flow or by a returning-user OS-level grant).
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
     if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    
-    if (finalStatus !== "granted") {
-      if (__DEV__) { console.log("Failed to get push notification permissions"); }
+      if (__DEV__) {
+        console.log("Push permission not granted yet — token registration deferred to priming flow");
+      }
       return;
     }
     
@@ -101,8 +101,23 @@ async function registerForPushNotificationsAsync() {
   return token;
 }
 
+// 1.6 — Splash skip-on-repeat. The full splash is gorgeous but ~3.3 s long;
+// past the first run it just delays daily users. We persist the app version
+// of the last full play and short-circuit subsequent cold starts to a tiny
+// fade. The full sequence reappears whenever the app version changes — a
+// small reward for shipping.
+const SPLASH_VERSION_KEY = "clyzio.splashSeen.version";
+const APP_VERSION =
+  ((Constants as any)?.expoConfig?.version as string | undefined) ?? "1.0.0";
+
 // Animated Splash Screen Component — "GPS Pulse → Logo Reveal → Route Build"
-function AnimatedSplash({ onAnimationComplete }: { onAnimationComplete: () => void }) {
+function AnimatedSplash({
+  onAnimationComplete,
+  skipToEnd = false,
+}: {
+  onAnimationComplete: () => void;
+  skipToEnd?: boolean;
+}) {
   // Act 1 — GPS ping rings
   const ping0Scale = useRef(new Animated.Value(0.1)).current;
   const ping1Scale = useRef(new Animated.Value(0.1)).current;
@@ -143,6 +158,33 @@ function AnimatedSplash({ onAnimationComplete }: { onAnimationComplete: () => vo
     const pingOpacities = [ping0Opacity, ping1Opacity, ping2Opacity];
     const letterOps = [l0Op, l1Op, l2Op, l3Op, l4Op, l5Op];
     const letterYs = [l0Y, l1Y, l2Y, l3Y, l4Y, l5Y];
+
+    // Repeat-launch fast path — jump every Animated.Value to its final state,
+    // hold for a beat, then fade. Total ≈ 750 ms vs. ~3.3 s for the full
+    // sequence. We deliberately skip ping rings (their final state is
+    // invisible anyway).
+    if (skipToEnd) {
+      coreScale.setValue(1);
+      letterOps.forEach((op) => op.setValue(1));
+      letterYs.forEach((y) => y.setValue(0));
+      dotScale.setValue(1);
+      dotY.setValue(0);
+      routeOriginOpacity.setValue(1);
+      lineScaleY.setValue(1);
+      destDotScale.setValue(1);
+      taglineOpacity.setValue(1);
+      taglineY.setValue(0);
+      Animated.sequence([
+        Animated.delay(450),
+        Animated.timing(containerOpacity, {
+          toValue: 0,
+          duration: 300,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start(() => onAnimationComplete());
+      return;
+    }
 
     // Act 1: GPS ping rings fire-and-forget (staggered 180ms)
     [0, 180, 360].forEach((delay, i) => {
@@ -275,6 +317,11 @@ function RootLayoutContent() {
   const [expoPushToken, setExpoPushToken] = useState<string | undefined>("");
   const notificationListener = useRef<Notifications.EventSubscription>(undefined!);
   const responseListener = useRef<Notifications.EventSubscription>(undefined!);
+  // 1.6 — Has this user already seen the full splash for *this* app
+  // version? `null` = still resolving (we wait before mounting splash to
+  // avoid the wrong variant flashing). `true` = fast path. `false` = full.
+  const [splashSkipResolved, setSplashSkipResolved] = useState<boolean | null>(null);
+  const [skipFullSplash, setSkipFullSplash] = useState(false);
 
   // CRITICAL: Check for existing session on mount (Fix auth persistence)
   useEffect(() => {
@@ -431,12 +478,26 @@ function RootLayoutContent() {
       }
     });
 
-    // Listen for user tapping on notification — deep-link into daily commute flow
+    // Listen for user tapping on notification — dispatch via the central
+    // table in `lib/deepLinks.ts` so trip-match / chat / rating / invite
+    // notifications all route correctly. Previously only `daily-commute`
+    // was handled, so every other notification tap landed on whatever
+    // screen the user happened to have open.
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       if (__DEV__) { console.log("Notification response:", response); }
-      const screen = response.notification.request.content.data?.screen;
-      if (screen === 'daily-commute') {
-        router.push('/daily-commute');
+      const data = response.notification.request.content.data;
+      const route = notificationToRoute(data as any);
+      if (route) {
+        router.push(route as any);
+      } else {
+        // Unknown screen — leave a breadcrumb so we can catch server-side
+        // payload typos or out-of-date clients in Sentry.
+        Sentry.addBreadcrumb({
+          category: 'notification',
+          level: 'warning',
+          message: 'notification opened with no matching route',
+          data: { screen: (data as any)?.screen ?? null },
+        });
       }
     });
 
@@ -450,18 +511,47 @@ function RootLayoutContent() {
     };
   }, []);
 
+  // 1.6 — Resolve the splash skip preference once on mount. SecureStore is
+  // typically <30 ms; if it errors (rare) we just fall back to the full
+  // animation, which is the safe default.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const stored = await SecureStore.getItemAsync(SPLASH_VERSION_KEY);
+        if (cancelled) return;
+        setSkipFullSplash(stored === APP_VERSION);
+      } catch {
+        if (!cancelled) setSkipFullSplash(false);
+      } finally {
+        if (!cancelled) setSplashSkipResolved(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleAnimationComplete = () => {
     setIsReady(true);
+    // Persist that this version has played in full so subsequent cold
+    // starts use the fast path. Fire-and-forget — failure is harmless.
+    if (!skipFullSplash) {
+      SecureStore.setItemAsync(SPLASH_VERSION_KEY, APP_VERSION).catch(() => {});
+    }
   };
 
   // Show animated splash until BOTH the intro animation has played out AND
   // the auth session has been resolved. Previously we only waited on `isReady`
   // which meant a fraction of a second of unauthenticated tabs flashed before
   // the redirect effect ran.
-  if (!isReady || isAuthenticated === null) {
+  if (!isReady || isAuthenticated === null || splashSkipResolved === null) {
     return (
       <SafeAreaProvider>
-        <AnimatedSplash onAnimationComplete={handleAnimationComplete} />
+        <AnimatedSplash
+          onAnimationComplete={handleAnimationComplete}
+          skipToEnd={skipFullSplash}
+        />
       </SafeAreaProvider>
     );
   }

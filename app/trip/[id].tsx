@@ -83,6 +83,12 @@ export default function TripScreen() {
   const [partner, setPartner] = useState<Profile | null>(null); // The other person (driver or rider)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // 1.4 — Loading watchdog. If the spinner is up for >5 s (slow auth resolve,
+  // bad network, RLS hiccup) we flip to an explicit failure state with a
+  // retry button instead of hanging silently. `retryNonce` is bumped on
+  // retry so the fetch effect re-runs.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [retryNonce, setRetryNonce] = useState(0);
   
   // GPS & Navigation states
   const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);
@@ -153,7 +159,21 @@ export default function TripScreen() {
 
     fetchRideData();
     return () => { cancelled = true; };
-  }, [id, currentUserId]);
+  }, [id, currentUserId, retryNonce]);
+
+  // 1.4 — 5-second watchdog. While `isLoading` is true and we haven't
+  // already failed once, arm a timer; if it fires the user sees a retry UI.
+  useEffect(() => {
+    if (!isLoading || loadFailed) return;
+    const t = setTimeout(() => setLoadFailed(true), 5000);
+    return () => clearTimeout(t);
+  }, [isLoading, loadFailed]);
+
+  const handleRetryLoad = () => {
+    setLoadFailed(false);
+    setIsLoading(true);
+    setRetryNonce((n) => n + 1);
+  };
 
   // GPS Auto-Arrival Logic
   useEffect(() => {
@@ -234,13 +254,13 @@ export default function TripScreen() {
     return R * c;
   };
 
-  // Complete trip and award XP + update all impact stats
-  const handleCompleteTr = async () => {
-    if (!ride || !currentUserId) return;
-
-    // Close modal IMMEDIATELY before async operations
-    setShowArrivalModal(false);
-    setIsNavigating(false);
+  // 1.5 — Award current user's XP / CO2 / badges. Extracted so passengers
+  // can collect their own credit without ending the ride lifecycle (which
+  // belongs to the driver). `endTripStatus=true` updates `rides.status` to
+  // "completed"; passengers pass `false` so the driver still controls when
+  // the ride is officially over.
+  const awardCurrentUserStats = async (endTripStatus: boolean) => {
+    if (!ride || !currentUserId) return 0;
 
     const completedAt = new Date().toISOString();
     const distance = haversineDistance(ride.origin_lat, ride.origin_long, ride.dest_lat, ride.dest_long);
@@ -250,13 +270,13 @@ export default function TripScreen() {
     const xpEarned = baseXP + distanceBonus + ecoBonus;
     const co2Saved = ride.co2_saved || 0;
 
-    // Update ride status + completed_at
-    await supabase
-      .from("rides")
-      .update({ status: "completed", completed_at: completedAt })
-      .eq("id", id);
+    if (endTripStatus) {
+      await supabase
+        .from("rides")
+        .update({ status: "completed", completed_at: completedAt })
+        .eq("id", id);
+    }
 
-    // Fetch current profile stats
     const { data: profile } = await supabase
       .from("profiles")
       .select("xp_points, total_co2_saved, trips_completed, badges")
@@ -268,7 +288,6 @@ export default function TripScreen() {
       const newCO2 = (profile.total_co2_saved || 0) + co2Saved;
       const newTripsCount = (profile.trips_completed || 0) + 1;
 
-      // Update all stats
       await supabase
         .from("profiles")
         .update({
@@ -278,7 +297,6 @@ export default function TripScreen() {
         })
         .eq("id", currentUserId);
 
-      // Unlock badges
       const existingBadges: string[] = profile.badges || [];
       const newBadges: string[] = [];
 
@@ -312,6 +330,20 @@ export default function TripScreen() {
       }
     }
 
+    return xpEarned;
+  };
+
+  // Driver / solo path — ends the ride and awards the current user's stats.
+  const handleCompleteTr = async () => {
+    if (!ride || !currentUserId) return;
+
+    // Close modal IMMEDIATELY before async operations
+    setShowArrivalModal(false);
+    setIsNavigating(false);
+
+    const co2Saved = ride.co2_saved || 0;
+    const xpEarned = await awardCurrentUserStats(true);
+
     showToast({ title: 'Trip Complete!', message: `You earned ${xpEarned} XP and saved ${co2Saved.toFixed(2)} kg CO₂!`, type: 'success' });
 
     // Only prompt for a rating on shared carpool trips (where there's an
@@ -322,6 +354,27 @@ export default function TripScreen() {
     } else {
       router.push("/(tabs)/activity");
     }
+  };
+
+  // 1.5 — Passenger arrival path. Awards the passenger's own XP/CO₂ but
+  // does NOT update `rides.status` — only the driver should end the ride.
+  // Goes straight into the rating sheet to keep the social loop tight.
+  const handlePassengerArrival = async () => {
+    if (!ride || !currentUserId) return;
+
+    setShowArrivalModal(false);
+    setIsNavigating(false);
+
+    const co2Saved = ride.co2_saved || 0;
+    const xpEarned = await awardCurrentUserStats(false);
+
+    showToast({
+      title: "You've arrived!",
+      message: `${xpEarned} XP and ${co2Saved.toFixed(2)} kg CO₂ saved. Don't forget to rate your driver.`,
+      type: 'success',
+    });
+
+    setShowRatingSheet(true);
   };
 
   // Cancel ride
@@ -356,6 +409,34 @@ export default function TripScreen() {
   };
 
   if (isLoading) {
+    if (loadFailed) {
+      return (
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { fontWeight: '600', color: COLORS.dark }]}>
+            Couldn&apos;t load trip details
+          </Text>
+          <Text style={[styles.loadingText, { marginTop: 4, fontSize: 13 }]}>
+            Check your connection and try again.
+          </Text>
+          <TouchableOpacity
+            onPress={handleRetryLoad}
+            style={styles.backButtonAlt}
+            accessibilityRole="button"
+            accessibilityLabel="Try again"
+          >
+            <Text style={styles.backButtonAltText}>Try Again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{ marginTop: 12 }}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Text style={{ color: COLORS.gray400, fontSize: 13 }}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -723,7 +804,10 @@ export default function TripScreen() {
         </View>
       </Modal>
 
-      {/* Arrival Modal */}
+      {/* Arrival Modal — 1.5: branched by role.
+          • Driver / solo: ends the ride lifecycle (status → completed).
+          • Passenger: awards own stats and routes to rating; the driver
+            still owns the actual ride completion. */}
       <Modal
         visible={showArrivalModal}
         animationType="slide"
@@ -732,17 +816,39 @@ export default function TripScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.arrivalModal}>
-            <Text style={styles.arrivalTitle}>You Arrived! 🎉</Text>
+            <Text style={styles.arrivalTitle}>You&apos;ve arrived! 🎉</Text>
             <Text style={styles.arrivalSubtitle}>
-              CO₂ Saved: {ride.co2_saved.toFixed(2)} kg
+              {isSoloTrip || isDriver
+                ? `CO₂ Saved: ${ride.co2_saved.toFixed(2)} kg`
+                : `Don't forget to rate ${partnerName.split(' ')[0] || 'your driver'}.`}
             </Text>
-            <Text style={styles.arrivalEmoji}>🌱</Text>
-            
-            <TouchableOpacity style={styles.confirmButton} onPress={handleCompleteTr}>
-              <Text style={styles.confirmButtonText}>Confirm & Collect XP</Text>
-            </TouchableOpacity>
+            <Text style={styles.arrivalEmoji}>{isSoloTrip || isDriver ? '🌱' : '⭐'}</Text>
 
-            <TouchableOpacity onPress={() => setShowArrivalModal(false)}>
+            {isSoloTrip || isDriver ? (
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handleCompleteTr}
+                accessibilityRole="button"
+                accessibilityLabel="Confirm arrival and collect XP"
+              >
+                <Text style={styles.confirmButtonText}>Confirm & Collect XP</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={handlePassengerArrival}
+                accessibilityRole="button"
+                accessibilityLabel="Rate your driver"
+              >
+                <Text style={styles.confirmButtonText}>Rate your driver</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              onPress={() => setShowArrivalModal(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss arrival prompt"
+            >
               <Text style={styles.notYetText}>Not yet...</Text>
             </TouchableOpacity>
           </View>

@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Mail, Lock, Eye, EyeOff, Leaf, Building2, Check } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import { useToast } from "../../contexts/ToastContext";
+import { nextRouteAfterAuth } from "../../lib/permissionsPriming";
 
 const COLORS = {
   primary: "#26C6DA",
@@ -75,14 +76,17 @@ export default function LoginScreen() {
             .eq("id", data.user.id);
 
           const needsOnboarding = await checkOnboardingNeeded(data.user.id);
-          router.replace(needsOnboarding ? "/(auth)/onboarding" : "/(tabs)");
+          // 1.1 — route through permission priming on first device-launch.
+          const next = await nextRouteAfterAuth({ needsOnboarding });
+          router.replace(next);
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) { showToast({ title: 'Sign In Failed', message: error.message, type: 'error' }); return; }
         if (data.session && data.user) {
           const needsOnboarding = await checkOnboardingNeeded(data.user.id);
-          router.replace(needsOnboarding ? "/(auth)/onboarding" : "/(tabs)");
+          const next = await nextRouteAfterAuth({ needsOnboarding });
+          router.replace(next);
         }
       }
     } catch (error: any) {

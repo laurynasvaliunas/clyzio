@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Building2, Users, Check, ChevronRight } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
+import { hasPrimedPermissions } from "../../lib/permissionsPriming";
 
 // Brand Colors
 const COLORS = {
@@ -50,6 +51,15 @@ export default function OnboardingScreen() {
     loadData();
   }, []);
 
+  // 1.1 — onboarding may be auto-skipped (solo user, already in a dept,
+  // or no company). In those cases we still want first-device users to
+  // see the permission-priming screen instead of dropping straight into
+  // the map.
+  const goNext = async () => {
+    const primed = await hasPrimedPermissions();
+    router.replace(primed ? "/(tabs)" : "/(auth)/permissions");
+  };
+
   const loadData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -77,19 +87,19 @@ export default function OnboardingScreen() {
 
       if (profileError) {
         console.error("Profile error:", profileError);
-        router.replace("/(tabs)");
+        await goNext();
         return;
       }
 
       // If solo user or already has department, skip onboarding
       if (profile?.is_solo_user || profile?.department_id) {
-        router.replace("/(tabs)");
+        await goNext();
         return;
       }
 
       // If no company assigned, go to main app
       if (!profile?.company_id || !profile?.companies) {
-        router.replace("/(tabs)");
+        await goNext();
         return;
       }
 
@@ -108,7 +118,7 @@ export default function OnboardingScreen() {
       }
     } catch (error) {
       console.error("Error loading onboarding data:", error);
-      router.replace("/(tabs)");
+      await goNext();
     } finally {
       setLoading(false);
     }
@@ -129,7 +139,7 @@ export default function OnboardingScreen() {
 
       if (error) throw error;
 
-      router.replace("/(tabs)");
+      await goNext();
     } catch (error) {
       console.error("Error saving department:", error);
     } finally {
@@ -138,7 +148,7 @@ export default function OnboardingScreen() {
   };
 
   const handleSkip = () => {
-    router.replace("/(tabs)");
+    goNext();
   };
 
   if (loading) {
