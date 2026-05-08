@@ -163,7 +163,7 @@ export default function IncomingSuggestionBanner() {
   const pending = incomingSuggestions.filter((s) => s.status === "pending");
   if (pending.length === 0) return null;
 
-  const topOffset = insets.top + (Platform.OS === "android" ? 8 : 4);
+  const topOffset = insets.top + (Platform.OS === "android" ? 8 : 16);
 
   return (
     <View

@@ -353,6 +353,9 @@ export default function MapScreen() {
   const [pendingPresetOrigin, setPendingPresetOrigin] = useState<{ lat: number; lng: number; description: string } | null>(null);
   const [pendingPresetDest, setPendingPresetDest] = useState<{ lat: number; lng: number; description: string } | null>(null);
   const [activeTrip, setActiveTrip] = useState<any>(null);
+  // DB id of the current ride — needed to cancel or update the row when the
+  // user taps "Cancel Search" or when the trip is completed/archived.
+  const [activeRideId, setActiveRideId] = useState<string | null>(null);
   const [routeCoords, setRouteCoords] = useState<number[][] | null>(null);
 
   // ✅ COMMUTER RADAR STATE
@@ -722,9 +725,10 @@ export default function MapScreen() {
   const handleTripStart = async (tripData: any) => {
     if (__DEV__) { console.log("✅ Trip Started:", tripData); }
     
-    // Set active trip
+    // Set active trip and persist the DB ride id so we can cancel it later.
     setActiveTrip(tripData);
-    
+    if (tripData.rideId) setActiveRideId(tripData.rideId);
+
     // Reset viewing state for new search
     setIsViewingMap(false);
 
@@ -763,16 +767,29 @@ export default function MapScreen() {
   };
 
   /**
-   * Cancel search and reset to initial state (full reset)
+   * Cancel search and reset to initial state (full reset).
+   * Also marks the ride as 'cancelled' in the DB so it moves to
+   * Activity → History and doesn't stay stuck in Upcoming as "scheduled".
    */
-  const handleCancelSearch = useCallback(() => {
+  const handleCancelSearch = useCallback(async () => {
+    if (activeRideId) {
+      try {
+        await supabase
+          .from('rides')
+          .update({ status: 'cancelled' })
+          .eq('id', activeRideId);
+      } catch {
+        // Non-fatal — UI resets regardless; the ride will expire naturally.
+      }
+      setActiveRideId(null);
+    }
     setSearchStatus('idle');
     setSearchMode(null);
     setNearbyCommuters([]);
     setSelectedMatch(null);
     setActiveTrip(null);
     setIsViewingMap(false);
-  }, []);
+  }, [activeRideId]);
 
   /**
    * View map with matches - dismiss overlay but keep route and markers visible

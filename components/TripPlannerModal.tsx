@@ -146,6 +146,7 @@ interface TripPlannerModalProps {
   visible: boolean;
   onClose: () => void;
   onTripStart: (data: {
+    rideId?: string | null;
     origin: { lat: number; lng: number; description: string };
     destination: { lat: number; lng: number; description: string };
     waypoint?: { lat: number; lng: number; description: string } | null;
@@ -460,8 +461,10 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         duration: 5000,
       });
       
-      // Call parent callback
+      // Call parent callback — include the DB ride id so the home screen can
+      // cancel or update the row if the user taps "Cancel Search".
       onTripStart({
+        rideId: data?.[0]?.id ?? null,
         origin: { ...originCoords, description: originDescription },
         destination: { ...destCoords, description: destDescription },
         waypoint: waypointCoords ? { ...waypointCoords, description: waypointDescription } : null,

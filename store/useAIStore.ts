@@ -186,6 +186,20 @@ export const useAIStore = create<AIState>((set, get) => ({
       .eq("id", id);
 
     if (!error) {
+      // When accepting, link the rider to the rides row so it appears in Activity → Upcoming
+      if (response === "accepted") {
+        const suggestion = get().incomingSuggestions.find((s) => s.id === id);
+        if (suggestion?.ride_id) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase
+              .from("rides")
+              .update({ rider_id: user.id, status: "accepted" })
+              .eq("id", suggestion.ride_id);
+          }
+        }
+      }
+
       set((state) => ({
         incomingSuggestions: state.incomingSuggestions.map((s) =>
           s.id === id ? { ...s, status: response } : s
