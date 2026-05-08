@@ -639,7 +639,7 @@ export default function AIPlannerScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={[styles.headerTitle, { color: TC.text }]}>AI Planner</Text>
+          <Text style={[styles.headerTitle, { color: TC.text }]}>Clyzio Advisor</Text>
           <Sparkles size={22} color={COLORS.primary} />
         </View>
         <TouchableOpacity
