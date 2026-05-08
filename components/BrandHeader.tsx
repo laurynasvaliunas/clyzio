@@ -24,8 +24,12 @@ export default function BrandHeader({ userName = "", userAvatar }: BrandHeaderPr
     <View style={styles.container} pointerEvents="box-none">
       {/* Logo floats top-left */}
       <View style={styles.logoWrapper}>
-        <Text style={styles.logoText}>CLYZIO</Text>
-        <View style={styles.logoDot} />
+        <Image
+          source={require("../assets/icon.png")}
+          style={styles.logoImage}
+          resizeMode="contain"
+          accessibilityLabel="Clyzio"
+        />
       </View>
 
       {/* Avatar floats top-right */}
@@ -62,27 +66,16 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   logoWrapper: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    // Subtle shadow so logo is readable over any map color
     shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
   },
-  logoText: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: COLORS.primary,
-    letterSpacing: 0.5,
-  },
-  logoDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: COLORS.accent,
-    marginLeft: 2,
-    marginTop: 3,
+  logoImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
   },
   avatarBtn: {
     shadowColor: "#000",

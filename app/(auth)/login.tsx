@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -113,8 +114,12 @@ export default function LoginScreen() {
       >
         {/* Logo */}
         <View style={styles.logoRow}>
-          <Text style={styles.logoText}>CLYZIO</Text>
-          <View style={styles.logoDot} />
+          <Image
+            source={require("../../assets/icon.png")}
+            style={styles.logoImage}
+            resizeMode="contain"
+            accessibilityLabel="Clyzio logo"
+          />
         </View>
 
         {/* Welcome */}
@@ -291,24 +296,18 @@ const styles = StyleSheet.create({
   },
 
   logoRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "center",
-    marginBottom: 36,
+    marginBottom: 32,
   },
-  logoText: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: COLORS.primary,
-    letterSpacing: 1,
-  },
-  logoDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.accent,
-    marginLeft: 3,
-    marginTop: 5,
+  logoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    shadowColor: "#09E0E8",
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
   },
 
   heading: {
