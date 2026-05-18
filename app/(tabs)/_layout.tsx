@@ -100,8 +100,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="ai-planner"
         options={{
-          title: "Advisor",
-          tabBarAccessibilityLabel: "Clyzio Advisor tab",
+          title: "My Coach",
+          tabBarAccessibilityLabel: "My Personal Commute Coach tab",
           tabBarIcon: ({ color, focused }) => (
             <View
               style={{

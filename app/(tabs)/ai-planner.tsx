@@ -261,10 +261,11 @@ function LocalInsightsPanel({
       >
         <Sparkles size={22} color={COLORS.white} style={{ marginBottom: 10 }} />
         <Text style={styles.insightText}>
-          Your commute is <Text style={{ fontWeight: "800" }}>{distKm.toFixed(1)} km</Text>.
-          Switching to {bestCO2.label.toLowerCase()} could save{" "}
+          Your <Text style={{ fontWeight: "800" }}>{distKm.toFixed(1)} km</Text> commute has real potential.
+          Switch to {bestCO2.label.toLowerCase()} and you'd save{" "}
           <Text style={{ color: COLORS.accent }}>~{weeklyKg.toFixed(1)} kg CO₂/week</Text>
-          {yearlyTrees > 0 ? ` — equal to planting ${yearlyTrees} tree${yearlyTrees !== 1 ? "s" : ""} a year 🌳` : " 🌱"}.
+          {yearlyTrees > 0 ? ` — that's ${yearlyTrees} tree${yearlyTrees !== 1 ? "s" : ""} planted a year 🌳` : " 🌱"}.
+          {" "}Want to give it a try this week?
         </Text>
         <View style={styles.savingPill}>
           <Text style={styles.savingPillText}>
@@ -639,7 +640,7 @@ export default function AIPlannerScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={[styles.headerTitle, { color: TC.text }]}>Clyzio Advisor</Text>
+          <Text style={[styles.headerTitle, { color: TC.text }]}>My Personal Commute Coach</Text>
           <Sparkles size={22} color={COLORS.primary} />
         </View>
         <TouchableOpacity

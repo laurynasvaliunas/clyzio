@@ -516,7 +516,7 @@ export default function EditProfileScreen() {
             <Text style={styles.sectionTitle}>Commute Details</Text>
           </View>
           <Text style={styles.sectionSubtitle}>
-            Used by your AI Commute Coach to suggest personalised green routes
+            Used by your Personal Commute Coach to suggest personalised green routes
           </Text>
 
           <Text style={[styles.inputLabel, { marginBottom: 8 }]}>Home Address</Text>
