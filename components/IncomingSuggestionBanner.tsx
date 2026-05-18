@@ -9,22 +9,24 @@ import {
 } from "react-native";
 import { useEffect, useRef, useCallback } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Users, Leaf, Check, X } from "lucide-react-native";
+import { Leaf, Check, X } from "lucide-react-native";
 import { CarpoolSuggestion, useAIStore } from "../store/useAIStore";
+import { Avatar, toneFromKey } from "./ui/editorial";
 
+// Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",
-  dark: "#006064",
-  green: "#4CAF50",
-  greenBg: "#E8F5E9",
-  white: "#FFFFFF",
-  gray: "#90A4AE",
-  textSecondary: "#546E7A",
-  light: "#E0F7FA",
-  error: "#EF5350",
-  declineBg: "#F1F5F9",
-  accentPurple: "#7C3AED",
-  accentPurpleBg: "#EDE9FE",
+  primary: "#26C6DA",   // cyan
+  dark: "#0B1A1F",      // ink
+  green: "#5B8F5B",     // leaf
+  greenBg: "rgba(91,143,91,0.12)",
+  white: "#FAF7EF",     // ivory
+  gray: "#8B989C",      // ink-4
+  textSecondary: "#5A6A6F", // ink-3
+  light: "#EAF6F8",     // cyan-fog
+  error: "#C4623F",     // clay
+  declineBg: "rgba(11,26,31,0.04)",
+  accentPurple: "#003D40",   // teal accent bar/icon
+  accentPurpleBg: "#EAF6F8", // cyan-fog icon wrap
 };
 
 interface Props {
@@ -95,9 +97,11 @@ function SuggestionCard({ suggestion, topOffset, index }: Props) {
       <View style={styles.body}>
         {/* Header row */}
         <View style={styles.headerRow}>
-          <View style={styles.iconWrap}>
-            <Users size={17} color={COLORS.accentPurple} />
-          </View>
+          <Avatar
+            initials={senderName.trim().charAt(0).toUpperCase() || "?"}
+            size={36}
+            tone={toneFromKey(senderName)}
+          />
           <View style={styles.headerText}>
             <Text style={styles.title} numberOfLines={1}>
               <Text style={styles.bold}>{senderName}</Text>
@@ -187,13 +191,13 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 22,
     flexDirection: "row",
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 16,
+    shadowColor: "#0B1A1F",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
     elevation: 8,
   },
   accentBar: {
@@ -221,11 +225,12 @@ const styles = StyleSheet.create({
   },
   headerText: { flex: 1, gap: 3 },
   title: {
-    fontSize: 13,
+    fontFamily: "InstrumentSerif",
+    fontSize: 16,
     color: COLORS.dark,
-    lineHeight: 18,
+    lineHeight: 19,
   },
-  bold: { fontWeight: "700" },
+  bold: { fontFamily: "InstrumentSerif-Italic" },
   reasoning: {
     fontSize: 12,
     color: COLORS.textSecondary,
@@ -246,8 +251,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   badgeText: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontFamily: "JetBrainsMono",
+    fontSize: 10,
+    letterSpacing: 0.4,
   },
   actions: {
     flexDirection: "row",
@@ -258,24 +264,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 9,
-    borderRadius: 10,
+    paddingVertical: 11,
+    borderRadius: 999,
     gap: 5,
   },
   declineBtn: {
     backgroundColor: COLORS.declineBg,
   },
   acceptBtn: {
-    backgroundColor: COLORS.accentPurple,
+    backgroundColor: "#0B1A1F",
   },
   declineText: {
-    fontSize: 13,
+    fontFamily: "JetBrainsMono",
+    fontSize: 11,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
     color: COLORS.gray,
-    fontWeight: "600",
   },
   acceptText: {
-    fontSize: 13,
-    color: COLORS.white,
-    fontWeight: "600",
+    fontFamily: "JetBrainsMono",
+    fontSize: 11,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: "#FAF7EF",
   },
 });

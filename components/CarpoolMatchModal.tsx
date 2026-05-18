@@ -12,18 +12,20 @@ import { X, Users, Leaf, Clock, CheckCircle } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { CarpoolMatch, CarpoolAIResult, useAIStore } from "../store/useAIStore";
 import { useToast } from "../contexts/ToastContext";
+import { Avatar, toneFromKey } from "./ui/editorial";
 
+// Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#00ACC1",
-  accent: "#FDD835",
-  dark: "#006064",
-  light: "#E0F7FA",
-  background: "#F5FAFA",
-  white: "#FFFFFF",
-  gray: "#90A4AE",
-  grayLight: "#F1F5F9",
-  green: "#4CAF50",
+  primary: "#26C6DA",   // cyan
+  primaryDark: "#00565A",// teal-2
+  accent: "#F2C744",    // sun
+  dark: "#003D40",      // teal
+  light: "#EAF6F8",     // cyan-fog
+  background: "#F1EDE4",// paper
+  white: "#FAF7EF",     // ivory
+  gray: "#8B989C",      // ink-4
+  grayLight: "#E8E3D7", // paper-2
+  green: "#5B8F5B",     // leaf
 };
 
 function CompatibilityBar({ score }: { score: number }) {
@@ -74,9 +76,11 @@ export default function CarpoolMatchModal({
   const renderMatch = ({ item }: { item: CarpoolMatch }) => (
     <View style={styles.matchCard}>
       <View style={styles.matchHeader}>
-        <View style={styles.avatarPlaceholder}>
-          <Users size={18} color={COLORS.primary} />
-        </View>
+        <Avatar
+          initials={(item.user_first_name || "?").trim().charAt(0).toUpperCase()}
+          size={44}
+          tone={toneFromKey(item.user_first_name)}
+        />
         <View style={styles.matchInfo}>
           <Text style={styles.matchName}>{item.user_first_name}</Text>
           <Text style={styles.matchReasoning} numberOfLines={2}>{item.reasoning}</Text>
@@ -180,11 +184,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: COLORS.dark },
+  headerTitle: { fontFamily: "InstrumentSerif", fontSize: 24, color: "#0B1A1F" },
   closeBtn: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 999,
     backgroundColor: COLORS.grayLight,
     alignItems: "center",
     justifyContent: "center",
@@ -208,12 +212,13 @@ const styles = StyleSheet.create({
 
   matchCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 26,
+    padding: 18,
     marginBottom: 12,
-    shadowColor: "#000",
+    shadowColor: "#0B1A1F",
     shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
   matchHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
@@ -226,11 +231,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   matchInfo: { flex: 1 },
-  matchName: { fontSize: 15, fontWeight: "bold", color: COLORS.dark },
+  matchName: { fontFamily: "InstrumentSerif", fontSize: 20, color: "#0B1A1F" },
   matchReasoning: { fontSize: 12, color: COLORS.gray, marginTop: 2, lineHeight: 16 },
   scoreBox: { alignItems: "center" },
-  scoreText: { fontSize: 20, fontWeight: "bold", color: COLORS.primary },
-  scoreLabel: { fontSize: 10, color: COLORS.gray },
+  scoreText: { fontFamily: "InstrumentSerif", fontSize: 24, color: COLORS.dark },
+  scoreLabel: {
+    fontFamily: "JetBrainsMono",
+    fontSize: 9,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: COLORS.gray,
+    marginTop: 2,
+  },
 
   barBg: {
     height: 4,
@@ -243,16 +255,27 @@ const styles = StyleSheet.create({
 
   matchStats: { flexDirection: "row", gap: 16, marginBottom: 14 },
   matchStat: { flexDirection: "row", alignItems: "center", gap: 4 },
-  matchStatText: { fontSize: 12, color: COLORS.gray },
+  matchStatText: {
+    fontFamily: "JetBrainsMono",
+    fontSize: 11,
+    letterSpacing: 0.3,
+    color: COLORS.gray,
+  },
 
   requestBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
+    backgroundColor: "#0B1A1F",
+    borderRadius: 999,
+    paddingVertical: 15,
     gap: 8,
   },
-  requestBtnText: { color: COLORS.white, fontWeight: "bold", fontSize: 14 },
+  requestBtnText: {
+    color: "#FAF7EF",
+    fontFamily: "JetBrainsMono",
+    fontSize: 12,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
 });
