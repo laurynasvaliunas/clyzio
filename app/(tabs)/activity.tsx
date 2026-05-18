@@ -328,7 +328,7 @@ function EmptyState({ isUpcoming, onPlanTrip, TC }: EmptyStateProps) {
           : "Complete some rides to see your impact here."}
       </Text>
       <TouchableOpacity style={styles.emptyButton} onPress={onPlanTrip}>
-        <Text style={styles.emptyButtonText}>Plan a Trip</Text>
+        <Text style={styles.emptyButtonText}>Plan your route</Text>
       </TouchableOpacity>
     </View>
   );

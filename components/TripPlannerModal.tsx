@@ -567,7 +567,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
               <TouchableOpacity onPress={toggleMinimize} hitSlop={8}>
                 <ChevronDown size={20} color={COLORS.gray} />
               </TouchableOpacity>
-              <Text style={styles.title}>Plan Trip</Text>
+              <Text style={styles.title}>Plan your route</Text>
               <TouchableOpacity onPress={handleClose}>
                 <X size={24} color="#999" />
               </TouchableOpacity>

@@ -28,13 +28,13 @@ export default function ActionDock({ onPress, hasRoute = false }: ActionDockProp
           style={styles.touchable}
           onPress={handlePress}
           activeOpacity={0.7}
-          accessibilityLabel={hasRoute ? "Change destination" : "Plan a trip"}
+          accessibilityLabel={hasRoute ? "Change destination" : "Plan your route"}
           accessibilityRole="button"
         >
           <View style={styles.content}>
             <Search size={22} color={COLORS.primary} />
             <Text style={[styles.text, isDark && styles.textDark]}>
-              {hasRoute ? "Change destination" : "Plan a Trip ✨"}
+              {hasRoute ? "Change destination" : "Plan your route ✨"}
             </Text>
           </View>
           <View style={styles.button}>

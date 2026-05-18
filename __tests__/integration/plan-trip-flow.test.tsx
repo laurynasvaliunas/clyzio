@@ -18,7 +18,7 @@ describe("Plan Trip Flow Integration", () => {
     fireEvent.press(getByText("Where to today?"));
 
     await waitFor(() => {
-      expect(getByText("Plan Trip")).toBeTruthy();
+      expect(getByText("Plan your route")).toBeTruthy();
     });
   });
 });
