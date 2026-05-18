@@ -1,13 +1,7 @@
-import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
+import { View, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-
-const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#006064",
-  accent: "#FDD835",
-  white: "#FFFFFF",
-};
+import { Avatar, toneFromKey } from "./ui/editorial";
+import { editorial } from "../lib/theme/tokens";
 
 interface BrandHeaderProps {
   userName?: string;
@@ -41,12 +35,12 @@ export default function BrandHeader({ userName = "", userAvatar }: BrandHeaderPr
         {userAvatar ? (
           <Image source={{ uri: userAvatar }} style={styles.avatarImage} />
         ) : (
-          <LinearGradient
-            colors={[COLORS.primary, COLORS.primaryDark]}
-            style={styles.avatarGradient}
-          >
-            <Text style={styles.avatarInitials}>{initials}</Text>
-          </LinearGradient>
+          <Avatar
+            initials={initials}
+            size={42}
+            tone={toneFromKey(userName || "U")}
+            ring
+          />
         )}
       </TouchableOpacity>
     </View>
@@ -66,10 +60,10 @@ const styles = StyleSheet.create({
     zIndex: 50,
   },
   logoWrapper: {
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: editorial.ink,
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 5,
   },
   logoImage: {
@@ -78,31 +72,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   avatarBtn: {
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: editorial.ink,
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
   avatarImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2.5,
-    borderColor: COLORS.white,
-  },
-  avatarGradient: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.8)",
-  },
-  avatarInitials: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.white,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 3,
+    borderColor: editorial.paper,
   },
 });

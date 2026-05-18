@@ -1,13 +1,7 @@
 import { TouchableOpacity, Text, View, StyleSheet } from "react-native";
-import { Sparkles, X } from "lucide-react-native";
-
-const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#00ACC1",
-  dark: "#006064",
-  white: "#FFFFFF",
-  gray: "#90A4AE",
-};
+import { X } from "lucide-react-native";
+import { Picto } from "./ui/editorial";
+import { editorial } from "../lib/theme/tokens";
 
 interface AISuggestionChipProps {
   insight: string;
@@ -29,13 +23,13 @@ export default function AISuggestionChip({
       activeOpacity={0.85}
     >
       <View style={styles.iconBox}>
-        <Sparkles size={14} color={COLORS.primary} />
+        <Picto kind="spark" size={15} color={editorial.teal} stroke={1.6} />
       </View>
       <Text style={styles.text} numberOfLines={2}>
         {loading ? "Loading AI suggestions…" : insight}
       </Text>
       <TouchableOpacity style={styles.dismiss} onPress={onDismiss} hitSlop={8}>
-        <X size={14} color={COLORS.gray} />
+        <X size={14} color={editorial.ink4} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -45,33 +39,34 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    paddingVertical: 10,
-    paddingLeft: 12,
+    backgroundColor: editorial.ivory,
+    borderRadius: 18,
+    paddingVertical: 11,
+    paddingLeft: 13,
     paddingRight: 10,
-    shadowColor: "#000",
+    shadowColor: editorial.ink,
     shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 4,
     borderLeftWidth: 3,
-    borderLeftColor: COLORS.primary,
-    gap: 8,
+    borderLeftColor: editorial.teal,
+    gap: 10,
   },
   iconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: "#E0F7FA",
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: editorial.cyanFog,
     alignItems: "center",
     justifyContent: "center",
   },
   text: {
     flex: 1,
-    fontSize: 12,
-    color: COLORS.dark,
-    lineHeight: 17,
-    fontWeight: "500",
+    fontFamily: editorial.fonts.serif,
+    fontSize: 14,
+    color: editorial.ink,
+    lineHeight: 18,
   },
   dismiss: {
     padding: 4,

@@ -1,12 +1,8 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { Search, MapPin } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../contexts/ThemeContext";
-
-const COLORS = {
-  primary: "#26C6DA",
-  white: "#FFFFFF",
-};
+import { Picto } from "./ui/editorial";
+import { editorial, typography } from "../lib/theme/tokens";
 
 interface ActionDockProps {
   onPress: () => void;
@@ -27,18 +23,18 @@ export default function ActionDock({ onPress, hasRoute = false }: ActionDockProp
         <TouchableOpacity
           style={styles.touchable}
           onPress={handlePress}
-          activeOpacity={0.7}
+          activeOpacity={0.85}
           accessibilityLabel={hasRoute ? "Change destination" : "Plan your route"}
           accessibilityRole="button"
         >
           <View style={styles.content}>
-            <Search size={22} color={COLORS.primary} />
-            <Text style={[styles.text, isDark && styles.textDark]}>
-              {hasRoute ? "Change destination" : "Plan your route ✨"}
+            <Picto kind="search" size={20} color={editorial.cyan} stroke={1.6} />
+            <Text style={styles.text}>
+              {hasRoute ? "Change destination" : "Plan your route"}
             </Text>
           </View>
           <View style={styles.button}>
-            <MapPin size={20} color={COLORS.white} />
+            <Picto kind="arrow" size={18} color={editorial.ink} stroke={2} />
           </View>
         </TouchableOpacity>
       </View>
@@ -53,30 +49,30 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     height: 64,
-    borderRadius: 32,
-    shadowColor: "#000",
+    borderRadius: 28,
+    shadowColor: editorial.ink,
     shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: 28,
     elevation: 16,
     zIndex: 30,
   },
   pill: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 32,
+    backgroundColor: editorial.ink,
+    borderRadius: 28,
     height: 64,
     borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.06)",
+    borderColor: "transparent",
   },
   pillDark: {
-    backgroundColor: "#1C1C1E",
-    borderColor: "rgba(255, 255, 255, 0.08)",
+    backgroundColor: editorial.night2,
+    borderColor: editorial.nightLine,
   },
   touchable: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingLeft: 20,
+    paddingLeft: 22,
     paddingRight: 6,
     height: 64,
   },
@@ -86,21 +82,18 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   text: {
-    fontSize: 17,
-    color: "#334155",
-    fontWeight: "600",
-  },
-  textDark: {
-    color: "#E2E8F0",
+    ...typography.pillText,
+    fontSize: 12,
+    color: editorial.paper,
   },
   button: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: COLORS.primary,
+    backgroundColor: editorial.cyan,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: COLORS.primary,
+    shadowColor: editorial.cyan,
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 6,

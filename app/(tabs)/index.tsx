@@ -31,16 +31,18 @@ if (IS_MAPBOX_TOKEN_VALID) {
   Mapbox.setAccessToken(MAPBOX_TOKEN);
 }
 
+// Editorial reskin — local palette re-pointed onto the warm "paper" system.
+// Keys preserved so every COLORS.* reference in this screen restyles in place.
 const COLORS = {
-  primary: "#26C6DA",
-  accent: "#FDD835",
-  white: "#FFFFFF",
-  gray: "#90A4AE",
-  dark: "#006064",
-  green: "#4CAF50",
-  black: "#000000",
-  background: "#F5FAFA",
-  overlay: "rgba(0, 0, 0, 0.5)",
+  primary: "#26C6DA",   // cyan
+  accent: "#F2C744",    // sun (dialed-down ochre)
+  white: "#FAF7EF",     // ivory card surface
+  gray: "#8B989C",      // ink-4
+  dark: "#003D40",      // teal
+  green: "#5B8F5B",     // leaf
+  black: "#0B1A1F",     // ink
+  background: "#F1EDE4",// paper
+  overlay: "rgba(11,26,31,0.32)",
 };
 
 type SearchStatus = 'idle' | 'searching' | 'waiting' | 'matched';
@@ -937,7 +939,7 @@ export default function MapScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        styleURL={isDark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street}
+        styleURL={isDark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Light}
         logoEnabled={false}
         attributionEnabled={true}
         onDidFinishLoadingMap={centerToUserLocation}
@@ -994,11 +996,11 @@ export default function MapScreen() {
           >
             <LineLayer
               id="routeLineCasing"
-              style={{ lineColor: "#fff", lineWidth: 8, lineJoin: "round", lineCap: "round", lineOpacity: 0.6 }}
+              style={{ lineColor: "#FAF7EF", lineWidth: 8, lineJoin: "round", lineCap: "round", lineOpacity: 0.55 }}
             />
             <LineLayer
               id="routeLine"
-              style={{ lineColor: COLORS.primary, lineWidth: 5, lineJoin: "round", lineCap: "round" }}
+              style={{ lineColor: COLORS.dark, lineWidth: 4, lineJoin: "round", lineCap: "round" }}
             />
           </ShapeSource>
         )}
@@ -1022,7 +1024,7 @@ export default function MapScreen() {
         style={[styles.mapMask, { opacity: mapMaskOpacity }]}
       >
         <LinearGradient
-          colors={["#09E0E8", "#26C6DA"]}
+          colors={["#26C6DA", "#003D40"]}
           style={StyleSheet.absoluteFill}
         />
         <Image
@@ -1313,35 +1315,39 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     backgroundColor: COLORS.white,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     shadowColor: COLORS.black,
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowOpacity: 0.12,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 12 },
     elevation: 8,
   },
   activeTripTitle: {
-    fontWeight: "bold",
-    fontSize: 16,
-    color: COLORS.dark,
+    fontFamily: "InstrumentSerif",
+    fontSize: 21,
+    color: COLORS.black,
   },
   activeTripSubtitle: {
     color: COLORS.gray,
     marginTop: 4,
-    fontSize: 14,
+    fontSize: 13,
   },
   changeBtn: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
+    backgroundColor: COLORS.black,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 999,
   },
   changeBtnText: {
-    color: COLORS.white,
-    fontWeight: "600",
+    color: "#FAF7EF",
+    fontFamily: "JetBrainsMono",
+    fontSize: 11,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
   },
   // ===== DAILY COMMUTE INTENT PILL =====
   intentPill: {
@@ -1352,12 +1358,13 @@ const styles = StyleSheet.create({
     right: 16,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    shadowColor: "#0B1A1F",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 6,
     gap: 6,
   },
@@ -1381,15 +1388,15 @@ const styles = StyleSheet.create({
     right: 16,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 22,
     borderWidth: 1,
     gap: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: "#0B1A1F",
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
     elevation: 4,
   },
   emptyStateIcon: {
