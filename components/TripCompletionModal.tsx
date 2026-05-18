@@ -11,16 +11,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Trophy, Leaf, X, Zap, TrendingUp } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
+// Editorial reskin — brand + paper-ink palette.
 const COLORS = {
-  primary: "#26C6DA",
-  accent: "#FDD835",
-  dark: "#006064",
-  white: "#FFFFFF",
-  green: "#4CAF50",
-  black: "#000000",
+  primary: "#26C6DA",   // cyan
+  accent: "#F2C744",    // sun
+  dark: "#003D40",      // teal
+  white: "#FAF7EF",     // ivory
+  green: "#5B8F5B",     // leaf
+  black: "#0B1A1F",     // ink
   whiteTransparent15: "rgba(255, 255, 255, 0.15)",
   whiteTransparent20: "rgba(255, 255, 255, 0.2)",
-  blackTransparent70: "rgba(0, 0, 0, 0.7)",
+  blackTransparent70: "rgba(11, 26, 31, 0.7)",
 };
 
 interface TripCompletionModalProps {
@@ -294,8 +295,8 @@ const styles = StyleSheet.create({
   
   // ===== TITLE & TEXT =====
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
+    fontFamily: "InstrumentSerif",
+    fontSize: 40,
     color: COLORS.white,
     marginBottom: 8,
     textAlign: "center",
@@ -333,8 +334,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statValue: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontFamily: "InstrumentSerif",
+    fontSize: 34,
     color: COLORS.white,
     marginBottom: 4,
   },

@@ -57,16 +57,18 @@ if (IS_MAPBOX_TOKEN_VALID) {
   Mapbox.setAccessToken(MAPBOX_TOKEN);
 }
 
+// Editorial reskin — active ride uses the brand + paper-ink system.
+// `white` kept true-white so glass overlays stay legible over the night map.
 const COLORS = {
-  primary: "#26C6DA",
-  accent: "#FDE047",
-  dark: "#0F172A",
+  primary: "#26C6DA",   // cyan
+  accent: "#F2C744",    // sun
+  dark: "#0B1A1F",      // ink
   white: "#FFFFFF",
-  gray50: "#F8FAFC",
-  gray200: "#E2E8F0",
-  gray400: "#94A3B8",
-  gray700: "#334155",
-  red: "#EF4444",
+  gray50: "#F1EDE4",    // paper
+  gray200: "#E8E3D7",   // paper-2
+  gray400: "#8B989C",   // ink-4
+  gray700: "#5A6A6F",   // ink-3
+  red: "#C4623F",       // clay
   blue: "#3B82F6",
 };
 
@@ -519,7 +521,7 @@ export default function TripScreen() {
         <MapView
           ref={mapRef}
           style={styles.map}
-          styleURL={Mapbox.StyleURL.Street}
+          styleURL={Mapbox.StyleURL.Dark}
           logoEnabled={false}
           attributionEnabled={true}
         >
@@ -935,15 +937,18 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   distanceBadgeText: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontFamily: "InstrumentSerif",
+    fontSize: 24,
     color: COLORS.primary,
   },
   distanceBadgeLabel: {
-    fontSize: 11,
+    fontFamily: "JetBrainsMono",
+    fontSize: 9.5,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
     color: COLORS.gray400,
     textAlign: "center",
-    marginTop: 2,
+    marginTop: 3,
   },
 
   // Dashboard — absolute overlay from bottom (Google Maps / Uber style)
@@ -997,8 +1002,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   modeLabel: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontFamily: "InstrumentSerif",
+    fontSize: 21,
     color: COLORS.dark,
     marginBottom: 2,
   },
@@ -1032,8 +1037,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   routeLabel: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "JetBrainsMono",
+    fontSize: 9.5,
+    letterSpacing: 0.8,
     color: COLORS.gray400,
     textTransform: "uppercase",
     marginBottom: 4,
