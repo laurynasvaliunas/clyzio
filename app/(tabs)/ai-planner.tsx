@@ -41,19 +41,20 @@ import CarpoolMatchModal from "../../components/CarpoolMatchModal";
 
 // ─── Brand Colors ─────────────────────────────────────────────────────────────
 
+// Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#00ACC1",
-  accent: "#FDD835",
-  dark: "#006064",
-  light: "#E0F7FA",
-  background: "#F5FAFA",
-  white: "#FFFFFF",
-  gray: "#90A4AE",
-  grayLight: "#F1F5F9",
-  green: "#4CAF50",
-  orange: "#FF9800",
-  red: "#EF4444",
+  primary: "#26C6DA",   // cyan
+  primaryDark: "#00565A",// teal-2
+  accent: "#F2C744",    // sun
+  dark: "#003D40",      // teal
+  light: "#EAF6F8",     // cyan-fog
+  background: "#F1EDE4",// paper
+  white: "#FAF7EF",     // ivory
+  gray: "#8B989C",      // ink-4
+  grayLight: "#E8E3D7", // paper-2
+  green: "#5B8F5B",     // leaf
+  orange: "#C4623F",    // clay
+  red: "#C4623F",       // clay
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -872,12 +873,20 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
-  headerTitle: { fontSize: 28, fontWeight: "700", color: COLORS.dark },
+  headerTitle: {
+    fontFamily: "InstrumentSerif",
+    fontSize: 30,
+    lineHeight: 32,
+    letterSpacing: -0.4,
+    color: "#0B1A1F",
+  },
   refreshBtn: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: 999,
     backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: "rgba(11,26,31,0.10)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -947,15 +956,27 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 16,
   },
-  insightText: { fontSize: 16, fontWeight: "600", color: COLORS.white, lineHeight: 24, marginBottom: 16 },
+  insightText: {
+    fontFamily: "InstrumentSerif",
+    fontSize: 21,
+    color: COLORS.white,
+    lineHeight: 27,
+    marginBottom: 16,
+  },
   savingPill: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 50,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
-  savingPillText: { fontSize: 13, fontWeight: "700", color: COLORS.white },
+  savingPillText: {
+    fontFamily: "JetBrainsMono",
+    fontSize: 11,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: COLORS.white,
+  },
 
   // Skeleton
   skeletonCard: {
@@ -974,12 +995,13 @@ const styles = StyleSheet.create({
   // Cards
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 20,
+    borderRadius: 26,
     padding: 20,
     marginBottom: 12,
-    shadowColor: "#000",
+    shadowColor: "#0B1A1F",
     shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
   topCard: {
@@ -1006,7 +1028,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cardHeaderText: { flex: 1 },
-  modeName: { fontSize: 16, fontWeight: "bold" },
+  modeName: { fontFamily: "InstrumentSerif", fontSize: 21, letterSpacing: -0.2 },
   difficultyPill: {
     alignSelf: "flex-start",
     paddingHorizontal: 8,
@@ -1036,8 +1058,15 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   stat: { alignItems: "center", flex: 1 },
-  statValue: { fontSize: 15, fontWeight: "bold" },
-  statLabel: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
+  statValue: { fontFamily: "InstrumentSerif", fontSize: 19, letterSpacing: -0.3 },
+  statLabel: {
+    fontFamily: "JetBrainsMono",
+    fontSize: 9.5,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: COLORS.gray,
+    marginTop: 4,
+  },
   statDivider: {
     width: 1,
     backgroundColor: "rgba(255,255,255,0.3)",
@@ -1057,22 +1086,34 @@ const styles = StyleSheet.create({
   ctaButtonTop: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.white,
-    borderRadius: 28,
-    paddingVertical: 14,
+    backgroundColor: "#26C6DA",
+    borderRadius: 999,
+    paddingVertical: 15,
     marginTop: 12,
   },
-  ctaButtonTopText: { fontSize: 15, fontWeight: "700", color: COLORS.primary },
+  ctaButtonTopText: {
+    fontFamily: "JetBrainsMono",
+    fontSize: 12,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: "#0B1A1F",
+  },
   ctaButton: {
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 28,
-    paddingVertical: 14,
+    borderRadius: 999,
+    paddingVertical: 15,
     marginTop: 12,
     overflow: "hidden",
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#0B1A1F",
   },
-  ctaButtonText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
+  ctaButtonText: {
+    fontFamily: "JetBrainsMono",
+    fontSize: 12,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: "#FAF7EF",
+  },
 
   // Local mode cards
   localModeCard: {
