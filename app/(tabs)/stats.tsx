@@ -38,19 +38,20 @@ import CostSavingsCard from "../../components/CostSavingsCard";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
 
+// Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#00ACC1",
-  accent: "#FDD835",
-  accentDark: "#F9A825",
-  dark: "#006064",
-  light: "#E0F7FA",
-  background: "#F5FAFA",
-  white: "#FFFFFF",
-  gray: "#90A4AE",
-  green: "#4CAF50",
-  black: "#000000",
-  blackOverlay: "rgba(0, 0, 0, 0.5)",
+  primary: "#26C6DA",   // cyan
+  primaryDark: "#00565A",// teal-2
+  accent: "#F2C744",    // sun
+  accentDark: "#C4623F",// clay
+  dark: "#003D40",      // teal
+  light: "#EAF6F8",     // cyan-fog
+  background: "#F1EDE4",// paper
+  white: "#FAF7EF",     // ivory
+  gray: "#8B989C",      // ink-4
+  green: "#5B8F5B",     // leaf
+  black: "#0B1A1F",     // ink
+  blackOverlay: "rgba(11, 26, 31, 0.5)",
   whiteTransparent10: "rgba(255, 255, 255, 0.1)",
   whiteTransparent20: "rgba(255, 255, 255, 0.2)",
   whiteTransparent30: "rgba(255, 255, 255, 0.3)",
@@ -951,7 +952,7 @@ const styles = StyleSheet.create({
   },
   levelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
   levelBadge: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: COLORS.accent + "20", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  levelNumber: { fontSize: 16, fontWeight: "bold", color: COLORS.accentDark },
+  levelNumber: { fontFamily: "InstrumentSerif", fontSize: 20, color: COLORS.accentDark },
   levelTitle: { fontSize: 16, fontWeight: "600", color: COLORS.dark },
   progressBarContainer: { marginBottom: 12 },
   progressBarBg: { height: 12, backgroundColor: COLORS.light, borderRadius: 6, overflow: "hidden" },
@@ -964,7 +965,7 @@ const styles = StyleSheet.create({
   // ===== BADGES SECTION =====
   badgesSection: { marginHorizontal: 16, marginTop: 20 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: "bold", color: COLORS.dark },
+  sectionTitle: { fontFamily: "InstrumentSerif", fontSize: 24, color: COLORS.dark },
   badgesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   badgeItem: { width: "30%", alignItems: "center", opacity: 0.5 },
   badgeItemUnlocked: { opacity: 1 },
@@ -978,8 +979,20 @@ const styles = StyleSheet.create({
   heroTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   heroMetric: { flex: 1 },
   heroLabel: { fontSize: 14, color: COLORS.white, opacity: 0.9 },
-  heroValue: { fontSize: 48, fontWeight: "bold", color: COLORS.white, marginVertical: 4 },
-  heroUnit: { fontSize: 16, color: COLORS.white, opacity: 0.8 },
+  heroValue: {
+    fontFamily: "InstrumentSerif",
+    fontSize: 96,
+    lineHeight: 96,
+    letterSpacing: -3,
+    color: COLORS.white,
+    marginVertical: 4,
+  },
+  heroUnit: {
+    fontFamily: "InstrumentSerif-Italic",
+    fontSize: 24,
+    color: COLORS.white,
+    opacity: 0.85,
+  },
   treeContainer: { marginTop: -10 },
   treesProgress: { marginTop: 20, backgroundColor: COLORS.whiteTransparent20, borderRadius: 16, padding: 16 },
   treesInfo: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },

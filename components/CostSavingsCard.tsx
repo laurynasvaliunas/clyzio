@@ -2,14 +2,15 @@ import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { TrendingDown, Fuel, ParkingCircle, Leaf } from "lucide-react-native";
 
+// Editorial reskin — brand + paper-ink palette.
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#00ACC1",
-  dark: "#006064",
-  white: "#FFFFFF",
-  gray: "#90A4AE",
-  green: "#4CAF50",
-  accent: "#FDD835",
+  primary: "#26C6DA",   // cyan
+  primaryDark: "#00565A",// teal-2
+  dark: "#003D40",      // teal
+  white: "#FAF7EF",     // ivory
+  gray: "#8B989C",      // ink-4
+  green: "#5B8F5B",     // leaf
+  accent: "#F2C744",    // sun
 };
 
 interface CostSavingsCardProps {
@@ -119,8 +120,9 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   totalValue: {
-    fontSize: 40,
-    fontWeight: "900",
+    fontFamily: "InstrumentSerif",
+    fontSize: 52,
+    letterSpacing: -1.5,
     color: COLORS.green,
   },
   totalLabel: {
