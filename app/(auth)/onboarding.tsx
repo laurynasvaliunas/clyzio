@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Building2, Users, Check, ChevronRight } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
@@ -40,6 +40,8 @@ interface Department {
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  // Referral code arrives via clyzio://invite/<code> → /(auth)/onboarding?ref=<code>
+  const { ref } = useLocalSearchParams<{ ref?: string }>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [company, setCompany] = useState<Company | null>(null);
@@ -66,6 +68,20 @@ export default function OnboardingScreen() {
       if (!user) {
         router.replace("/(auth)/login");
         return;
+      }
+
+      // Capture the referral code (if the user arrived via an invite link)
+      // so the server-side trigger can award the referrer on this user's
+      // first completed trip. Non-fatal — never block onboarding on this.
+      if (typeof ref === "string" && ref.trim()) {
+        try {
+          await supabase
+            .from("profiles")
+            .update({ pending_referral_code: ref.trim().toUpperCase() })
+            .eq("id", user.id);
+        } catch {
+          /* ignore — referral capture is best-effort */
+        }
       }
 
       // Get user's profile with company info
