@@ -4,9 +4,10 @@ import { BlurView } from "expo-blur";
 import { Map, Calendar, BarChart3, User, Sparkles } from "lucide-react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 
+// Editorial reskin — tab tints on the paper-ink system.
 const COLORS = {
-  primary: "#26C6DA",
-  gray: "#90A4AE",
+  primary: "#003D40",  // teal (active tab ink)
+  gray: "#8B989C",     // ink-4 (inactive)
 };
 
 export default function TabsLayout() {
@@ -29,7 +30,7 @@ export default function TabsLayout() {
           paddingTop: 12,
         },
         tabBarBackground: () => (
-          <View style={{ flex: 1, backgroundColor: isDark ? "rgba(0,0,0,0.92)" : "rgba(255,255,255,0.92)" }}>
+          <View style={{ flex: 1, backgroundColor: isDark ? "rgba(14,31,35,0.92)" : "rgba(241,237,228,0.92)" }}>
             <BlurView
               intensity={60}
               tint={isDark ? "dark" : "light"}
@@ -38,8 +39,10 @@ export default function TabsLayout() {
           </View>
         ),
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
+          fontFamily: "JetBrainsMono",
+          fontSize: 9.5,
+          letterSpacing: 0.6,
+          textTransform: "uppercase",
         },
       }}
     >

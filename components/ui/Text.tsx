@@ -40,9 +40,9 @@ function toneColor(
     case 'secondary': return p.textSecondary;
     case 'muted': return p.textMuted;
     case 'brand': return '#26C6DA';
-    case 'danger': return '#EF4444';
-    case 'success': return '#4CAF50';
-    case 'inverse': return isDark ? '#0F172A' : '#FFFFFF';
+    case 'danger': return '#C4623F';
+    case 'success': return '#5B8F5B';
+    case 'inverse': return isDark ? '#0B1A1F' : '#FAF7EF';
     default: return p.text;
   }
 }
