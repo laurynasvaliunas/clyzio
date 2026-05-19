@@ -31,11 +31,14 @@ import {
   ChevronDown,
   Fuel,
   Check,
+  ShieldCheck,
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import AddressInput from "../../components/AddressInput";
 import { useToast } from "../../contexts/ToastContext";
-import { getFuelBaseCO2 } from "../../lib/commuteUtils";
+import { deriveProfileCarFields, getPrimaryVehicle } from "../../lib/commuteUtils";
+import { Vehicle, parseVehicles, makeVehicle } from "../../lib/vehicles";
+import GarageEditor from "../../components/GarageEditor";
 
 // Brand Colors
 const COLORS = {
@@ -79,6 +82,9 @@ interface ProfileData {
   work_lat: number | null;
   work_long: number | null;
   is_public: boolean;
+  share_pickup_address: boolean;
+  vehicles: Vehicle[];
+  primary_vehicle_id: string | null;
 }
 
 export default function EditProfileScreen() {
@@ -88,7 +94,6 @@ export default function EditProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [showFuelPicker, setShowFuelPicker] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
     last_name: "",
@@ -107,6 +112,9 @@ export default function EditProfileScreen() {
     work_lat: null,
     work_long: null,
     is_public: false,
+    share_pickup_address: true,
+    vehicles: [],
+    primary_vehicle_id: null,
   });
 
   useEffect(() => {
@@ -124,11 +132,31 @@ export default function EditProfileScreen() {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("first_name, last_name, phone, department, avatar_url, car_make, car_model, car_color, car_plate, car_fuel_type, home_address, home_lat, home_long, work_address, work_lat, work_long, is_public")
+        .select("first_name, last_name, phone, department, avatar_url, car_make, car_model, car_color, car_plate, car_fuel_type, home_address, home_lat, home_long, work_address, work_lat, work_long, is_public, share_pickup_address, vehicles, primary_vehicle_id")
         .eq("id", user.id)
         .single();
 
       if (data) {
+        // Garage: prefer stored vehicles; otherwise synthesize one from the
+        // legacy flat car_* columns so existing users see their car.
+        let vehicles = parseVehicles((data as any).vehicles);
+        let primaryId: string | null = (data as any).primary_vehicle_id ?? null;
+        if (vehicles.length === 0 && (data.car_make || data.car_model)) {
+          const legacy: Vehicle = {
+            ...makeVehicle("car"),
+            make: data.car_make || "",
+            model: data.car_model || "",
+            color: data.car_color || "",
+            plate: data.car_plate || "",
+            fuel_type: data.car_fuel_type || "petrol",
+          };
+          vehicles = [legacy];
+          primaryId = legacy.id;
+        }
+        if (vehicles.length > 0 && !vehicles.some((v) => v.id === primaryId)) {
+          primaryId = vehicles[0].id;
+        }
+
         setProfile({
           first_name: data.first_name || "",
           last_name: data.last_name || "",
@@ -147,6 +175,9 @@ export default function EditProfileScreen() {
           work_lat: data.work_lat ?? null,
           work_long: data.work_long ?? null,
           is_public: data.is_public ?? false,
+          share_pickup_address: (data as any).share_pickup_address ?? true,
+          vehicles,
+          primary_vehicle_id: primaryId,
         });
       }
     } catch (error) {
@@ -244,6 +275,12 @@ export default function EditProfileScreen() {
     setSaving(true);
 
     try {
+      // Keep the legacy flat car_* / baseline_co2 columns synced from the
+      // primary garage vehicle so TripPlanner / useTripStore / ai-planner /
+      // the ai-commute-planner edge fn keep working with no changes.
+      const primary = getPrimaryVehicle(profile.vehicles, profile.primary_vehicle_id);
+      const derived = deriveProfileCarFields(primary);
+
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -251,13 +288,14 @@ export default function EditProfileScreen() {
           last_name: profile.last_name,
           phone: profile.phone,
           department: profile.department,
-          car_make: profile.car_make,
-          car_model: profile.car_model,
-          car_color: profile.car_color,
-          car_plate: profile.car_plate,
-          car_fuel_type: profile.car_fuel_type || null,
-          // Auto-derive baseline_co2 from fuel type so AI planner and trip savings use real numbers
-          baseline_co2: getFuelBaseCO2(profile.car_fuel_type || null),
+          vehicles: profile.vehicles,
+          primary_vehicle_id: primary?.id ?? null,
+          car_make: derived.car_make,
+          car_model: derived.car_model,
+          car_color: derived.car_color,
+          car_plate: derived.car_plate,
+          car_fuel_type: derived.car_fuel_type,
+          baseline_co2: derived.baseline_co2,
           home_address: profile.home_address || null,
           home_lat: profile.home_lat,
           home_long: profile.home_long,
@@ -265,6 +303,7 @@ export default function EditProfileScreen() {
           work_lat: profile.work_lat,
           work_long: profile.work_long,
           is_public: profile.is_public,
+          share_pickup_address: profile.share_pickup_address,
         })
         .eq("id", userId);
 
@@ -385,129 +424,22 @@ export default function EditProfileScreen() {
           </View>
         </View>
 
-        {/* Vehicle Details */}
+        {/* My Garage */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Car size={18} color={COLORS.primary} />
-            <Text style={styles.sectionTitle}>My Green Vehicle</Text>
+            <Text style={styles.sectionTitle}>My Garage</Text>
           </View>
-          <Text style={styles.sectionSubtitle}>For drivers offering rides</Text>
+          <Text style={styles.sectionSubtitle}>Cars, motorbikes, scooters, bikes — add any you use</Text>
 
-          {/* Brand + Model */}
-          <View style={styles.inputRow}>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>Brand</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. Toyota"
-                placeholderTextColor={COLORS.gray}
-                value={profile.car_make}
-                onChangeText={(v) => updateField("car_make", v)}
-              />
-            </View>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>Model</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. Prius"
-                placeholderTextColor={COLORS.gray}
-                value={profile.car_model}
-                onChangeText={(v) => updateField("car_model", v)}
-              />
-            </View>
-          </View>
-
-          {/* Fuel Type */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Fuel Type</Text>
-            <TouchableOpacity
-              style={styles.inputWithIcon}
-              onPress={() => setShowFuelPicker(true)}
-              activeOpacity={0.7}
-            >
-              <Fuel size={18} color={profile.car_fuel_type ? COLORS.primary : COLORS.gray} />
-              <Text style={[styles.inputInner, { flex: 1, paddingTop: 0, paddingBottom: 0, lineHeight: 20, color: profile.car_fuel_type ? COLORS.dark : COLORS.gray }]}>
-                {profile.car_fuel_type
-                  ? `${FUEL_TYPES.find(f => f.id === profile.car_fuel_type)?.emoji ?? ""} ${FUEL_TYPES.find(f => f.id === profile.car_fuel_type)?.label ?? profile.car_fuel_type}`
-                  : "Select fuel type"}
-              </Text>
-              <ChevronDown size={16} color={COLORS.gray} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Color + Plate */}
-          <View style={styles.inputRow}>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>Color</Text>
-              <View style={styles.inputWithIcon}>
-                <Palette size={18} color={COLORS.gray} />
-                <TextInput
-                  style={styles.inputInner}
-                  placeholder=""
-                  placeholderTextColor={COLORS.gray}
-                  value={profile.car_color}
-                  onChangeText={(v) => updateField("car_color", v)}
-                />
-              </View>
-            </View>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
-              <Text style={styles.inputLabel}>Plate</Text>
-              <View style={styles.inputWithIcon}>
-                <CreditCard size={18} color={COLORS.gray} />
-                <TextInput
-                  style={styles.inputInner}
-                  placeholder=""
-                  placeholderTextColor={COLORS.gray}
-                  autoCapitalize="characters"
-                  value={profile.car_plate}
-                  onChangeText={(v) => updateField("car_plate", v)}
-                />
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Fuel Type Picker Modal */}
-        <Modal
-          visible={showFuelPicker}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowFuelPicker(false)}
-        >
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={() => setShowFuelPicker(false)}
+          <GarageEditor
+            vehicles={profile.vehicles}
+            primaryVehicleId={profile.primary_vehicle_id}
+            onChange={(vehicles, primaryVehicleId) =>
+              setProfile((prev) => ({ ...prev, vehicles, primary_vehicle_id: primaryVehicleId }))
+            }
           />
-          <View style={styles.fuelSheet}>
-            <View style={styles.fuelSheetHandle} />
-            <Text style={styles.fuelSheetTitle}>Select Fuel Type</Text>
-            <FlatList
-              data={FUEL_TYPES}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => {
-                const selected = profile.car_fuel_type === item.id;
-                return (
-                  <TouchableOpacity
-                    style={[styles.fuelOption, selected && styles.fuelOptionSelected]}
-                    onPress={() => {
-                      updateField("car_fuel_type", item.id);
-                      setShowFuelPicker(false);
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={styles.fuelEmoji}>{item.emoji}</Text>
-                    <Text style={[styles.fuelLabel, selected && { color: COLORS.primary, fontWeight: "700" }]}>
-                      {item.label}
-                    </Text>
-                    {selected && <Check size={18} color={COLORS.primary} />}
-                  </TouchableOpacity>
-                );
-              }}
-              ItemSeparatorComponent={() => <View style={styles.fuelSeparator} />}
-            />
-          </View>
-        </Modal>
+        </View>
 
         {/* Commute Details */}
         <View style={styles.section}>
@@ -516,7 +448,7 @@ export default function EditProfileScreen() {
             <Text style={styles.sectionTitle}>Commute Details</Text>
           </View>
           <Text style={styles.sectionSubtitle}>
-            Used by your Personal Commute Coach to suggest personalised green routes
+            Used to calculate smarter, lower-CO₂ routes for you.
           </Text>
 
           <Text style={[styles.inputLabel, { marginBottom: 8 }]}>Home Address</Text>
@@ -546,6 +478,11 @@ export default function EditProfileScreen() {
               }
               showClearButton
             />
+          </View>
+
+          <View style={styles.assuranceRow}>
+            <ShieldCheck size={14} color={COLORS.primary} />
+            <Text style={styles.toggleSub}>Your location data stays secure and private</Text>
           </View>
 
           <Text style={[styles.inputLabel, { marginBottom: 8 }]}>Work Address</Text>
@@ -591,6 +528,18 @@ export default function EditProfileScreen() {
               onValueChange={(val) => setProfile((prev) => ({ ...prev, is_public: val }))}
               trackColor={{ false: COLORS.grayLight, true: COLORS.primary + "80" }}
               thumbColor={profile.is_public ? COLORS.primary : COLORS.gray}
+            />
+          </View>
+          <View style={styles.toggleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.toggleLabel}>Share pickup address with drivers</Text>
+              <Text style={styles.toggleSub}>Default for new ride requests — you can change it per trip</Text>
+            </View>
+            <Switch
+              value={profile.share_pickup_address}
+              onValueChange={(val) => setProfile((prev) => ({ ...prev, share_pickup_address: val }))}
+              trackColor={{ false: COLORS.grayLight, true: COLORS.primary + "80" }}
+              thumbColor={profile.share_pickup_address ? COLORS.primary : COLORS.gray}
             />
           </View>
         </View>
@@ -714,6 +663,13 @@ const styles = StyleSheet.create({
   },
   toggleLabel: { fontSize: 15, fontWeight: "600", color: COLORS.dark, marginBottom: 2 },
   toggleSub: { fontSize: 12, color: COLORS.gray, lineHeight: 16 },
+  assuranceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 16,
+  },
 
   // ── Fuel picker modal ──────────────────────────────────────────────────────
   modalBackdrop: {

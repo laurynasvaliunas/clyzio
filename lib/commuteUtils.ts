@@ -43,6 +43,75 @@ export function fuelCO2Label(fuelType?: string | null): string {
   return `${factor} kg CO₂/km`;
 }
 
+// ─── Vehicle (garage) CO₂ ─────────────────────────────────────────────────────
+import type { Vehicle } from "./vehicles";
+
+// Non-car vehicle factors (kg CO₂e/km).
+export const MOTO_CO2 = 0.103;     // DEFRA 2024 — average motorcycle
+export const ESCOOTER_CO2 = 0.023; // matches the app's e-bike/scooter mode
+
+/**
+ * CO₂ factor (kg/km) for a specific garage vehicle.
+ * car/motorcycle → fuel-based; scooter → e-scooter; bicycle → 0.
+ */
+export function getVehicleCO2(v?: Vehicle | null): number {
+  if (!v) return FUEL_CO2_FACTORS.petrol;
+  switch (v.type) {
+    case "car":
+      return getFuelBaseCO2(v.fuel_type);
+    case "motorcycle":
+      return MOTO_CO2;
+    case "scooter":
+      return ESCOOTER_CO2;
+    case "bicycle":
+      return 0;
+    default:
+      return FUEL_CO2_FACTORS.petrol;
+  }
+}
+
+/** Resolve the primary vehicle (falls back to first, then null). */
+export function getPrimaryVehicle(
+  vehicles: Vehicle[] | undefined | null,
+  primaryId?: string | null,
+): Vehicle | null {
+  if (!vehicles || vehicles.length === 0) return null;
+  return vehicles.find((v) => v.id === primaryId) ?? vehicles[0];
+}
+
+/**
+ * Flat profiles.car_* + baseline_co2 derived from the primary vehicle so the
+ * legacy CO₂ pipeline keeps working unchanged. Non-car primary → clear car_*
+ * and keep the conservative petrol baseline (existing behaviour).
+ */
+export function deriveProfileCarFields(primary: Vehicle | null): {
+  car_make: string | null;
+  car_model: string | null;
+  car_color: string | null;
+  car_plate: string | null;
+  car_fuel_type: string | null;
+  baseline_co2: number;
+} {
+  if (primary && primary.type === "car") {
+    return {
+      car_make: primary.make || null,
+      car_model: primary.model || null,
+      car_color: primary.color || null,
+      car_plate: primary.plate || null,
+      car_fuel_type: primary.fuel_type || null,
+      baseline_co2: getFuelBaseCO2(primary.fuel_type),
+    };
+  }
+  return {
+    car_make: null,
+    car_model: null,
+    car_color: null,
+    car_plate: null,
+    car_fuel_type: null,
+    baseline_co2: FUEL_CO2_FACTORS.petrol,
+  };
+}
+
 export interface LocalMode {
   id: string;
   label: string;
