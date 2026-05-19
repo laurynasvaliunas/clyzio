@@ -43,15 +43,16 @@ import { computeLocalModes, getFuelBaseCO2 } from "../lib/commuteUtils";
 import { MAPBOX_TOKEN } from "../lib/config";
 const { height } = Dimensions.get("window");
 
+// Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",
-  white: "#FFFFFF",
-  gray: "#90A4AE",
-  lightGray: "#F5F7FA",
-  dark: "#006064",
-  accent: "#FDD835",
-  green: "#4CAF50",
-  red: "#EF4444",
+  primary: "#26C6DA",   // cyan
+  white: "#FAF7EF",     // ivory
+  gray: "#8B989C",      // ink-4
+  lightGray: "#E8E3D7", // paper-2
+  dark: "#003D40",      // teal
+  accent: "#F2C744",    // sun
+  green: "#5B8F5B",     // leaf
+  red: "#C4623F",       // clay
 };
 
 // Base transport modes — "my_car" co2 is patched at runtime from user's fuel type
@@ -891,8 +892,8 @@ const styles = StyleSheet.create({
     color: COLORS.dark,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontFamily: "InstrumentSerif",
+    fontSize: 26,
     flex: 1,
     textAlign: 'center',
   },

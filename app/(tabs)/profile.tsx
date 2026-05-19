@@ -19,18 +19,19 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
 import { useToast } from "../../contexts/ToastContext";
 
+// Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#00ACC1",
-  accent: "#FDD835",
-  dark: "#006064",
-  light: "#E0F7FA",
-  background: "#F5FAFA",
-  white: "#FFFFFF",
-  gray: "#90A4AE",
-  black: "#000000",
-  red: "#EF4444",
-  redLight: "#FEE2E2",
+  primary: "#26C6DA",   // cyan
+  primaryDark: "#00565A",// teal-2
+  accent: "#F2C744",    // sun
+  dark: "#003D40",      // teal
+  light: "#EAF6F8",     // cyan-fog
+  background: "#F1EDE4",// paper
+  white: "#FAF7EF",     // ivory
+  gray: "#8B989C",      // ink-4
+  black: "#0B1A1F",     // ink
+  red: "#C4623F",       // clay
+  redLight: "rgba(196,98,63,0.12)",
   transparent: "transparent",
 };
 
@@ -626,7 +627,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
   },
-  pageTitle: { fontSize: 28, fontWeight: "bold", color: COLORS.dark },
+  pageTitle: { fontFamily: "InstrumentSerif", fontSize: 40, letterSpacing: -0.8, color: COLORS.dark },
   settingsButton: {
     width: 44,
     height: 44,
@@ -677,7 +678,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   userInfo: { flex: 1, marginLeft: 14 },
-  userName: { fontSize: 17, fontWeight: "bold", color: COLORS.dark },
+  userName: { fontFamily: "InstrumentSerif", fontSize: 22, color: COLORS.dark },
   userEmail: { fontSize: 13, color: COLORS.gray, marginTop: 2 },
   
   // ===== SCORE CARD =====
@@ -694,14 +695,14 @@ const styles = StyleSheet.create({
   },
   scoreCard: { borderRadius: 24, padding: 24, alignItems: "center" },
   scoreLabel: { fontSize: 14, color: COLORS.white, opacity: 0.9, marginTop: 8 },
-  scoreValue: { fontSize: 56, fontWeight: "bold", color: COLORS.white, marginVertical: 4 },
+  scoreValue: { fontFamily: "InstrumentSerif", fontSize: 72, letterSpacing: -2, color: COLORS.white, marginVertical: 4 },
   scoreUnit: { fontSize: 14, color: COLORS.white, opacity: 0.8 },
   levelBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginTop: 12 },
   levelText: { color: COLORS.dark, fontWeight: "bold", fontSize: 14 },
   
   // ===== COMMUTE SECTION =====
   section: { paddingHorizontal: 16, marginBottom: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: "bold", color: COLORS.dark },
+  sectionTitle: { fontFamily: "InstrumentSerif", fontSize: 24, color: COLORS.dark },
   sectionSubtitle: { fontSize: 13, color: COLORS.gray, marginTop: 4, marginBottom: 16 },
   modeCardsContainer: { paddingVertical: 8, gap: 12 },
   

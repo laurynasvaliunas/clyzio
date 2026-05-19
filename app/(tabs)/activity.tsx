@@ -36,19 +36,20 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#006064",
-  accent: "#FDD835",
-  dark: "#006064",
-  light: "#E0F7FA",
-  background: "#F5FAFA",
-  white: "#FFFFFF",
-  gray: "#90A4AE",
-  textSecondary: "#546E7A",
-  red: "#EF4444",
-  green: "#4CAF50",
-  black: "#000000",
+  primary: "#26C6DA",   // cyan
+  primaryDark: "#003D40",// teal
+  accent: "#F2C744",    // sun
+  dark: "#003D40",      // teal
+  light: "#EAF6F8",     // cyan-fog
+  background: "#F1EDE4",// paper
+  white: "#FAF7EF",     // ivory
+  gray: "#8B989C",      // ink-4
+  textSecondary: "#5A6A6F", // ink-3
+  red: "#C4623F",       // clay
+  green: "#5B8F5B",     // leaf
+  black: "#0B1A1F",     // ink
 };
 
 interface Ride {
@@ -686,8 +687,9 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   headerTitle: {
-    fontSize: 30,
-    fontWeight: "700",
+    fontFamily: "InstrumentSerif",
+    fontSize: 40,
+    letterSpacing: -0.8,
     color: COLORS.dark
   },
   filterBtn: {
