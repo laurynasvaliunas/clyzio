@@ -32,6 +32,7 @@ interface Ride {
   origin_lat: number;
   origin_long: number;
   origin_address?: string;
+  share_origin_address?: boolean | null;
   dest_lat: number;
   dest_long: number;
   dest_address?: string;
@@ -472,7 +473,16 @@ export default function TripScreen() {
     : "Your Partner";
 
   const isDriver = ride.driver_id === currentUserId;
-  
+
+  // Passenger pickup privacy: hide the exact origin from the DRIVER until the
+  // driver has confirmed (status ≥ accepted). Rider always sees own address.
+  const driverConfirmed = ["accepted", "in_progress", "completed"].includes(ride.status);
+  const hideOrigin =
+    isDriver && ride.share_origin_address === false && !driverConfirmed;
+  const coarsen = (n: number) => Math.round(n * 300) / 300; // ~300 m grid
+  const originLat = hideOrigin ? coarsen(ride.origin_lat) : ride.origin_lat;
+  const originLng = hideOrigin ? coarsen(ride.origin_long) : ride.origin_long;
+
   // Determine if this is a solo trip (both driver_id and rider_id point to the same user, or one is null for solo)
   const isSoloTrip = !ride.driver_id || !partner;
   
@@ -545,7 +555,7 @@ export default function TripScreen() {
               geometry: {
                 type: "LineString",
                 coordinates: [
-                  [ride.origin_long, ride.origin_lat],
+                  [originLng, originLat],
                   ...waypoints.map((wp: any) => [wp.lng, wp.lat]),
                   [ride.dest_long, ride.dest_lat],
                 ],
@@ -560,7 +570,7 @@ export default function TripScreen() {
           </ShapeSource>
 
           {/* Origin Marker */}
-          <PointAnnotation id="origin" coordinate={[ride.origin_long, ride.origin_lat]}>
+          <PointAnnotation id="origin" coordinate={[originLng, originLat]}>
             <View style={[styles.markerDot, { backgroundColor: "#10B981" }]} />
           </PointAnnotation>
 
@@ -637,7 +647,7 @@ export default function TripScreen() {
               <View style={styles.routeContent}>
                 <Text style={styles.routeLabel}>Starting Point</Text>
                 <Text style={styles.routeAddress} numberOfLines={3}>
-                  {ride.origin_address || "Origin"}
+                  {hideOrigin ? "Pickup area" : (ride.origin_address || "Origin")}
                 </Text>
               </View>
             </View>

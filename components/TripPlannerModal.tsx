@@ -13,6 +13,7 @@ import {
   Keyboard,
   ScrollView,
   ActivityIndicator,
+  Switch,
 } from "react-native";
 import {
   Car,
@@ -452,6 +453,8 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         dest_long: destCoords.lng,
         dest_address: destDescription,
         status: "scheduled", // ALL trips start as scheduled
+        // Passenger pickup privacy: only riders gate this; solo/driver always true.
+        share_origin_address: role === "rider" ? sharePickup : true,
         scheduled_at: scheduledDate.toISOString(),
         transport_mode: selectedMode?.id || null,
         transport_label: transportLabel,
@@ -729,6 +732,24 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                     <Text style={styles.riderMessageText}>
                       We will match you with a driver heading your way.
                     </Text>
+                    <View style={styles.sharePickupRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.sharePickupLabel}>
+                          Share my pickup address with the driver
+                        </Text>
+                        <Text style={styles.sharePickupSub}>
+                          {sharePickup
+                            ? "The driver sees your exact pickup point."
+                            : "The driver sees only a pickup area until they accept."}
+                        </Text>
+                      </View>
+                      <Switch
+                        value={sharePickup}
+                        onValueChange={setSharePickup}
+                        trackColor={{ false: COLORS.gray + "55", true: COLORS.primary + "80" }}
+                        thumbColor={sharePickup ? COLORS.primary : COLORS.gray}
+                      />
+                    </View>
                   </View>
                 ) : (
                   <View style={styles.modeListContainer}>
@@ -1055,6 +1076,20 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + "14",
   },
   vehicleChipText: { fontSize: 13, color: COLORS.gray },
+
+  // Rider pickup-address privacy
+  sharePickupRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 18,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.gray + "33",
+    alignSelf: "stretch",
+  },
+  sharePickupLabel: { fontSize: 14, fontWeight: "600", color: COLORS.dark },
+  sharePickupSub: { fontSize: 12, color: COLORS.gray, marginTop: 3, lineHeight: 16 },
 
   // Mode List
   modeItem: {
