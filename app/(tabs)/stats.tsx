@@ -37,6 +37,7 @@ import { supabase } from "../../lib/supabase";
 import CostSavingsCard from "../../components/CostSavingsCard";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
+import { getLevelInfo } from "../../lib/gamification";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
@@ -57,33 +58,6 @@ const COLORS = {
   whiteTransparent30: "rgba(255, 255, 255, 0.3)",
 };
 
-// Level thresholds matching database
-const LEVEL_THRESHOLDS = [
-  { level: 1, min: 0, max: 100 },
-  { level: 2, min: 100, max: 300 },
-  { level: 3, min: 300, max: 600 },
-  { level: 4, min: 600, max: 1000 },
-  { level: 5, min: 1000, max: 1500 },
-  { level: 6, min: 1500, max: 2100 },
-  { level: 7, min: 2100, max: 2800 },
-  { level: 8, min: 2800, max: 3600 },
-  { level: 9, min: 3600, max: 4500 },
-  { level: 10, min: 4500, max: 9999 },
-];
-
-const LEVEL_TITLES = [
-  "Eco Beginner",
-  "Green Starter",
-  "Earth Ally",
-  "Eco Warrior",
-  "Planet Protector",
-  "Green Champion",
-  "Eco Master",
-  "Climate Hero",
-  "Earth Guardian",
-  "Eco Legend",
-];
-
 // Badge definitions
 const BADGES = [
   { id: "first_trip", name: "First Steps", desc: "Complete your first trip", icon: Star, color: "#FDD835" },
@@ -96,24 +70,6 @@ const BADGES = [
 
 const CO2_PER_TREE = 20;
 
-/**
- * Get level information based on XP points
- * @param xp Current XP points
- * @returns Level info including progress and title
- */
-function getLevelInfo(xp: number) {
-  const levelData = LEVEL_THRESHOLDS.find(l => xp >= l.min && xp < l.max) || LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
-  const progress = (xp - levelData.min) / (levelData.max - levelData.min);
-  const xpToNext = levelData.max - xp;
-  return { 
-    level: levelData.level, 
-    progress, 
-    xpToNext, 
-    min: levelData.min, 
-    max: levelData.max, 
-    title: LEVEL_TITLES[levelData.level - 1] 
-  };
-}
 
 /**
  * Get icon component for transport mode
@@ -535,7 +491,11 @@ export default function StatsScreen() {
             </View>
             <Text style={[styles.levelTitle, { color: TC.text }]}>{levelInfo.title}</Text>
           </View>
-          
+
+          <Text style={[styles.levelHint, { color: TC.textSecondary }]}>
+            EVERY 3 TRIPS = A NEW LEVEL
+          </Text>
+
           <View style={styles.progressBarContainer}>
             <View style={styles.progressBarBg}>
               <Animated.View
@@ -561,7 +521,11 @@ export default function StatsScreen() {
           
           <View style={styles.xpRow}>
             <Text style={[styles.xpText, { color: TC.text }]}>{xpPoints} XP</Text>
-            <Text style={[styles.xpToNext, { color: TC.textSecondary }]}>{levelInfo.xpToNext} XP to Level {levelInfo.level + 1}</Text>
+            <Text style={[styles.xpToNext, { color: TC.textSecondary }]}>
+              {levelInfo.atMax
+                ? "Max level reached"
+                : `${levelInfo.tripsToNext} more shared trip${levelInfo.tripsToNext === 1 ? "" : "s"} to Level ${levelInfo.level + 1}`}
+            </Text>
           </View>
         </View>
 
@@ -950,7 +914,8 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
   },
-  levelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
+  levelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  levelHint: { fontFamily: "JetBrainsMono", fontSize: 10, letterSpacing: 1.4, marginBottom: 14 },
   levelBadge: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: COLORS.accent + "20", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   levelNumber: { fontFamily: "InstrumentSerif", fontSize: 20, color: COLORS.accentDark },
   levelTitle: { fontSize: 16, fontWeight: "600", color: COLORS.dark },

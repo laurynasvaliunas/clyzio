@@ -15,6 +15,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
+import { XP_PER_TRIP } from "../../lib/gamification";
 import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserLocation } from "@rnmapbox/maps";
 import * as Location from "expo-location";
 import { MessageCircle, Shield, X, Phone, AlertTriangle, Car, Footprints, Bike, Zap, Bus, Navigation as NavIcon, Circle, MapPin } from "lucide-react-native";
@@ -265,11 +266,9 @@ export default function TripScreen() {
     if (!ride || !currentUserId) return 0;
 
     const completedAt = new Date().toISOString();
-    const distance = haversineDistance(ride.origin_lat, ride.origin_long, ride.dest_lat, ride.dest_long);
-    const baseXP = 100;
-    const distanceBonus = Math.floor(distance * 10);
-    const ecoBonus = (ride.transport_mode === "walking" || ride.transport_mode === "bike") ? 50 : 0;
-    const xpEarned = baseXP + distanceBonus + ecoBonus;
+    // Flat reward: every completed trip is worth the same so progress is
+    // legible ("N more trips to the next level"). See lib/gamification.
+    const xpEarned = XP_PER_TRIP;
     const co2Saved = ride.co2_saved || 0;
 
     if (endTripStatus) {

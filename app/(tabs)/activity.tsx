@@ -29,6 +29,7 @@ import { supabase } from "../../lib/supabase";
 import TripCompletionModal from "../../components/TripCompletionModal";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
+import { XP_PER_TRIP, getLevelInfo } from "../../lib/gamification";
 import { useToast } from "../../contexts/ToastContext";
 
 // Enable LayoutAnimation on Android
@@ -100,11 +101,10 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
  * @param transportMode Type of transport used
  * @returns Total XP earned
  */
-function calculateXP(distance: number, transportMode?: string): number {
-  const baseXP = 100; // Base XP for completing any trip
-  const distanceBonus = Math.floor(distance * 10); // 10 XP per km
-  const ecoBonus = (transportMode === "walking" || transportMode === "bike") ? 50 : 0;
-  return baseXP + distanceBonus + ecoBonus;
+function calculateXP(_distance: number, _transportMode?: string): number {
+  // Flat reward: every completed trip is worth the same so level progress
+  // stays legible ("N more trips to the next level"). See lib/gamification.
+  return XP_PER_TRIP;
 }
 
 /**
@@ -512,8 +512,8 @@ export default function ActivityScreen() {
                   const newXP = oldXP + totalXP;
                   const newCO2 = (profile.total_co2_saved || 0) + co2Saved;
                   const newTripsCount = (profile.trips_completed || 0) + 1;
-                  const oldLevel = Math.floor(oldXP / 1000) + 1;
-                  const newLevel = Math.floor(newXP / 1000) + 1;
+                  const oldLevel = getLevelInfo(oldXP).level;
+                  const newLevel = getLevelInfo(newXP).level;
                   const leveledUp = newLevel > oldLevel;
 
                   await supabase
