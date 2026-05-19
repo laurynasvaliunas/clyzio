@@ -38,6 +38,7 @@ import CostSavingsCard from "../../components/CostSavingsCard";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
 import { getLevelInfo } from "../../lib/gamification";
+import InviteColleagueCard from "../../components/InviteColleagueCard";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
@@ -528,6 +529,9 @@ export default function StatsScreen() {
             </Text>
           </View>
         </View>
+
+        {/* Bring-a-colleague nudge — persistent, right after the level card */}
+        <InviteColleagueCard />
 
         {/* Badges Section */}
         <View style={styles.badgesSection}>

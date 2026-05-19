@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Animated,
+  Share,
 } from "react-native";
 import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserLocation } from "@rnmapbox/maps";
 import { Image } from "react-native";
@@ -20,6 +21,7 @@ import TripPlannerModal from "../../components/TripPlannerModal";
 import AISuggestionChip from "../../components/AISuggestionChip";
 import CarpoolMatchModal from "../../components/CarpoolMatchModal";
 import { supabase } from "../../lib/supabase";
+import { buildWebLink } from "../../lib/deepLinks";
 import { useAIStore } from "../../store/useAIStore";
 import { useDailyCommuteStore } from "../../store/useDailyCommuteStore";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -773,6 +775,28 @@ export default function MapScreen() {
    * Also marks the ride as 'cancelled' in the DB so it moves to
    * Activity → History and doesn't stay stuck in Upcoming as "scheduled".
    */
+  // Make the empty-state "invite a colleague" copy actionable — same
+  // referral link/flow as the Impact screen's invite card.
+  const handleInviteShare = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('referral_code')
+        .eq('id', user.id)
+        .single();
+      if (!profile?.referral_code) return;
+      const url = buildWebLink({ type: 'invite', code: profile.referral_code });
+      await Share.share({
+        message: `Join me on Clyzio — let's share commutes and cut CO₂ together. ${url}`,
+        url,
+      });
+    } catch {
+      // Non-fatal — share sheet dismissed or profile not ready.
+    }
+  }, []);
+
   const handleCancelSearch = useCallback(async () => {
     if (activeRideId) {
       try {
@@ -1155,6 +1179,16 @@ export default function MapScreen() {
               >
                 Be the first to plan one today, or invite a colleague to ride green together.
               </Text>
+              <TouchableOpacity
+                onPress={handleInviteShare}
+                accessibilityRole="button"
+                accessibilityLabel="Invite a colleague"
+                hitSlop={8}
+              >
+                <Text style={[styles.emptyStateInvite, { color: COLORS.primary }]}>
+                  Invite a colleague →
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -1416,6 +1450,13 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     marginTop: 2,
     lineHeight: 16,
+  },
+  emptyStateInvite: {
+    fontFamily: "JetBrainsMono",
+    fontSize: 10.5,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    marginTop: 8,
   },
 
   // ===== MY LOCATION FAB =====
