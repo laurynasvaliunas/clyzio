@@ -38,7 +38,8 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
-import { computeLocalModes, getFuelBaseCO2 } from "../lib/commuteUtils";
+import { computeLocalModes, getFuelBaseCO2, getVehicleCO2, getPrimaryVehicle } from "../lib/commuteUtils";
+import { Vehicle, parseVehicles } from "../lib/vehicles";
 
 import { MAPBOX_TOKEN } from "../lib/config";
 const { height } = Dimensions.get("window");
@@ -184,6 +185,11 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
   
   // User's actual car CO₂ factor — fetched from profile on first open
   const [userCarCO2, setUserCarCO2] = useState<number>(0.192);
+  // Garage: pick which vehicle this trip uses for the CO₂ comparison.
+  const [garage, setGarage] = useState<Vehicle[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  // Rider privacy: share exact pickup address with the driver? (default from profile)
+  const [sharePickup, setSharePickup] = useState<boolean>(true);
 
   // Build transport modes with the user's real car CO₂ factor applied to "my_car"
   const TRANSPORT_MODES = BASE_TRANSPORT_MODES.map(m =>
@@ -250,14 +256,30 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       if (!user) return;
       const { data } = await supabase
         .from("profiles")
-        .select("car_fuel_type")
+        .select("car_fuel_type, vehicles, primary_vehicle_id, share_pickup_address")
         .eq("id", user.id)
         .single();
-      if (data?.car_fuel_type) {
+      if (!data) return;
+      const vehicles = parseVehicles((data as any).vehicles);
+      setGarage(vehicles);
+      setSharePickup((data as any).share_pickup_address ?? true);
+      const primary = getPrimaryVehicle(vehicles, (data as any).primary_vehicle_id);
+      if (primary) {
+        setSelectedVehicleId(primary.id);
+        setUserCarCO2(getVehicleCO2(primary));
+      } else if (data.car_fuel_type) {
+        // Legacy single-car users with no garage yet
         setUserCarCO2(getFuelBaseCO2(data.car_fuel_type));
       }
     })();
   }, [visible]);
+
+  // Recompute the "My Car" baseline whenever the chosen garage vehicle changes.
+  React.useEffect(() => {
+    if (!selectedVehicleId) return;
+    const v = garage.find((x) => x.id === selectedVehicleId);
+    if (v) setUserCarCO2(getVehicleCO2(v));
+  }, [selectedVehicleId, garage]);
 
   React.useEffect(() => {
     if (visible) {
@@ -747,6 +769,41 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                   </View>
                 )}
 
+                {/* Which garage vehicle for this trip? (drives the CO₂ comparison) */}
+                {selectedMode?.id === "my_car" && garage.length > 0 && (
+                  <View style={styles.vehiclePickerWrap}>
+                    <Text style={styles.vehiclePickerLabel}>Which vehicle?</Text>
+                    <View style={styles.vehicleChipRow}>
+                      {garage.map((v) => {
+                        const active = v.id === selectedVehicleId;
+                        const name =
+                          [v.make, v.model].filter(Boolean).join(" ") ||
+                          v.type.charAt(0).toUpperCase() + v.type.slice(1);
+                        return (
+                          <TouchableOpacity
+                            key={v.id}
+                            style={[styles.vehicleChip, active && styles.vehicleChipActive]}
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setSelectedVehicleId(v.id);
+                            }}
+                          >
+                            <Text
+                              style={[
+                                styles.vehicleChipText,
+                                active && { color: COLORS.primary, fontWeight: "700" },
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
                 {/* Carpool match badge */}
                 {(role === "driver" || role === "rider") && carpoolFetched && (
                   <View style={styles.carpoolMatchBanner}>
@@ -975,6 +1032,29 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.gray,
   },
+
+  // Garage vehicle picker
+  vehiclePickerWrap: { marginTop: 14 },
+  vehiclePickerLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.gray,
+    marginBottom: 8,
+  },
+  vehicleChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  vehicleChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.gray + "55",
+    maxWidth: 200,
+  },
+  vehicleChipActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary + "14",
+  },
+  vehicleChipText: { fontSize: 13, color: COLORS.gray },
 
   // Mode List
   modeItem: {
