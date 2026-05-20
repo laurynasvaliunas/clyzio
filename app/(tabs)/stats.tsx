@@ -951,7 +951,9 @@ const styles = StyleSheet.create({
   heroValue: {
     fontFamily: "InstrumentSerif",
     fontSize: 96,
-    lineHeight: 96,
+    // lineHeight must exceed fontSize for Instrument Serif so the glyph's
+    // ascender (the top stroke of "2", "3", etc.) isn't clipped.
+    lineHeight: 112,
     letterSpacing: -3,
     color: COLORS.white,
     marginVertical: 4,

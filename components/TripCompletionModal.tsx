@@ -297,6 +297,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "InstrumentSerif",
     fontSize: 40,
+    lineHeight: 48,
     color: COLORS.white,
     marginBottom: 8,
     textAlign: "center",
@@ -336,6 +337,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontFamily: "InstrumentSerif",
     fontSize: 34,
+    lineHeight: 42,
     color: COLORS.white,
     marginBottom: 4,
   },

@@ -1002,6 +1002,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: "InstrumentSerif",
     fontSize: 26,
+    lineHeight: 32,
     flex: 1,
     textAlign: 'center',
   },

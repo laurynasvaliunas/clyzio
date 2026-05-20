@@ -689,6 +689,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: "InstrumentSerif",
     fontSize: 40,
+    lineHeight: 48,
     letterSpacing: -0.8,
     color: COLORS.dark
   },

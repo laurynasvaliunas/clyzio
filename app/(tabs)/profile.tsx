@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
   },
-  pageTitle: { fontFamily: "InstrumentSerif", fontSize: 40, letterSpacing: -0.8, color: COLORS.dark },
+  pageTitle: { fontFamily: "InstrumentSerif", fontSize: 40, lineHeight: 48, letterSpacing: -0.8, color: COLORS.dark },
   settingsButton: {
     width: 44,
     height: 44,
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
   },
   scoreCard: { borderRadius: 24, padding: 24, alignItems: "center" },
   scoreLabel: { fontSize: 14, color: COLORS.white, opacity: 0.9, marginTop: 8 },
-  scoreValue: { fontFamily: "InstrumentSerif", fontSize: 72, letterSpacing: -2, color: COLORS.white, marginVertical: 4 },
+  scoreValue: { fontFamily: "InstrumentSerif", fontSize: 72, lineHeight: 86, letterSpacing: -2, color: COLORS.white, marginVertical: 4 },
   scoreUnit: { fontSize: 14, color: COLORS.white, opacity: 0.8 },
   levelBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginTop: 12 },
   levelText: { color: COLORS.dark, fontWeight: "bold", fontSize: 14 },

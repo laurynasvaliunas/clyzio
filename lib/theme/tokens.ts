@@ -159,11 +159,13 @@ export const typography = {
   caption: { fontSize: 13, lineHeight: 18, fontWeight: '400' as const },
   label: { fontSize: 12, lineHeight: 16, fontWeight: '700' as const, letterSpacing: 0.4 },
   // ─── Editorial type scale (Instrument Serif / JetBrains Mono) ──────────────
-  displayHero: { fontFamily: fonts.serif, fontSize: 80, lineHeight: 70, letterSpacing: -2 },
-  displayXL: { fontFamily: fonts.serif, fontSize: 50, lineHeight: 50, letterSpacing: -1 },
-  serifTitle: { fontFamily: fonts.serif, fontSize: 28, lineHeight: 30, letterSpacing: -0.4 },
+  // Instrument Serif's ascenders extend above the EM box; lineHeight must be
+  // ≥ fontSize × 1.18 to prevent glyph clipping at the top.
+  displayHero: { fontFamily: fonts.serif, fontSize: 80, lineHeight: 94, letterSpacing: -2 },
+  displayXL: { fontFamily: fonts.serif, fontSize: 50, lineHeight: 60, letterSpacing: -1 },
+  serifTitle: { fontFamily: fonts.serif, fontSize: 28, lineHeight: 34, letterSpacing: -0.4 },
   serifLg: { fontFamily: fonts.serif, fontSize: 21, lineHeight: 25 },
-  serifNum: { fontFamily: fonts.serif, fontSize: 44, lineHeight: 44, letterSpacing: -1 },
+  serifNum: { fontFamily: fonts.serif, fontSize: 44, lineHeight: 52, letterSpacing: -1 },
   eyebrow: {
     fontFamily: fonts.mono,
     fontSize: 10,

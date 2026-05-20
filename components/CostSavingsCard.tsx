@@ -122,6 +122,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontFamily: "InstrumentSerif",
     fontSize: 52,
+    lineHeight: 62,
     letterSpacing: -1.5,
     color: COLORS.green,
   },
