@@ -265,7 +265,7 @@ function LocalInsightsPanel({
           Your <Text style={{ fontWeight: "800" }}>{distKm.toFixed(1)} km</Text> commute has real potential.
           Switch to {bestCO2.label.toLowerCase()} and you'd save{" "}
           <Text style={{ color: COLORS.accent }}>~{weeklyKg.toFixed(1)} kg CO₂/week</Text>
-          {yearlyTrees > 0 ? ` — that's ${yearlyTrees} tree${yearlyTrees !== 1 ? "s" : ""} planted a year 🌳` : " 🌱"}.
+          {yearlyTrees > 0 ? `. That's ${yearlyTrees} tree${yearlyTrees !== 1 ? "s" : ""} planted a year 🌳` : " 🌱"}.
           {" "}Want to give it a try this week?
         </Text>
         <View style={styles.savingPill}>

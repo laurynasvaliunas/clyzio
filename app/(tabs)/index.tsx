@@ -808,7 +808,7 @@ export default function MapScreen() {
       if (!profile?.referral_code) return;
       const url = buildWebLink({ type: 'invite', code: profile.referral_code });
       await Share.share({
-        message: `Join me on Clyzio — let's share commutes and cut CO₂ together. ${url}`,
+        message: `Join me on Clyzio. Let's share commutes and cut CO₂ together. ${url}`,
         url,
       });
     } catch {
@@ -1202,7 +1202,7 @@ export default function MapScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.emptyStateTitle, { color: TC.text }]} numberOfLines={1}>
-                No commutes nearby — yet.
+                No commutes nearby yet.
               </Text>
               <Text
                 style={[styles.emptyStateSub, { color: TC.textSecondary }]}

@@ -26,7 +26,7 @@ export const AINotifications = {
   weeklyCO2Summary: (savedKg: number, treesEquiv: number) =>
     deliverNotification(
       "Your Week in Green",
-      `You saved ${savedKg.toFixed(1)} kg CO₂ this week — equivalent to ${treesEquiv} tree${treesEquiv === 1 ? "" : "s"}.`
+      `You saved ${savedKg.toFixed(1)} kg CO₂ this week, equivalent to ${treesEquiv} tree${treesEquiv === 1 ? "" : "s"}.`
     ),
 
   carpoolMatchAvailable: (firstName: string) =>

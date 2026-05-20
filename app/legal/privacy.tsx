@@ -40,7 +40,7 @@ This Policy is written in compliance with the General Data Protection Regulation
 
 Account Data
 • Email address (used for authentication and communication)
-• Password (stored as a cryptographic hash — we never store plaintext passwords)
+• Password (stored as a cryptographic hash; we never store plaintext passwords)
 • First and last name (optional, provided by you)
 • Phone number (optional, provided by you)
 • Profile photo (optional, uploaded by you)
@@ -53,7 +53,7 @@ Location Data
 Commute & Transport Data
 • Transport modes used (e.g., car, bike, walking, public transport)
 • Weekly commute schedule and habits
-• Vehicle details (make, model, fuel type — optional)
+• Vehicle details (make, model, fuel type; optional)
 • CO₂ baseline and savings calculations
 
 Usage & Gamification Data
@@ -72,7 +72,7 @@ Technical Data
     body: `We process your personal data on the following legal bases:
 
 Performance of a Contract (Article 6(1)(b) GDPR)
-Processing your account data, location data, and trip data is necessary to provide the core services of the App — including trip tracking, CO₂ calculations, carpool matching, and AI-powered suggestions.
+Processing your account data, location data, and trip data is necessary to provide the core services of the App, including trip tracking, CO₂ calculations, carpool matching, and AI-powered suggestions.
 
 Legitimate Interests (Article 6(1)(f) GDPR)
 We process technical and usage data to improve App performance, detect and prevent fraud, and ensure security. Our legitimate interests are balanced against your rights and freedoms.
@@ -173,7 +173,7 @@ To exercise any of these rights, please contact us at info@clyzio.com. We will r
   },
   {
     title: "10. International Data Transfers",
-    body: `Your personal data is stored on servers within the European Union. If any processing occurs outside the EEA (for example, by AI service providers), we ensure that appropriate safeguards are in place — such as Standard Contractual Clauses approved by the European Commission — to protect your data to an equivalent standard.`,
+    body: `Your personal data is stored on servers within the European Union. If any processing occurs outside the EEA (for example, by AI service providers), we ensure that appropriate safeguards are in place, such as Standard Contractual Clauses approved by the European Commission, to protect your data to an equivalent standard.`,
   },
   {
     title: "11. Changes to This Policy",

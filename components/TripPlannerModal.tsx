@@ -865,7 +865,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                       <Text style={styles.carpoolMatchText}>
                         {carpoolCandidates.length > 0
                           ? `${carpoolCandidates.length} potential match${carpoolCandidates.length > 1 ? "es" : ""} found near your route 🎉`
-                          : "No matches yet — you'll be added to the pool"}
+                          : "No matches yet. You'll be added to the pool."}
                       </Text>
                     )}
                   </View>

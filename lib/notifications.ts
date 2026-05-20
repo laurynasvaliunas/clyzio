@@ -33,7 +33,7 @@ export const NotificationTypes = {
   tripLogged: (co2Saved: number) =>
     deliverNotification(
       "Commute Logged",
-      `You just saved ${co2Saved.toFixed(1)} kg of CO₂ — great work!`
+      `You just saved ${co2Saved.toFixed(1)} kg of CO₂. Great work!`
     ),
 
   tripScheduled: (time: string) =>

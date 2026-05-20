@@ -60,7 +60,7 @@ export default function InviteColleagueCard() {
     const url = buildWebLink({ type: "invite", code });
     try {
       await Share.share({
-        message: `Join me on Clyzio — let's share commutes and cut CO₂ together. ${url}`,
+        message: `Join me on Clyzio. Let's share commutes and cut CO₂ together. ${url}`,
         url,
       });
     } catch {
@@ -83,7 +83,7 @@ export default function InviteColleagueCard() {
 
       <Text style={styles.body}>
         When they take their first trip, you get{" "}
-        <Text style={styles.bodyStrong}>{REFERRAL_XP} XP</Text> — a head start
+        <Text style={styles.bodyStrong}>{REFERRAL_XP} XP</Text>. A head start
         on your next level.
       </Text>
 

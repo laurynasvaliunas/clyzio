@@ -255,7 +255,7 @@ const CARDS: Record<Step, { title: string; body: string; cta: string; icon: type
   },
   camera: {
     title: 'Camera',
-    body: 'Add a profile photo so your matches can recognise you at the pickup point. Optional — you can use a default avatar instead.',
+    body: 'Add a profile photo so your matches can recognise you at the pickup point. Optional. You can use a default avatar instead.',
     cta: 'Enable camera',
     icon: Camera,
   },

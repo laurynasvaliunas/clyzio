@@ -468,7 +468,7 @@ export default function EditProfileScreen() {
             <Car size={18} color={COLORS.primary} />
             <Text style={styles.sectionTitle}>My Garage</Text>
           </View>
-          <Text style={styles.sectionSubtitle}>Cars, motorbikes, scooters, bikes — add any you use</Text>
+          <Text style={styles.sectionSubtitle}>Cars, motorbikes, scooters, bikes. Add any you use.</Text>
 
           <GarageEditor
             vehicles={profile.vehicles}
@@ -571,7 +571,7 @@ export default function EditProfileScreen() {
           <View style={styles.toggleRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.toggleLabel}>Share pickup address with drivers</Text>
-              <Text style={styles.toggleSub}>Default for new ride requests — you can change it per trip</Text>
+              <Text style={styles.toggleSub}>Default for new ride requests. You can change it per trip.</Text>
             </View>
             <Switch
               value={profile.share_pickup_address}

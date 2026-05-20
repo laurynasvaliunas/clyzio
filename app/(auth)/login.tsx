@@ -153,7 +153,7 @@ export default function LoginScreen() {
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.corpBannerTitle}>Corporate Detected</Text>
               <Text style={styles.corpBannerSub}>
-                {emailDomain} — You'll join your company's eco team!
+                {emailDomain}. You'll join your company's eco team!
               </Text>
             </View>
           </View>

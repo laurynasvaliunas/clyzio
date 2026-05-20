@@ -67,7 +67,7 @@ We reserve the right to remove any content and suspend or terminate accounts at 
   },
   {
     title: "5. Location Data",
-    body: `Core features of the App — including trip tracking, route optimisation, carpool matching, and CO₂ calculations — require access to your device's location services. By using these features, you consent to the collection and processing of your location data as described in our Privacy Policy.
+    body: `Core features of the App (including trip tracking, route optimisation, carpool matching, and CO₂ calculations) require access to your device's location services. By using these features, you consent to the collection and processing of your location data as described in our Privacy Policy.
 
 You may revoke location permissions at any time through your device settings; however, doing so will disable core App functionality. Location data is used solely to deliver the services described herein and is not sold to third parties.`,
   },
@@ -81,7 +81,7 @@ You acknowledge and consent to this level of employer data visibility by using t
   },
   {
     title: "7. Intellectual Property",
-    body: `All content, features, and functionality of the App — including but not limited to the software, design, text, graphics, logos, and icons — are owned by Clyzio MB or its licensors and are protected by Lithuanian and European Union intellectual property laws.
+    body: `All content, features, and functionality of the App (including but not limited to the software, design, text, graphics, logos, and icons) are owned by Clyzio MB or its licensors and are protected by Lithuanian and European Union intellectual property laws.
 
 You are granted a limited, non-exclusive, non-transferable, revocable licence to use the App solely for your personal, non-commercial purposes. You may not reproduce, distribute, modify, create derivative works of, or commercially exploit any part of the App without our prior written consent.`,
   },

@@ -7,14 +7,15 @@ import { parseBody, AICarpoolMatcherSchema } from '../_shared/validate.ts';
 function buildSystemPrompt(baselineCO2: number, fuelType: string): string {
   return `You are Clyzio's AI Carpool Matcher. Your job is to rank and explain carpool compatibility between a user and candidate rides based on geographic proximity, timing, and route alignment.
 
-Return ONLY valid JSON matching the exact schema provided — no markdown, no explanation.
+Return ONLY valid JSON matching the exact schema provided. No markdown, no explanation.
 
 Rules:
 - compatibility_score is 0-100: 80+ = excellent match, 60-79 = good, 40-59 = fair, <40 = poor
 - Always reference the distance_to_origin_km when explaining matches
-- co2_saving_kg should reflect actual saving for one person per trip vs driving alone (user drives a ${fuelType} car at ${baselineCO2} kg CO₂/km — DEFRA/EEA 2024)
+- co2_saving_kg should reflect actual saving for one person per trip vs driving alone (user drives a ${fuelType} car at ${baselineCO2} kg CO₂/km, DEFRA/EEA 2024)
 - Be honest: if no candidates are a good match, say so in best_match_summary
-- If there are no candidates at all, return an empty ranked_matches array`;
+- If there are no candidates at all, return an empty ranked_matches array
+- Punctuation: always use a plain hyphen "-" if you need a dash. NEVER use an em-dash "—" or en-dash "–"; they read as AI-generated. Prefer two short sentences over one long sentence joined by a dash.`;
 }
 
 interface CarpoolMatch {
@@ -128,11 +129,11 @@ Return JSON matching this schema exactly:
       "user_first_name": "string",
       "compatibility_score": number,
       "co2_saving_kg": number,
-      "reasoning": "string — 1 sentence, specific about distance/direction",
+      "reasoning": "string. 1 sentence, specific about distance/direction.",
       "estimated_detour_min": number
     }
   ],
-  "best_match_summary": "string — 1-2 sentences about the overall match quality"
+  "best_match_summary": "string. 1-2 sentences about the overall match quality."
 }`;
 
     const { text, usage } = await callClaude({
