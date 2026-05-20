@@ -94,6 +94,10 @@ export default function EditProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  // True once we've confirmed the prod schema has the garage / address-privacy
+  // columns (migration 20260520_014). Until then, save omits those keys so the
+  // update doesn't fail against a pre-migration database.
+  const hasGarageColsRef = useRef<boolean>(false);
   const [profile, setProfile] = useState<ProfileData>({
     first_name: "",
     last_name: "",
@@ -130,11 +134,36 @@ export default function EditProfileScreen() {
       }
       setUserId(user.id);
 
-      const { data, error } = await supabase
+      // Pre-submission resilience: if the prod Supabase project hasn't had the
+      // garage/privacy migration (20260520_014) applied yet, the new columns
+      // don't exist and the full select errors. Fall back to the legacy
+      // columns so Edit Profile still loads the user's real data instead of
+      // appearing broken to an App Store reviewer.
+      const LEGACY_COLUMNS =
+        "first_name, last_name, phone, department, avatar_url, car_make, car_model, car_color, car_plate, car_fuel_type, home_address, home_lat, home_long, work_address, work_lat, work_long, is_public";
+      const FULL_COLUMNS =
+        LEGACY_COLUMNS + ", share_pickup_address, vehicles, primary_vehicle_id";
+
+      let resp = await supabase
         .from("profiles")
-        .select("first_name, last_name, phone, department, avatar_url, car_make, car_model, car_color, car_plate, car_fuel_type, home_address, home_lat, home_long, work_address, work_lat, work_long, is_public, share_pickup_address, vehicles, primary_vehicle_id")
+        .select(FULL_COLUMNS)
         .eq("id", user.id)
         .single();
+
+      if (resp.error) {
+        hasGarageColsRef.current = false;
+        resp = await supabase
+          .from("profiles")
+          .select(LEGACY_COLUMNS)
+          .eq("id", user.id)
+          .single();
+      } else {
+        hasGarageColsRef.current = true;
+      }
+
+      // Cast: select() with a dynamic column string can't be statically typed
+      // by the supabase client; we validate fields defensively below.
+      const data = resp.data as any;
 
       if (data) {
         // Garage: prefer stored vehicles; otherwise synthesize one from the
@@ -281,30 +310,39 @@ export default function EditProfileScreen() {
       const primary = getPrimaryVehicle(profile.vehicles, profile.primary_vehicle_id);
       const derived = deriveProfileCarFields(primary);
 
+      // Always-safe legacy payload (works against any deployed schema).
+      const payload: Record<string, unknown> = {
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        phone: profile.phone,
+        department: profile.department,
+        car_make: derived.car_make,
+        car_model: derived.car_model,
+        car_color: derived.car_color,
+        car_plate: derived.car_plate,
+        car_fuel_type: derived.car_fuel_type,
+        baseline_co2: derived.baseline_co2,
+        home_address: profile.home_address || null,
+        home_lat: profile.home_lat,
+        home_long: profile.home_long,
+        work_address: profile.work_address || null,
+        work_lat: profile.work_lat,
+        work_long: profile.work_long,
+        is_public: profile.is_public,
+      };
+
+      // Only include the new garage/privacy columns when the schema has them
+      // (migration 20260520_014 applied). Pre-migration this keeps Save
+      // working so the screen never appears broken to a reviewer.
+      if (hasGarageColsRef.current) {
+        payload.vehicles = profile.vehicles;
+        payload.primary_vehicle_id = primary?.id ?? null;
+        payload.share_pickup_address = profile.share_pickup_address;
+      }
+
       const { error } = await supabase
         .from("profiles")
-        .update({
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          phone: profile.phone,
-          department: profile.department,
-          vehicles: profile.vehicles,
-          primary_vehicle_id: primary?.id ?? null,
-          car_make: derived.car_make,
-          car_model: derived.car_model,
-          car_color: derived.car_color,
-          car_plate: derived.car_plate,
-          car_fuel_type: derived.car_fuel_type,
-          baseline_co2: derived.baseline_co2,
-          home_address: profile.home_address || null,
-          home_lat: profile.home_lat,
-          home_long: profile.home_long,
-          work_address: profile.work_address || null,
-          work_lat: profile.work_lat,
-          work_long: profile.work_long,
-          is_public: profile.is_public,
-          share_pickup_address: profile.share_pickup_address,
-        })
+        .update(payload as never)
         .eq("id", userId);
 
       if (error) throw error;

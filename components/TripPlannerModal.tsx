@@ -255,11 +255,22 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase
+      // Try the full select; if the new columns aren't present yet (prod
+      // schema lagging migration 20260520_014), fall back to the legacy
+      // single-column read so "My Car" CO₂ is still accurate for review.
+      let resp = await supabase
         .from("profiles")
         .select("car_fuel_type, vehicles, primary_vehicle_id, share_pickup_address")
         .eq("id", user.id)
         .single();
+      if (resp.error) {
+        resp = await supabase
+          .from("profiles")
+          .select("car_fuel_type")
+          .eq("id", user.id)
+          .single();
+      }
+      const data = resp.data;
       if (!data) return;
       const vehicles = parseVehicles((data as any).vehicles);
       setGarage(vehicles);
