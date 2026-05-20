@@ -15,6 +15,7 @@ import * as Location from "expo-location";
 import { Car, Users, UserCircle, X, Sparkles } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BrandHeader from "../../components/BrandHeader";
 import ActionDock from "../../components/ActionDock";
 import TripPlannerModal from "../../components/TripPlannerModal";
@@ -340,6 +341,9 @@ export default function MapScreen() {
   const { isDark } = useTheme();
   const TC = getThemeColors(isDark);
   const { showToast } = useToast();
+  // Safe-area top inset so floating overlays don't land under the iOS
+  // clock / Dynamic Island.
+  const insets = useSafeAreaInsets();
 
   // ✅ PROFILE STATE
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
@@ -1134,7 +1138,7 @@ export default function MapScreen() {
 
         return (
           <TouchableOpacity
-            style={[styles.intentPill, { backgroundColor: pillColor }]}
+            style={[styles.intentPill, { backgroundColor: pillColor, top: insets.top + 12 }]}
             onPress={() => router.push("/daily-commute")}
             activeOpacity={0.85}
           >
@@ -1154,14 +1158,26 @@ export default function MapScreen() {
         );
       })()}
 
-      {/* AI Suggestion Chip — shown above ActionDock when idle */}
+      {/* AI Suggestion Chip — anchored below BrandHeader, never under the
+          iOS clock / Dynamic Island. */}
       {!activeTrip && searchStatus === 'idle' && !chipDismissed && commuteResult?.insight && (
-        <AISuggestionChip
-          insight={commuteResult.insight}
-          loading={isLoadingCommute}
-          onPress={() => router.push('/(tabs)/ai-planner')}
-          onDismiss={() => setChipDismissed(true)}
-        />
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute',
+            top: insets.top + 60,
+            left: 16,
+            right: 16,
+            zIndex: 40,
+          }}
+        >
+          <AISuggestionChip
+            insight={commuteResult.insight}
+            loading={isLoadingCommute}
+            onPress={() => router.push('/(tabs)/ai-planner')}
+            onDismiss={() => setChipDismissed(true)}
+          />
+        </View>
       )}
 
       {/* 1.3 — Map empty-state hint.

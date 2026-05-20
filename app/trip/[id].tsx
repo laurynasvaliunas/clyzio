@@ -592,13 +592,16 @@ export default function TripScreen() {
         </MapView>
 
         {/* Back Button Overlay */}
-        <TouchableOpacity style={styles.backButtonOverlay} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={[styles.backButtonOverlay, { top: insets.top + 10 }]}
+          onPress={() => router.back()}
+        >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
 
         {/* Distance Badge */}
         {isNavigating && distanceToDestination > 0 && (
-          <View style={styles.distanceBadge}>
+          <View style={[styles.distanceBadge, { top: insets.top + 10 }]}>
             <Text style={styles.distanceBadgeText}>
               {distanceToDestination < 1
                 ? `${(distanceToDestination * 1000).toFixed(0)} m`

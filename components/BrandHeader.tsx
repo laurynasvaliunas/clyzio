@@ -1,5 +1,6 @@
 import { View, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar, toneFromKey } from "./ui/editorial";
 import { editorial } from "../lib/theme/tokens";
 
@@ -10,12 +11,18 @@ interface BrandHeaderProps {
 
 export default function BrandHeader({ userName = "", userAvatar }: BrandHeaderProps) {
   const router = useRouter();
+  // Anchor below the iOS Dynamic Island / Android status bar so logo + avatar
+  // are never overlapped by system UI.
+  const insets = useSafeAreaInsets();
   const initials = userName
     ? userName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
     : "U";
 
   return (
-    <View style={styles.container} pointerEvents="box-none">
+    <View
+      style={[styles.container, { top: insets.top + 8 }]}
+      pointerEvents="box-none"
+    >
       {/* Logo floats top-left */}
       <View style={styles.logoWrapper}>
         <Image

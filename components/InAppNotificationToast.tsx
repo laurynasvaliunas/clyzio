@@ -154,7 +154,7 @@ export default function InAppNotificationToast() {
 
   return (
     <View
-      style={[styles.container, { top: insets.top + (Platform.OS === "android" ? 8 : 16) }]}
+      style={[styles.container, { top: insets.top + (Platform.OS === "android" ? 8 : 20) }]}
       pointerEvents="box-none"
     >
       {queue.map((item) => (
