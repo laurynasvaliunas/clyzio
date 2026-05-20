@@ -46,6 +46,7 @@ export default function ManagerLayout() {
       <Stack.Screen name="insights" />
       <Stack.Screen name="challenges" />
       <Stack.Screen name="esg-export" />
+      <Stack.Screen name="company-settings" />
     </Stack>
   );
 }

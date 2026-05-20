@@ -301,6 +301,15 @@ export default function ManagerDashboardScreen() {
           <ChevronRight size={16} color={COLORS.primary} />
         </TouchableOpacity>
 
+        {/* Company Settings */}
+        <TouchableOpacity
+          style={styles.exportBtn}
+          onPress={() => router.push("/(manager)/company-settings")}
+        >
+          <Text style={styles.exportText}>Company Settings</Text>
+          <ChevronRight size={16} color={COLORS.primary} />
+        </TouchableOpacity>
+
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
