@@ -177,6 +177,17 @@ Deno.serve(async (req) => {
       for (const passenger of passengers) {
         if (matchedPassengerIds.has(passenger.id)) continue;
 
+        // Same-company default + admin-controlled cross-org rule.
+        // is_peer_visible is SECURITY DEFINER and runs even when the
+        // matcher is called with the service role (auth.uid() is NULL).
+        const { data: visible, error: visibleErr } = await supabase.rpc(
+          'is_peer_visible',
+          { p_caller: driver.user_id, p_target: passenger.user_id },
+        );
+        // Pre-migration safety: if the helper isn't deployed yet, fall
+        // through to the historical (cross-org) matching behaviour.
+        if (!visibleErr && visible === false) continue;
+
         const homeDist = haversineKm(driver.home_lat, driver.home_long, passenger.home_lat, passenger.home_long);
         if (homeDist > 10) continue;
 

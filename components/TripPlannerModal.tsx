@@ -362,7 +362,14 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     setIsLoadingCarpool(true);
     setCarpoolFetched(false);
     try {
-      const { data } = await supabase.rpc("find_carpool_candidates", {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      // Pass p_caller_id so the visibility predicate (is_peer_visible) on
+      // the server filters by same-company / mutual-opt-in cross-org rules.
+      // If the pre-migration RPC signature (no p_caller_id) is still
+      // deployed, retry without it so review builds aren't blocked.
+      let resp = await supabase.rpc("find_carpool_candidates", {
         p_origin_lat:      originCoords.lat,
         p_origin_long:     originCoords.lng,
         p_dest_lat:        destCoords.lat,
@@ -370,8 +377,20 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         p_departure_time:  scheduledDate.toISOString(),
         p_role:            role === "solo" ? "rider" : role,
         p_radius_km:       5,
+        p_caller_id:       user?.id ?? null,
       });
-      setCarpoolCandidates(data ?? []);
+      if (resp.error) {
+        resp = await supabase.rpc("find_carpool_candidates", {
+          p_origin_lat:      originCoords.lat,
+          p_origin_long:     originCoords.lng,
+          p_dest_lat:        destCoords.lat,
+          p_dest_long:       destCoords.lng,
+          p_departure_time:  scheduledDate.toISOString(),
+          p_role:            role === "solo" ? "rider" : role,
+          p_radius_km:       5,
+        });
+      }
+      setCarpoolCandidates(resp.data ?? []);
     } catch {
       setCarpoolCandidates([]);
     } finally {

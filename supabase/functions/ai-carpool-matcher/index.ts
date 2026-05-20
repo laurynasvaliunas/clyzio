@@ -65,7 +65,10 @@ Deno.serve(async (req: Request) => {
     const fuelType: string = profileData?.car_fuel_type || 'petrol';
     const baselineCO2: number = FUEL_CO2_FACTORS[fuelType] ?? profileData?.baseline_co2 ?? 0.192;
 
-    // Find carpool candidates via RPC
+    // Find carpool candidates via RPC. p_caller_id makes the server-side
+    // is_peer_visible predicate apply same-company default + mutual-opt-in
+    // cross-org rules. We run as service role so auth.uid() inside the RPC
+    // would be NULL — passing the explicit caller is required.
     const { data: candidates, error: candidatesError } = await supabase.rpc(
       'find_carpool_candidates',
       {
@@ -77,6 +80,7 @@ Deno.serve(async (req: Request) => {
         p_role: role,
         p_radius_km: 5.0,
         p_exclude_user_id: userId,
+        p_caller_id: userId,
       }
     );
 

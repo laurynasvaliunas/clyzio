@@ -650,14 +650,29 @@ export default function MapScreen() {
       const searchRole = role === 'driver' ? 'rider' : 'driver';
       const searchColumn = `${searchRole}_id`;
       
-      // Step 1: Get IDs of users who opted in to map visibility
-      const { data: publicProfiles } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('is_public', true)
-        .neq('id', user.id);
-
-      const publicUserIds = (publicProfiles ?? []).map((p: any) => p.id);
+      // Step 1: Get IDs of peers the caller is allowed to see — applies the
+      // canonical predicate is_peer_visible (same-company colleagues always;
+      // cross-org only when both sides are opted in AND both is_public).
+      // Falls back to the legacy is_public-only filter if the RPC isn't
+      // present yet (pre-migration 20260521_015) so review builds aren't
+      // blocked.
+      let visibleUserIds: string[] = [];
+      const { data: visibleRpc, error: visibleErr } = await supabase.rpc(
+        'get_visible_peer_ids',
+      );
+      if (visibleErr) {
+        const { data: publicProfiles } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('is_public', true)
+          .neq('id', user.id);
+        visibleUserIds = (publicProfiles ?? []).map((p: any) => p.id);
+      } else {
+        visibleUserIds = ((visibleRpc as any[]) ?? [])
+          .map((r) => (typeof r === 'string' ? r : r?.id))
+          .filter(Boolean);
+      }
+      const publicUserIds = visibleUserIds;
 
       // Step 2: Query scheduled/active rides only from public users
       // (AI matching uses find_carpool_candidates RPC which bypasses this filter)
