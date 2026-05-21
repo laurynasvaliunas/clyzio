@@ -37,8 +37,7 @@ import { supabase } from "../../lib/supabase";
 import CostSavingsCard from "../../components/CostSavingsCard";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
-import { getLevelInfo } from "../../lib/gamification";
-import InviteColleagueCard from "../../components/InviteColleagueCard";
+import { getLevelInfo, XP_PER_TRIP, TRIPS_PER_LEVEL, MAX_LEVEL, LEVEL_TITLES } from "../../lib/gamification";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
@@ -530,8 +529,28 @@ export default function StatsScreen() {
           </View>
         </View>
 
-        {/* Bring-a-colleague nudge — persistent, right after the level card */}
-        <InviteColleagueCard />
+        {/* How XP & badges work — guidance, right after the level card */}
+        <View style={[styles.guideCard, { backgroundColor: TC.surface }]}>
+          <Text style={[styles.guideTitle, { color: TC.text }]}>How you earn XP & badges</Text>
+          <View style={styles.guideRow}>
+            <Text style={styles.guideBullet}>🚊</Text>
+            <Text style={[styles.guideText, { color: TC.textSecondary }]}>
+              +{XP_PER_TRIP} XP for every completed trip.
+            </Text>
+          </View>
+          <View style={styles.guideRow}>
+            <Text style={styles.guideBullet}>📈</Text>
+            <Text style={[styles.guideText, { color: TC.textSecondary }]}>
+              Every {TRIPS_PER_LEVEL} trips is a new level — {MAX_LEVEL} levels from {LEVEL_TITLES[0]} to {LEVEL_TITLES[MAX_LEVEL - 1]}.
+            </Text>
+          </View>
+          <View style={styles.guideRow}>
+            <Text style={styles.guideBullet}>🏅</Text>
+            <Text style={[styles.guideText, { color: TC.textSecondary }]}>
+              Badges unlock at milestones: first trip, first carpool, 5 walks, 10 trips, 50 kg & 100 kg CO₂ saved. Tap a badge below to see its goal.
+            </Text>
+          </View>
+        </View>
 
         {/* Badges Section */}
         <View style={styles.badgesSection}>
@@ -931,6 +950,22 @@ const styles = StyleSheet.create({
   xpText: { fontSize: 14, fontWeight: "bold", color: COLORS.dark },
   xpToNext: { fontSize: 12, color: COLORS.gray },
   
+  // ===== XP & BADGES GUIDE =====
+  guideCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 20,
+    padding: 18,
+  },
+  guideTitle: {
+    fontFamily: "InstrumentSerif",
+    fontSize: 22,
+    marginBottom: 12,
+  },
+  guideRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 10 },
+  guideBullet: { fontSize: 16, lineHeight: 20 },
+  guideText: { flex: 1, fontSize: 13, lineHeight: 19 },
+
   // ===== BADGES SECTION =====
   badgesSection: { marginHorizontal: 16, marginTop: 20 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
