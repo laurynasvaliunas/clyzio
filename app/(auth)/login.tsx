@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,14 @@ import { Mail, Lock, Eye, EyeOff, Leaf, Building2, Check } from "lucide-react-na
 import { supabase } from "../../lib/supabase";
 import { useToast } from "../../contexts/ToastContext";
 import { nextRouteAfterAuth } from "../../lib/permissionsPriming";
+
+const FREE_MAIL_DOMAINS = [
+  "gmail.com",
+  "yahoo.com",
+  "hotmail.com",
+  "outlook.com",
+  "icloud.com",
+];
 
 const COLORS = {
   primary: "#26C6DA",
@@ -40,6 +48,55 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  // Corporate domain → real verified company lookup (drives a truthful banner).
+  const [companyMatch, setCompanyMatch] = useState<string | null>(null);
+  const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "done">("idle");
+  const domainCache = useRef<Map<string, string | null>>(new Map());
+
+  // Debounced lookup: when a work-email domain is typed, ask the shared DB
+  // whether it belongs to a registered+verified company. Pre-auth, so this
+  // calls a SECURITY DEFINER RPC granted to `anon`. Any error (RPC not yet
+  // deployed, offline) degrades silently to the "no match" nudge.
+  useEffect(() => {
+    const domain = email.includes("@") ? email.split("@")[1]?.toLowerCase() ?? "" : "";
+    const looksCorporate =
+      !!domain && domain.includes(".") && !FREE_MAIL_DOMAINS.includes(domain);
+
+    if (!looksCorporate) {
+      setCompanyMatch(null);
+      setLookupStatus("idle");
+      return;
+    }
+
+    if (domainCache.current.has(domain)) {
+      setCompanyMatch(domainCache.current.get(domain) ?? null);
+      setLookupStatus("done");
+      return;
+    }
+
+    let cancelled = false;
+    setLookupStatus("loading");
+    const t = setTimeout(async () => {
+      let name: string | null = null;
+      try {
+        const { data, error } = await supabase.rpc("lookup_company_by_email_domain", {
+          p_email: email.trim(),
+        });
+        if (!error && typeof data === "string" && data.trim()) name = data;
+      } catch {
+        /* RPC missing / offline — fall through to the register nudge */
+      }
+      if (cancelled) return;
+      domainCache.current.set(domain, name);
+      setCompanyMatch(name);
+      setLookupStatus("done");
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [email]);
 
   const checkOnboardingNeeded = async (userId: string) => {
     try {
@@ -99,8 +156,7 @@ export default function LoginScreen() {
 
   const emailDomain = email.includes("@") ? email.split("@")[1]?.toLowerCase() : "";
   const isCorpEmail =
-    !!emailDomain &&
-    !["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "icloud.com"].includes(emailDomain);
+    !!emailDomain && emailDomain.includes(".") && !FREE_MAIL_DOMAINS.includes(emailDomain);
 
   return (
     <KeyboardAvoidingView
@@ -146,15 +202,32 @@ export default function LoginScreen() {
           />
         </View>
 
-        {/* Corporate detection banner */}
+        {/* Corporate detection banner — truthful: names the real verified
+            company, or nudges the user to have their admin register it. */}
         {isCorpEmail && (
           <View style={styles.corpBanner}>
             <Building2 size={22} color={COLORS.primary} />
             <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={styles.corpBannerTitle}>Corporate Detected</Text>
-              <Text style={styles.corpBannerSub}>
-                {emailDomain}. You'll join your company's eco team!
-              </Text>
+              {companyMatch ? (
+                <>
+                  <Text style={styles.corpBannerTitle}>{companyMatch}</Text>
+                  <Text style={styles.corpBannerSub}>
+                    You'll join {companyMatch}'s eco team 🌱
+                  </Text>
+                </>
+              ) : lookupStatus === "loading" ? (
+                <>
+                  <Text style={styles.corpBannerTitle}>Checking your company…</Text>
+                  <Text style={styles.corpBannerSub}>{emailDomain}</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.corpBannerTitle}>Using a work email?</Text>
+                  <Text style={styles.corpBannerSub}>
+                    Ask your admin to register {emailDomain} at clyzio.com to unlock team features.
+                  </Text>
+                </>
+              )}
             </View>
           </View>
         )}

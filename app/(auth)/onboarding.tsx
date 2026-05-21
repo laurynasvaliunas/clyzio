@@ -192,7 +192,7 @@ export default function OnboardingScreen() {
           <Text style={styles.welcomeText}>Welcome to</Text>
           <Text style={styles.companyName}>{company?.name || "Your Company"}</Text>
           <Text style={styles.subtitle}>
-            Hey {userName}! 👋 Let's get you set up with your team.
+            Hey {userName}! 👋 You've joined {company?.name || "your company"} with your work email. Pick your team below.
           </Text>
         </View>
 
