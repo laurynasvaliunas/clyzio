@@ -299,6 +299,41 @@ export default function EditProfileScreen() {
     }
   };
 
+  // Per-vehicle Save from the Garage: persist the garage immediately (and keep
+  // the synced car_*/baseline_co2 in step) so a saved vehicle isn't lost if the
+  // user leaves before tapping the screen-level Save. Throws on error so the
+  // GarageEditor keeps the card expanded for a retry.
+  const persistGarage = async (
+    vehicles: Vehicle[],
+    primaryVehicleId: string | null,
+  ) => {
+    setProfile((prev) => ({ ...prev, vehicles, primary_vehicle_id: primaryVehicleId }));
+    if (!userId) return;
+
+    const primary = getPrimaryVehicle(vehicles, primaryVehicleId);
+    const derived = deriveProfileCarFields(primary);
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        vehicles,
+        primary_vehicle_id: primary?.id ?? null,
+        car_make: derived.car_make,
+        car_model: derived.car_model,
+        car_color: derived.car_color,
+        car_plate: derived.car_plate,
+        car_fuel_type: derived.car_fuel_type,
+        baseline_co2: derived.baseline_co2,
+      })
+      .eq("id", userId);
+
+    if (error) {
+      showToast({ title: "Couldn't save", message: error.message, type: "error" });
+      throw error;
+    }
+    showToast({ title: "Vehicle saved", message: "Your garage is up to date.", type: "success" });
+  };
+
   const saveProfile = async () => {
     if (!userId) return;
     setSaving(true);
@@ -476,6 +511,7 @@ export default function EditProfileScreen() {
             onChange={(vehicles, primaryVehicleId) =>
               setProfile((prev) => ({ ...prev, vehicles, primary_vehicle_id: primaryVehicleId }))
             }
+            onSaveVehicle={persistGarage}
           />
         </View>
 
