@@ -10,7 +10,7 @@ import {
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { User, LogOut, Save, Leaf, Check, Settings, ChevronRight, Camera } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -231,6 +231,8 @@ function DaySelector({ modeName, selectedDays, onToggleDay, TC }: DaySelectorPro
  */
 export default function ProfileScreen() {
   const router = useRouter();
+  const { setup } = useLocalSearchParams<{ setup?: string }>();
+  const isSetup = setup === "1"; // first-run: must set the commute mix before continuing
   const { isDark } = useTheme();
   const TC = getThemeColors(isDark);
   const { showToast } = useToast();
@@ -487,13 +489,25 @@ export default function ProfileScreen() {
         .eq("id", user.id);
 
       if (error) throw error;
+
+      // Mark first-run commute setup complete (tolerate the column being absent
+      // pre-migration — non-fatal, the routing gate simply won't engage yet).
+      try {
+        await supabase.from("profiles").update({ commute_setup_done: true }).eq("id", user.id);
+      } catch { /* ignore */ }
+
       showToast({ title: 'Saved!', message: `Your baseline is ${baseline.toFixed(3)} kg/km`, type: 'success' });
+
+      // First-run: move on to fulfilling the rest of the profile, then the Map.
+      if (isSetup) {
+        router.replace("/settings/edit-profile?setup=1" as any);
+      }
     } catch (error: any) {
       showToast({ title: 'Error', message: error.message, type: 'error' });
     } finally {
       setSaving(false);
     }
-  }, [habits, baseline]);
+  }, [habits, baseline, isSetup, router]);
 
   /**
    * Sign out user and redirect to login
@@ -552,7 +566,12 @@ export default function ProfileScreen() {
 
         {/* Commute Setup */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: TC.text }]}>🚀 Weekly Commute Mix</Text>
+          {isSetup && (
+            <Text style={[styles.sectionSubtitle, { color: TC.textSecondary, marginBottom: 8 }]}>
+              Welcome! Set your average week below to get your CO₂ baseline, then we'll finish your profile.
+            </Text>
+          )}
+          <Text style={[styles.sectionTitle, { color: TC.text }]}>🚀 Average Weekly Commute Mix</Text>
           <Text style={[styles.sectionSubtitle, { color: TC.textSecondary }]}>Select modes and tap the days you use them</Text>
 
           <ScrollView
@@ -582,23 +601,31 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Save Button */}
-        <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-          onPress={saveProfile}
-          disabled={saving}
-        >
-          <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.saveButtonGradient}>
-            {saving ? (
-              <ActivityIndicator color={COLORS.white} />
-            ) : (
-              <>
-                <Save size={20} color={COLORS.white} />
-                <Text style={styles.saveButtonText}>Save Baseline</Text>
-              </>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
+        {/* Save Button — in first-run setup, require a non-empty mix first */}
+        {(() => {
+          const hasMix = habits.some((h) => h.days.some(Boolean));
+          const disabled = saving || (isSetup && !hasMix);
+          return (
+            <TouchableOpacity
+              style={[styles.saveButton, disabled && styles.saveButtonDisabled]}
+              onPress={saveProfile}
+              disabled={disabled}
+            >
+              <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.saveButtonGradient}>
+                {saving ? (
+                  <ActivityIndicator color={COLORS.white} />
+                ) : (
+                  <>
+                    <Save size={20} color={COLORS.white} />
+                    <Text style={styles.saveButtonText}>
+                      {isSetup ? "Save & continue" : "Save Baseline"}
+                    </Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          );
+        })()}
 
         {/* Sign Out */}
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>

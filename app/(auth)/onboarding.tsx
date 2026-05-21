@@ -12,7 +12,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Building2, Users, Check, ChevronRight } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
-import { hasPrimedPermissions } from "../../lib/permissionsPriming";
+import { nextRouteAfterAuth } from "../../lib/permissionsPriming";
 
 // Brand Colors
 const COLORS = {
@@ -58,8 +58,9 @@ export default function OnboardingScreen() {
   // see the permission-priming screen instead of dropping straight into
   // the map.
   const goNext = async () => {
-    const primed = await hasPrimedPermissions();
-    router.replace(primed ? "/(tabs)" : "/(auth)/permissions");
+    const { data: { user } } = await supabase.auth.getUser();
+    const next = user ? await nextRouteAfterAuth(user.id) : "/(tabs)";
+    router.replace(next as any);
   };
 
   const loadData = async () => {

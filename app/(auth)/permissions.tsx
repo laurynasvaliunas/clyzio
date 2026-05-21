@@ -9,7 +9,19 @@ import * as Notifications from 'expo-notifications';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { PERMISSIONS_PRIMED_KEY } from '../../lib/permissionsPriming';
+import { PERMISSIONS_PRIMED_KEY, nextRouteAfterAuth } from '../../lib/permissionsPriming';
+import { supabase } from '../../lib/supabase';
+
+// After priming, continue the post-auth chain (→ first-run commute setup or Map).
+async function routeOnward(): Promise<string> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) return await nextRouteAfterAuth(user.id);
+  } catch {
+    /* fall through */
+  }
+  return '/(tabs)';
+}
 
 /**
  * 1.1 — Permission priming screen.
@@ -67,7 +79,7 @@ export default function PermissionsScreen() {
       try {
         const v = await SecureStore.getItemAsync(PERMISSIONS_PRIMED_KEY);
         if (!cancelled && v === '1') {
-          router.replace('/(tabs)');
+          router.replace((await routeOnward()) as any);
         }
       } catch {
         /* ignore — render the screen, worst case is one extra prime */
@@ -84,7 +96,7 @@ export default function PermissionsScreen() {
     } catch {
       /* non-fatal — user just sees the screen one more time */
     }
-    router.replace('/(tabs)');
+    router.replace((await routeOnward()) as any);
   };
 
   const advance = (nextStatus: Status) => {

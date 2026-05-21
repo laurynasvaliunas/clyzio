@@ -13,7 +13,7 @@ import {
   FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -89,6 +89,8 @@ interface ProfileData {
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const { setup } = useLocalSearchParams<{ setup?: string }>();
+  const isSetup = setup === "1"; // first-run: this is the final step before the Map
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -383,7 +385,12 @@ export default function EditProfileScreen() {
       if (error) throw error;
 
       showToast({ title: 'Saved!', message: 'Your profile has been updated.', type: 'success' });
-      router.back();
+      // First-run: this is the last setup step → land on the Map. Otherwise go back.
+      if (isSetup) {
+        router.replace("/(tabs)" as any);
+      } else {
+        router.back();
+      }
     } catch (error: any) {
       showToast({ title: 'Error', message: error.message, type: 'error' });
     } finally {

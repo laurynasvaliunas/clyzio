@@ -13,8 +13,12 @@
  */
 
 import * as SecureStore from 'expo-secure-store';
+import { supabase } from './supabase';
 
 export const PERMISSIONS_PRIMED_KEY = 'clyzio.permissionsPrimed.v1';
+
+/** Where a brand-new user must finish setup before reaching the Map. */
+export const COMMUTE_SETUP_ROUTE = '/(tabs)/profile?setup=1';
 
 export async function hasPrimedPermissions(): Promise<boolean> {
   try {
@@ -28,18 +32,58 @@ export async function hasPrimedPermissions(): Promise<boolean> {
 }
 
 /**
- * Resolve the destination route after a successful login / onboarding step.
- * Pass the route the caller would normally use (`/(tabs)` or
- * `/(auth)/onboarding`) and we'll insert the priming step ahead of it
- * if appropriate.
- *
- * Onboarding always wins over priming — corporate users still need to
- * pick their team first; permissions get primed right after.
+ * First-run check: has this account completed the commute-baseline setup?
+ * Reads the `profiles.commute_setup_done` flag. Tolerates the column being
+ * absent (pre-migration) — returns `true` (i.e. "no gate") so the app never
+ * blocks if the migration hasn't been applied yet.
  */
-export async function nextRouteAfterAuth(opts: {
-  needsOnboarding: boolean;
-}): Promise<'/(auth)/onboarding' | '/(auth)/permissions' | '/(tabs)'> {
-  if (opts.needsOnboarding) return '/(auth)/onboarding';
-  const primed = await hasPrimedPermissions();
-  return primed ? '/(tabs)' : '/(auth)/permissions';
+export async function hasCompletedCommuteSetup(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('commute_setup_done')
+      .eq('id', userId)
+      .single();
+    if (error) return true; // column missing / query error → don't gate
+    return (data as { commute_setup_done?: boolean } | null)?.commute_setup_done !== false;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Single source of truth for where a just-authenticated user should go.
+ * Returns the FIRST unsatisfied step, so every screen can call this when it
+ * finishes and the chain advances:
+ *   1. corporate onboarding (pick department)
+ *   2. permission priming (first device)
+ *   3. first-run commute setup (Profile, set baseline)  ← new
+ *   4. the Map (tabs)
+ *
+ * Returning users (setup done, primed, dept set) resolve straight to `/(tabs)`.
+ */
+export async function nextRouteAfterAuth(userId: string): Promise<string> {
+  // 1. Corporate onboarding — kept independent so a missing setup column can't
+  //    break department routing.
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('company_id, department_id, is_solo_user')
+      .eq('id', userId)
+      .single();
+    if (data?.company_id && !data?.department_id && !data?.is_solo_user) {
+      return '/(auth)/onboarding';
+    }
+  } catch {
+    /* fall through */
+  }
+
+  // 2. Permission priming (device-local).
+  if (!(await hasPrimedPermissions())) return '/(auth)/permissions';
+
+  // 3. First-run commute setup (account-level DB flag).
+  if (!(await hasCompletedCommuteSetup(userId))) return COMMUTE_SETUP_ROUTE;
+
+  // 4. Map.
+  return '/(tabs)';
 }

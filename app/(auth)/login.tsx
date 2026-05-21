@@ -98,20 +98,6 @@ export default function LoginScreen() {
     };
   }, [email]);
 
-  const checkOnboardingNeeded = async (userId: string) => {
-    try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("company_id, department_id, is_solo_user")
-        .eq("id", userId)
-        .single();
-      if (profile?.company_id && !profile?.department_id && !profile?.is_solo_user) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  };
-
   const handleAuth = async () => {
     if (!email.trim()) { showToast({ title: 'Error', message: 'Please enter your email address', type: 'error' }); return; }
     if (!password.trim()) { showToast({ title: 'Error', message: 'Please enter your password', type: 'error' }); return; }
@@ -133,18 +119,16 @@ export default function LoginScreen() {
             .update({ terms_accepted_at: now, privacy_policy_accepted_at: now })
             .eq("id", data.user.id);
 
-          const needsOnboarding = await checkOnboardingNeeded(data.user.id);
-          // 1.1 — route through permission priming on first device-launch.
-          const next = await nextRouteAfterAuth({ needsOnboarding });
-          router.replace(next);
+          // Resolve onboarding → permissions → first-run commute setup → Map.
+          const next = await nextRouteAfterAuth(data.user.id);
+          router.replace(next as any);
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) { showToast({ title: 'Sign In Failed', message: error.message, type: 'error' }); return; }
         if (data.session && data.user) {
-          const needsOnboarding = await checkOnboardingNeeded(data.user.id);
-          const next = await nextRouteAfterAuth({ needsOnboarding });
-          router.replace(next);
+          const next = await nextRouteAfterAuth(data.user.id);
+          router.replace(next as any);
         }
       }
     } catch (error: any) {

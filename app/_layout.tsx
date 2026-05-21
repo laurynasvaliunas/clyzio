@@ -26,6 +26,7 @@ import {
   JetBrainsMono_500Medium,
 } from "@expo-google-fonts/jetbrains-mono";
 import { parseLink, toRoutePath, notificationToRoute } from "../lib/deepLinks";
+import { hasCompletedCommuteSetup } from "../lib/permissionsPriming";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 import { ToastProvider } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
@@ -386,6 +387,28 @@ function RootLayoutContent() {
     } else if (isAuthenticated && inAuthGroup) {
       router.replace('/(tabs)');
     }
+  }, [isAuthenticated, segments]);
+
+  // First-run resilience: if an authenticated user hasn't finished commute setup
+  // (e.g. they quit mid-flow), resume them at Profile setup on this launch. Runs
+  // once per launch and only outside the auth/legal groups so it doesn't fight
+  // the login routing. Tolerates the flag column being absent (treated as done).
+  const commuteGateChecked = useRef(false);
+  useEffect(() => {
+    if (isAuthenticated !== true || commuteGateChecked.current) return;
+    const inAuthGroup = segments[0] === '(auth)';
+    const inPublicGroup = segments[0] === 'legal';
+    if (inAuthGroup || inPublicGroup) return; // let the auth flow route
+    commuteGateChecked.current = true;
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        if (!(await hasCompletedCommuteSetup(user.id))) {
+          router.replace('/(tabs)/profile?setup=1' as any);
+        }
+      } catch { /* ignore — never block launch */ }
+    })();
   }, [isAuthenticated, segments]);
 
   useEffect(() => {
