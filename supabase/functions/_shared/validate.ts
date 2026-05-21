@@ -90,7 +90,13 @@ export const AISustainabilityReportSchema = z
   .passthrough();
 
 export const DailyCommuteMatcherSchema = z
-  .object({ trip_date: isoDate.optional() })
+  .object({
+    trip_date: isoDate.optional(),
+    // When present, run in targeted/instant mode: match only this newly
+    // submitted intent against the opposite-role pool (bypasses the daily
+    // batch idempotency claim). Absent = full daily batch sweep.
+    new_intent_id: uuid.optional(),
+  })
   .passthrough();
 
 export const DeleteAccountSchema = z.object({

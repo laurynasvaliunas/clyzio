@@ -84,6 +84,30 @@ Deno.serve(async (req) => {
       intent = data;
     }
 
+    // Instant matching: fire the matcher in targeted mode for THIS intent so a
+    // compatible counterpart is matched within seconds (delivered to both via
+    // the realtime subscription on trip_intent_matches + push). Fire-and-forget
+    // so the submit response stays fast; EdgeRuntime.waitUntil keeps the
+    // background request alive after we respond.
+    if (intent?.id) {
+      const fireMatch = fetch(
+        `${Deno.env.get('SUPABASE_URL')}/functions/v1/daily-commute-matcher`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-cron-secret': Deno.env.get('CRON_SHARED_SECRET') ?? '',
+          },
+          body: JSON.stringify({ trip_date: targetDate, new_intent_id: intent.id }),
+        },
+      ).catch((e) => { console.error('instant-match invoke failed:', e); });
+
+      try {
+        (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
+          .EdgeRuntime?.waitUntil?.(fireMatch);
+      } catch { /* waitUntil unavailable — request still fires, just not awaited */ }
+    }
+
     return respondJSON({ intent });
   } catch (err) {
     return respondInternalError('submit-trip-intent', err);

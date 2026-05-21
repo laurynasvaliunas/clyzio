@@ -121,6 +121,162 @@ async function authorise(req: Request): Promise<SupabaseClient | Response> {
   }
 }
 
+// ─── Pair evaluation (shared by batch + instant modes) ─────────────────────────
+
+/**
+ * Evaluate one driver↔passenger pair: same-company/cross-org visibility, geo
+ * proximity, AI compatibility, then insert a trip_intent_matches row. Idempotent
+ * via the (driver_intent_id, passenger_intent_id) unique index — a duplicate is a
+ * no-op. Returns true only when a NEW match row was created.
+ */
+async function evaluatePair(
+  supabase: SupabaseClient,
+  anthropic: Anthropic,
+  mapboxToken: string,
+  driver: any,
+  passenger: any,
+  tripDate: string,
+): Promise<boolean> {
+  const { data: visible, error: visibleErr } = await supabase.rpc('is_peer_visible', {
+    p_caller: driver.user_id,
+    p_target: passenger.user_id,
+  });
+  if (!visibleErr && visible === false) return false;
+
+  const homeDist = haversineKm(driver.home_lat, driver.home_long, passenger.home_lat, passenger.home_long);
+  if (homeDist > 10) return false;
+
+  const driverRoute = await fetchMapboxRoute(
+    driver.home_long, driver.home_lat, driver.work_long, driver.work_lat, mapboxToken,
+  );
+
+  let pickupLon: number, pickupLat: number;
+  if (driverRoute.length > 1) {
+    const nearest = nearestPointOnPolyline([passenger.home_long, passenger.home_lat], driverRoute as [number, number][]);
+    pickupLon = nearest[0];
+    pickupLat = nearest[1];
+  } else {
+    pickupLon = passenger.home_long;
+    pickupLat = passenger.home_lat;
+  }
+
+  const detourKm = Math.max(
+    0,
+    haversineKm(driver.home_lat, driver.home_long, pickupLat, pickupLon) +
+      haversineKm(pickupLat, pickupLon, driver.work_lat, driver.work_long) -
+      haversineKm(driver.home_lat, driver.home_long, driver.work_lat, driver.work_long),
+  );
+
+  const scored = await scoreMatch(anthropic, driver, passenger, detourKm);
+  if (scored.score < 40) return false;
+
+  const pickupAddress = await reverseGeocode(pickupLon, pickupLat, mapboxToken);
+
+  // ON CONFLICT DO NOTHING via upsert+ignoreDuplicates; .select() returns the
+  // row only when it was actually inserted (empty on duplicate).
+  const { data: inserted, error: matchInsertError } = await supabase
+    .from('trip_intent_matches')
+    .upsert(
+      {
+        driver_intent_id: driver.id,
+        passenger_intent_id: passenger.id,
+        driver_user_id: driver.user_id,
+        passenger_user_id: passenger.user_id,
+        trip_date: tripDate,
+        ai_compatibility_score: scored.score,
+        ai_reasoning: scored.reasoning,
+        proposed_departure: scored.proposed_departure,
+        proposed_pickup_time: scored.proposed_pickup_time,
+        pickup_lat: pickupLat,
+        pickup_long: pickupLon,
+        pickup_address: pickupAddress,
+      },
+      { onConflict: 'driver_intent_id,passenger_intent_id', ignoreDuplicates: true },
+    )
+    .select('id');
+
+  if (matchInsertError) {
+    console.error('match insert error:', matchInsertError);
+    return false;
+  }
+  return Array.isArray(inserted) && inserted.length > 0;
+}
+
+/** Push both sides of a freshly-created match. */
+async function pushMatch(driver: any, passenger: any): Promise<void> {
+  if (driver.profiles?.expo_push_token) {
+    await sendPush({
+      to: driver.profiles.expo_push_token,
+      title: 'Commute match found!',
+      body: 'A passenger match is ready for your commute. Tap to review.',
+      data: { screen: 'daily-commute' },
+    });
+  }
+  if (passenger.profiles?.expo_push_token) {
+    await sendPush({
+      to: passenger.profiles.expo_push_token,
+      title: 'Driver match found!',
+      body: 'A driver match is ready for your commute. Tap to confirm.',
+      data: { screen: 'daily-commute' },
+    });
+  }
+}
+
+/**
+ * Instant/targeted mode: match ONE newly-submitted intent against the nearest
+ * viable opposite-role intent for its trip_date, and create the match row
+ * immediately. Both parties' realtime subscriptions on trip_intent_matches fire
+ * on the same INSERT, so the match appears the same second; push covers
+ * backgrounded users. Bypasses the daily matcher_runs date-claim entirely.
+ */
+async function runTargeted(
+  supabase: SupabaseClient,
+  anthropic: Anthropic,
+  mapboxToken: string,
+  newIntentId: string,
+): Promise<Response> {
+  const { data: ni, error } = await supabase
+    .from('trip_intents')
+    .select('*, profiles(first_name, expo_push_token)')
+    .eq('id', newIntentId)
+    .eq('status', 'pending')
+    .single();
+
+  if (error || !ni) {
+    return respondJSON({ ok: true, targeted: true, matches_created: 0, note: 'intent_not_pending' });
+  }
+
+  const oppositeRole = ni.role === 'driver' ? 'passenger' : 'driver';
+  const { data: pool } = await supabase
+    .from('trip_intents')
+    .select('*, profiles(first_name, expo_push_token)')
+    .eq('trip_date', ni.trip_date)
+    .eq('status', 'pending')
+    .eq('role', oppositeRole)
+    .neq('user_id', ni.user_id);
+
+  // Try nearest candidates first; one solid match is enough for the instant path.
+  const sorted = (pool ?? []).slice().sort(
+    (a: any, b: any) =>
+      haversineKm(ni.home_lat, ni.home_long, a.home_lat, a.home_long) -
+      haversineKm(ni.home_lat, ni.home_long, b.home_lat, b.home_long),
+  );
+
+  let created = 0;
+  for (const cand of sorted) {
+    const driver = ni.role === 'driver' ? ni : cand;
+    const passenger = ni.role === 'driver' ? cand : ni;
+    const matched = await evaluatePair(supabase, anthropic, mapboxToken, driver, passenger, ni.trip_date);
+    if (!matched) continue;
+    created++;
+    await pushMatch(driver, passenger);
+    await supabase.from('trip_intents').update({ status: 'matched' }).in('id', [driver.id, passenger.id]);
+    break;
+  }
+
+  return respondJSON({ ok: true, targeted: true, matches_created: created });
+}
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -139,6 +295,12 @@ Deno.serve(async (req) => {
   const mapboxToken = Deno.env.get('MAPBOX_TOKEN') ?? Deno.env.get('EXPO_PUBLIC_MAPBOX_TOKEN') ?? '';
 
   try {
+    // Instant mode: a single newly-submitted intent fired this run. Match it
+    // now and return — no date-claim, no full batch.
+    if (parsed.data.new_intent_id) {
+      return await runTargeted(supabase, anthropic, mapboxToken, parsed.data.new_intent_id);
+    }
+
     const tomorrow = (() => {
       const d = new Date();
       d.setDate(d.getDate() + 1);
@@ -177,64 +339,8 @@ Deno.serve(async (req) => {
       for (const passenger of passengers) {
         if (matchedPassengerIds.has(passenger.id)) continue;
 
-        // Same-company default + admin-controlled cross-org rule.
-        // is_peer_visible is SECURITY DEFINER and runs even when the
-        // matcher is called with the service role (auth.uid() is NULL).
-        const { data: visible, error: visibleErr } = await supabase.rpc(
-          'is_peer_visible',
-          { p_caller: driver.user_id, p_target: passenger.user_id },
-        );
-        // Pre-migration safety: if the helper isn't deployed yet, fall
-        // through to the historical (cross-org) matching behaviour.
-        if (!visibleErr && visible === false) continue;
-
-        const homeDist = haversineKm(driver.home_lat, driver.home_long, passenger.home_lat, passenger.home_long);
-        if (homeDist > 10) continue;
-
-        const driverRoute = await fetchMapboxRoute(
-          driver.home_long, driver.home_lat, driver.work_long, driver.work_lat, mapboxToken,
-        );
-
-        let pickupLon: number, pickupLat: number;
-        if (driverRoute.length > 1) {
-          const nearest = nearestPointOnPolyline([passenger.home_long, passenger.home_lat], driverRoute as [number, number][]);
-          pickupLon = nearest[0];
-          pickupLat = nearest[1];
-        } else {
-          pickupLon = passenger.home_long;
-          pickupLat = passenger.home_lat;
-        }
-
-        const detourKm = Math.max(
-          0,
-          haversineKm(driver.home_lat, driver.home_long, pickupLat, pickupLon) +
-            haversineKm(pickupLat, pickupLon, driver.work_lat, driver.work_long) -
-            haversineKm(driver.home_lat, driver.home_long, driver.work_lat, driver.work_long),
-        );
-
-        const scored = await scoreMatch(anthropic, driver, passenger, detourKm);
-        if (scored.score < 40) continue;
-
-        const pickupAddress = await reverseGeocode(pickupLon, pickupLat, mapboxToken);
-
-        const { error: matchInsertError } = await supabase
-          .from('trip_intent_matches')
-          .insert({
-            driver_intent_id: driver.id,
-            passenger_intent_id: passenger.id,
-            driver_user_id: driver.user_id,
-            passenger_user_id: passenger.user_id,
-            trip_date: tripDate,
-            ai_compatibility_score: scored.score,
-            ai_reasoning: scored.reasoning,
-            proposed_departure: scored.proposed_departure,
-            proposed_pickup_time: scored.proposed_pickup_time,
-            pickup_lat: pickupLat,
-            pickup_long: pickupLon,
-            pickup_address: pickupAddress,
-          });
-
-        if (matchInsertError) { console.error('match insert error:', matchInsertError); continue; }
+        const matched = await evaluatePair(supabase, anthropic, mapboxToken, driver, passenger, tripDate);
+        if (!matched) continue;
 
         matchesCreated++;
         matchedPassengerIds.add(passenger.id);

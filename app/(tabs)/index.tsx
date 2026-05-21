@@ -370,6 +370,8 @@ export default function MapScreen() {
   const [searchMode, setSearchMode] = useState<'driver' | 'rider' | null>(null);
   const [nearbyCommuters, setNearbyCommuters] = useState<any[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  // Origin of the active search, captured so a realtime refresh can re-query.
+  const searchOriginRef = useRef<any>(null);
 
   // ✅ SEARCH STATUS STATE
   const [searchStatus, setSearchStatus] = useState<SearchStatus>('idle');
@@ -740,6 +742,34 @@ export default function MapScreen() {
     }
   }, [generateMockCommuters]);
 
+  // ✅ LIVE SEARCH — while actively looking for a match, subscribe to `rides` so a
+  // counterpart who starts searching flips "waiting" → "matched" the same second
+  // (no polling, no manual refresh). RLS on rides (is_peer_visible) governs which
+  // inserts are delivered, so visibility rules are honored automatically.
+  useEffect(() => {
+    if (!searchMode) return;
+    let debounce: ReturnType<typeof setTimeout> | undefined;
+    const channel = supabase
+      .channel('home-search-rides')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'rides' },
+        () => {
+          clearTimeout(debounce);
+          debounce = setTimeout(() => {
+            if (searchOriginRef.current) {
+              fetchNearbyCommuters(searchMode, searchOriginRef.current);
+            }
+          }, 300);
+        },
+      )
+      .subscribe();
+    return () => {
+      clearTimeout(debounce);
+      supabase.removeChannel(channel);
+    };
+  }, [searchMode, fetchNearbyCommuters]);
+
   /**
    * ✅ SINGLE CALLBACK - Receives completed trip data from modal
    * This is called ONCE when user submits, not on every keystroke
@@ -758,10 +788,11 @@ export default function MapScreen() {
     // ✅ ACTIVATE COMMUTER RADAR if Driver or Rider role
     if (tripData.role === 'driver' || tripData.role === 'rider') {
       setSearchMode(tripData.role);
-      
+      searchOriginRef.current = tripData.origin;
+
       // Close modal BEFORE starting search
       setShowPlanner(false);
-      
+
       // Start searching (this will update searchStatus internally)
       await fetchNearbyCommuters(tripData.role, tripData.origin);
     } else {
