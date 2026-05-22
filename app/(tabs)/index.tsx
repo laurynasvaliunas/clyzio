@@ -825,27 +825,40 @@ export default function MapScreen() {
    * Also marks the ride as 'cancelled' in the DB so it moves to
    * Activity → History and doesn't stay stuck in Upcoming as "scheduled".
    */
-  // Make the empty-state "invite a colleague" copy actionable — same
-  // referral link/flow as the Impact screen's invite card.
+  // Make the empty-state "invite a colleague" link reliably actionable. Always
+  // opens the share sheet: a personal referral link when the user has a
+  // referral_code, otherwise a generic clyzio.app link (so it never silently
+  // no-ops if the code isn't populated). Errors surface as a toast.
   const handleInviteShare = useCallback(async () => {
+    let url = 'https://clyzio.app';
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('referral_code')
-        .eq('id', user.id)
-        .single();
-      if (!profile?.referral_code) return;
-      const url = buildWebLink({ type: 'invite', code: profile.referral_code });
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('referral_code')
+          .eq('id', user.id)
+          .single();
+        if (profile?.referral_code) {
+          url = buildWebLink({ type: 'invite', code: profile.referral_code });
+        }
+      }
+    } catch {
+      // Keep the generic fallback link.
+    }
+    try {
       await Share.share({
         message: `Join me on Clyzio. Let's share commutes and cut CO₂ together. ${url}`,
         url,
       });
-    } catch {
-      // Non-fatal — share sheet dismissed or profile not ready.
+    } catch (e: any) {
+      showToast({
+        title: "Couldn't open sharing",
+        message: e?.message ?? 'Please try again.',
+        type: 'error',
+      });
     }
-  }, []);
+  }, [showToast]);
 
   const handleCancelSearch = useCallback(async () => {
     if (activeRideId) {
