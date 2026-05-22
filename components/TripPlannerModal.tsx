@@ -1000,7 +1000,7 @@ const styles = StyleSheet.create({
     color: COLORS.dark,
   },
   title: {
-    fontFamily: "InstrumentSerif",
+    fontWeight: "700",
     fontSize: 26,
     lineHeight: 32,
     flex: 1,

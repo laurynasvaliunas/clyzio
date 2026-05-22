@@ -874,7 +874,7 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
   headerTitle: {
-    fontFamily: "InstrumentSerif",
+    fontWeight: "700",
     fontSize: 30,
     lineHeight: 38,
     letterSpacing: -0.4,
@@ -957,7 +957,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   insightText: {
-    fontFamily: "InstrumentSerif",
+    fontWeight: "700",
     fontSize: 21,
     color: COLORS.white,
     lineHeight: 27,
@@ -971,7 +971,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   savingPillText: {
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",
@@ -1028,7 +1028,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cardHeaderText: { flex: 1 },
-  modeName: { fontFamily: "InstrumentSerif", fontSize: 21, letterSpacing: -0.2 },
+  modeName: { fontWeight: "700", fontSize: 21, letterSpacing: -0.2 },
   difficultyPill: {
     alignSelf: "flex-start",
     paddingHorizontal: 8,
@@ -1058,9 +1058,9 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   stat: { alignItems: "center", flex: 1 },
-  statValue: { fontFamily: "InstrumentSerif", fontSize: 19, letterSpacing: -0.3 },
+  statValue: { fontWeight: "700", fontSize: 19, letterSpacing: -0.3 },
   statLabel: {
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 9.5,
     letterSpacing: 0.6,
     textTransform: "uppercase",
@@ -1092,7 +1092,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   ctaButtonTopText: {
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 12,
     letterSpacing: 0.6,
     textTransform: "uppercase",
@@ -1108,7 +1108,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#0B1A1F",
   },
   ctaButtonText: {
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 12,
     letterSpacing: 0.6,
     textTransform: "uppercase",

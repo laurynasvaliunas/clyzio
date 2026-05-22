@@ -30,11 +30,14 @@ export const semantic = {
  * the light/dark palettes below are re-pointed onto this system so the base
  * theme propagates to every existing `useThemeColors` consumer.
  */
-export const fonts = {
-  serif: 'InstrumentSerif',
-  serifItalic: 'InstrumentSerif-Italic',
-  mono: 'JetBrainsMono',
-  monoMedium: 'JetBrainsMono-Medium',
+// App-wide typography uses the platform system font (SF Pro / Roboto) — no
+// custom family is set; weight carries the hierarchy.
+export const weights = {
+  regular: '400',
+  medium: '500',
+  semibold: '600',
+  bold: '700',
+  heavy: '800',
 } as const;
 
 export const editorial = {
@@ -66,7 +69,6 @@ export const editorial = {
   night: '#0E1F23',
   night2: '#15282C',
   nightLine: 'rgba(255,255,255,0.07)',
-  fonts,
 } as const;
 
 export const neutral = {
@@ -158,29 +160,27 @@ export const typography = {
   bodyStrong: { fontSize: 15, lineHeight: 22, fontWeight: '600' as const },
   caption: { fontSize: 13, lineHeight: 18, fontWeight: '400' as const },
   label: { fontSize: 12, lineHeight: 16, fontWeight: '700' as const, letterSpacing: 0.4 },
-  // ─── Editorial type scale (Instrument Serif / JetBrains Mono) ──────────────
-  // Instrument Serif's ascenders extend above the EM box; lineHeight must be
-  // ≥ fontSize × 1.18 to prevent glyph clipping at the top.
-  displayHero: { fontFamily: fonts.serif, fontSize: 80, lineHeight: 94, letterSpacing: -2 },
-  displayXL: { fontFamily: fonts.serif, fontSize: 50, lineHeight: 60, letterSpacing: -1 },
-  serifTitle: { fontFamily: fonts.serif, fontSize: 28, lineHeight: 34, letterSpacing: -0.4 },
-  serifLg: { fontFamily: fonts.serif, fontSize: 21, lineHeight: 25 },
-  serifNum: { fontFamily: fonts.serif, fontSize: 44, lineHeight: 52, letterSpacing: -1 },
+  // ─── Editorial type scale (system font; weight carries the hierarchy) ──────
+  displayHero: { fontWeight: weights.heavy, fontSize: 80, lineHeight: 94, letterSpacing: -2 },
+  displayXL: { fontWeight: weights.heavy, fontSize: 50, lineHeight: 60, letterSpacing: -1 },
+  serifTitle: { fontWeight: weights.bold, fontSize: 28, lineHeight: 34, letterSpacing: -0.4 },
+  serifLg: { fontWeight: weights.bold, fontSize: 21, lineHeight: 25 },
+  serifNum: { fontWeight: weights.heavy, fontSize: 44, lineHeight: 52, letterSpacing: -1 },
   eyebrow: {
-    fontFamily: fonts.mono,
+    fontWeight: weights.semibold,
     fontSize: 10,
     lineHeight: 14,
     letterSpacing: 1.6,
     textTransform: 'uppercase' as const,
   },
   pillText: {
-    fontFamily: fonts.mono,
+    fontWeight: weights.semibold,
     fontSize: 10.5,
     lineHeight: 14,
     letterSpacing: 0.6,
     textTransform: 'uppercase' as const,
   },
-  monoMeta: { fontFamily: fonts.mono, fontSize: 11, lineHeight: 15, letterSpacing: 0.4 },
+  monoMeta: { fontWeight: weights.semibold, fontSize: 11, lineHeight: 15, letterSpacing: 0.4 },
 } as const;
 
 export const motion = {

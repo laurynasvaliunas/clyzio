@@ -1,5 +1,5 @@
 import Svg, { Circle, Text as SvgText } from "react-native-svg";
-import { editorial } from "../../../lib/theme/tokens";
+import { editorial, weights } from "../../../lib/theme/tokens";
 
 /**
  * Editorial level ring — hairline track + ink progress arc with a big
@@ -48,7 +48,7 @@ export default function LevelRing({
         x={cx}
         y={cx + size * 0.04}
         textAnchor="middle"
-        fontFamily={editorial.fonts.serif}
+        fontWeight={weights.heavy}
         fontSize={size * 0.41}
         fill={color}
       >

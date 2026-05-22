@@ -938,9 +938,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   levelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  levelHint: { fontFamily: "JetBrainsMono", fontSize: 10, letterSpacing: 1.4, marginBottom: 14 },
+  levelHint: { fontWeight: "600", fontSize: 10, letterSpacing: 1.4, marginBottom: 14 },
   levelBadge: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: COLORS.accent + "20", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  levelNumber: { fontFamily: "InstrumentSerif", fontSize: 20, color: COLORS.accentDark },
+  levelNumber: { fontWeight: "700", fontSize: 20, color: COLORS.accentDark },
   levelTitle: { fontSize: 16, fontWeight: "600", color: COLORS.dark },
   progressBarContainer: { marginBottom: 12 },
   progressBarBg: { height: 12, backgroundColor: COLORS.light, borderRadius: 6, overflow: "hidden" },
@@ -958,7 +958,7 @@ const styles = StyleSheet.create({
     padding: 18,
   },
   guideTitle: {
-    fontFamily: "InstrumentSerif",
+    fontWeight: "700",
     fontSize: 22,
     marginBottom: 12,
   },
@@ -969,7 +969,7 @@ const styles = StyleSheet.create({
   // ===== BADGES SECTION =====
   badgesSection: { marginHorizontal: 16, marginTop: 20 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
-  sectionTitle: { fontFamily: "InstrumentSerif", fontSize: 24, color: COLORS.dark },
+  sectionTitle: { fontWeight: "700", fontSize: 24, color: COLORS.dark },
   badgesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   badgeItem: { width: "30%", alignItems: "center", opacity: 0.5 },
   badgeItemUnlocked: { opacity: 1 },
@@ -984,17 +984,15 @@ const styles = StyleSheet.create({
   heroMetric: { flex: 1 },
   heroLabel: { fontSize: 14, color: COLORS.white, opacity: 0.9 },
   heroValue: {
-    fontFamily: "InstrumentSerif",
+    fontWeight: "800",
     fontSize: 96,
-    // lineHeight must exceed fontSize for Instrument Serif so the glyph's
-    // ascender (the top stroke of "2", "3", etc.) isn't clipped.
     lineHeight: 112,
     letterSpacing: -3,
     color: COLORS.white,
     marginVertical: 4,
   },
   heroUnit: {
-    fontFamily: "InstrumentSerif-Italic",
+    fontWeight: "600", fontStyle: "italic",
     fontSize: 24,
     color: COLORS.white,
     opacity: 0.85,

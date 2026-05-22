@@ -225,12 +225,12 @@ const styles = StyleSheet.create({
   },
   headerText: { flex: 1, gap: 3 },
   title: {
-    fontFamily: "InstrumentSerif",
+    fontWeight: "700",
     fontSize: 16,
     color: COLORS.dark,
     lineHeight: 19,
   },
-  bold: { fontFamily: "InstrumentSerif-Italic" },
+  bold: { fontWeight: "600", fontStyle: "italic" },
   reasoning: {
     fontSize: 12,
     color: COLORS.textSecondary,
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   badgeText: {
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 10,
     letterSpacing: 0.4,
   },
@@ -275,14 +275,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#0B1A1F",
   },
   declineText: {
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",
     color: COLORS.gray,
   },
   acceptText: {
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",

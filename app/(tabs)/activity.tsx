@@ -687,7 +687,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   headerTitle: {
-    fontFamily: "InstrumentSerif",
+    fontWeight: "700",
     fontSize: 40,
     lineHeight: 48,
     letterSpacing: -0.8,

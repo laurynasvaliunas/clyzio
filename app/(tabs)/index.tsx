@@ -1436,7 +1436,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   activeTripTitle: {
-    fontFamily: "InstrumentSerif",
+    fontWeight: "700",
     fontSize: 21,
     color: COLORS.black,
   },
@@ -1453,7 +1453,7 @@ const styles = StyleSheet.create({
   },
   changeBtnText: {
     color: "#FAF7EF",
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",
@@ -1527,7 +1527,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   emptyStateInvite: {
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 10.5,
     letterSpacing: 0.6,
     textTransform: "uppercase",

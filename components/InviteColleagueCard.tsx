@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import { supabase } from "../lib/supabase";
 import { buildWebLink } from "../lib/deepLinks";
 import { REFERRAL_XP } from "../lib/gamification";
-import { editorial } from "../lib/theme/tokens";
+import { editorial, weights } from "../lib/theme/tokens";
 import { Eyebrow, Pill, Picto } from "./ui/editorial";
 
 /**
@@ -140,20 +140,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontFamily: editorial.fonts.serif,
+    fontWeight: weights.bold,
     fontSize: 22,
     color: editorial.paper,
     marginTop: 2,
   },
   body: {
-    fontFamily: editorial.fonts.serif,
+    fontWeight: weights.medium,
     fontSize: 16,
     lineHeight: 21,
     color: "rgba(255,255,255,0.78)",
     marginBottom: 16,
   },
   bodyStrong: {
-    fontFamily: editorial.fonts.serifItalic,
+    fontWeight: weights.bold,
     color: editorial.cyan,
   },
   cta: {
@@ -166,14 +166,14 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
   },
   ctaText: {
-    fontFamily: editorial.fonts.mono,
+    fontWeight: weights.semibold,
     fontSize: 12,
     letterSpacing: 0.6,
     textTransform: "uppercase",
     color: editorial.ink,
   },
   footer: {
-    fontFamily: editorial.fonts.mono,
+    fontWeight: weights.semibold,
     fontSize: 10,
     letterSpacing: 0.6,
     textTransform: "uppercase",

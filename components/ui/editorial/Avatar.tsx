@@ -1,5 +1,5 @@
 import { View, Text, ViewStyle, StyleProp } from "react-native";
-import { editorial } from "../../../lib/theme/tokens";
+import { editorial, weights } from "../../../lib/theme/tokens";
 
 export type AvatarTone =
   | "cyan"
@@ -69,7 +69,7 @@ export default function Avatar({
     >
       <Text
         style={{
-          fontFamily: editorial.fonts.serifItalic,
+          fontWeight: weights.bold,
           fontSize: size * 0.46,
           letterSpacing: -0.4,
           color: t.fg,

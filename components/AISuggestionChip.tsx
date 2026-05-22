@@ -1,7 +1,7 @@
 import { TouchableOpacity, Text, View, StyleSheet } from "react-native";
 import { X } from "lucide-react-native";
 import { Picto } from "./ui/editorial";
-import { editorial } from "../lib/theme/tokens";
+import { editorial, weights } from "../lib/theme/tokens";
 
 interface AISuggestionChipProps {
   insight: string;
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   },
   text: {
     flex: 1,
-    fontFamily: editorial.fonts.serif,
+    fontWeight: weights.medium,
     fontSize: 14,
     color: editorial.ink,
     lineHeight: 18,

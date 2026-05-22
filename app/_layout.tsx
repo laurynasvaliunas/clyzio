@@ -16,15 +16,6 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
-import { useFonts } from "expo-font";
-import {
-  InstrumentSerif_400Regular,
-  InstrumentSerif_400Regular_Italic,
-} from "@expo-google-fonts/instrument-serif";
-import {
-  JetBrainsMono_400Regular,
-  JetBrainsMono_500Medium,
-} from "@expo-google-fonts/jetbrains-mono";
 import { parseLink, toRoutePath, notificationToRoute } from "../lib/deepLinks";
 import { hasCompletedCommuteSetup } from "../lib/permissionsPriming";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
@@ -262,14 +253,6 @@ function RootLayoutContent() {
   const { isDark } = useTheme(); // Use theme context instead of system color scheme
   const router = useRouter();
   const segments = useSegments();
-  // Editorial design system fonts. Family keys are referenced across the
-  // reskinned screens via the theme typography tokens.
-  const [fontsLoaded] = useFonts({
-    "InstrumentSerif": InstrumentSerif_400Regular,
-    "InstrumentSerif-Italic": InstrumentSerif_400Regular_Italic,
-    "JetBrainsMono": JetBrainsMono_400Regular,
-    "JetBrainsMono-Medium": JetBrainsMono_500Medium,
-  });
   const [isReady, setIsReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { subscribeToIncomingSuggestions, unsubscribeFromSuggestions } = useAIStore();
@@ -528,7 +511,7 @@ function RootLayoutContent() {
   // the auth session has been resolved. Previously we only waited on `isReady`
   // which meant a fraction of a second of unauthenticated tabs flashed before
   // the redirect effect ran.
-  if (!fontsLoaded || !isReady || isAuthenticated === null || splashSkipResolved === null) {
+  if (!isReady || isAuthenticated === null || splashSkipResolved === null) {
     return (
       <SafeAreaProvider>
         <AnimatedSplash

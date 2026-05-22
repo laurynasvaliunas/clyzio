@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
   },
-  pageTitle: { fontFamily: "InstrumentSerif", fontSize: 40, lineHeight: 48, letterSpacing: -0.8, color: COLORS.dark },
+  pageTitle: { fontWeight: "700", fontSize: 40, lineHeight: 48, letterSpacing: -0.8, color: COLORS.dark },
   settingsButton: {
     width: 44,
     height: 44,
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   userInfo: { flex: 1, marginLeft: 14 },
-  userName: { fontFamily: "InstrumentSerif", fontSize: 22, color: COLORS.dark },
+  userName: { fontWeight: "700", fontSize: 22, color: COLORS.dark },
   userEmail: { fontSize: 13, color: COLORS.gray, marginTop: 2 },
   
   // ===== SCORE CARD =====
@@ -722,14 +722,14 @@ const styles = StyleSheet.create({
   },
   scoreCard: { borderRadius: 24, padding: 24, alignItems: "center" },
   scoreLabel: { fontSize: 14, color: COLORS.white, opacity: 0.9, marginTop: 8 },
-  scoreValue: { fontFamily: "InstrumentSerif", fontSize: 72, lineHeight: 86, letterSpacing: -2, color: COLORS.white, marginVertical: 4 },
+  scoreValue: { fontWeight: "800", fontSize: 72, lineHeight: 86, letterSpacing: -2, color: COLORS.white, marginVertical: 4 },
   scoreUnit: { fontSize: 14, color: COLORS.white, opacity: 0.8 },
   levelBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginTop: 12 },
   levelText: { color: COLORS.dark, fontWeight: "bold", fontSize: 14 },
   
   // ===== COMMUTE SECTION =====
   section: { paddingHorizontal: 16, marginBottom: 20 },
-  sectionTitle: { fontFamily: "InstrumentSerif", fontSize: 24, color: COLORS.dark },
+  sectionTitle: { fontWeight: "700", fontSize: 24, color: COLORS.dark },
   sectionSubtitle: { fontSize: 13, color: COLORS.gray, marginTop: 4, marginBottom: 16 },
   modeCardsContainer: { paddingVertical: 8, gap: 12 },
   

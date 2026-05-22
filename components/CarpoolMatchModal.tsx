@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  headerTitle: { fontFamily: "InstrumentSerif", fontSize: 24, color: "#0B1A1F" },
+  headerTitle: { fontWeight: "700", fontSize: 24, color: "#0B1A1F" },
   closeBtn: {
     width: 36,
     height: 36,
@@ -231,12 +231,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   matchInfo: { flex: 1 },
-  matchName: { fontFamily: "InstrumentSerif", fontSize: 20, color: "#0B1A1F" },
+  matchName: { fontWeight: "700", fontSize: 20, color: "#0B1A1F" },
   matchReasoning: { fontSize: 12, color: COLORS.gray, marginTop: 2, lineHeight: 16 },
   scoreBox: { alignItems: "center" },
-  scoreText: { fontFamily: "InstrumentSerif", fontSize: 24, color: COLORS.dark },
+  scoreText: { fontWeight: "700", fontSize: 24, color: COLORS.dark },
   scoreLabel: {
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 9,
     letterSpacing: 0.6,
     textTransform: "uppercase",
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   matchStats: { flexDirection: "row", gap: 16, marginBottom: 14 },
   matchStat: { flexDirection: "row", alignItems: "center", gap: 4 },
   matchStatText: {
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 11,
     letterSpacing: 0.3,
     color: COLORS.gray,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   requestBtnText: {
     color: "#FAF7EF",
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 12,
     letterSpacing: 0.6,
     textTransform: "uppercase",

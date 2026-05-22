@@ -1,5 +1,5 @@
 import { View, Text, ViewStyle, StyleProp } from "react-native";
-import { editorial, typography } from "../../../lib/theme/tokens";
+import { editorial, weights } from "../../../lib/theme/tokens";
 import Eyebrow from "./Eyebrow";
 
 /**
@@ -27,7 +27,7 @@ export default function Stat({
       <View style={{ flexDirection: "row", alignItems: "baseline", gap: 3 }}>
         <Text
           style={{
-            fontFamily: typography.serifNum.fontFamily,
+            fontWeight: weights.heavy,
             fontSize: big ? 44 : 28,
             lineHeight: big ? 46 : 30,
             letterSpacing: -0.5,
@@ -39,7 +39,7 @@ export default function Stat({
         {unit ? (
           <Text
             style={{
-              fontFamily: editorial.fonts.mono,
+              fontWeight: weights.semibold,
               fontSize: 11,
               letterSpacing: 0.4,
               color: editorial.ink3,

@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   totalValue: {
-    fontFamily: "InstrumentSerif",
+    fontWeight: "700",
     fontSize: 52,
     lineHeight: 62,
     letterSpacing: -1.5,

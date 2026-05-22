@@ -949,12 +949,12 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   distanceBadgeText: {
-    fontFamily: "InstrumentSerif",
+    fontWeight: "700",
     fontSize: 24,
     color: COLORS.primary,
   },
   distanceBadgeLabel: {
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 9.5,
     letterSpacing: 0.8,
     textTransform: "uppercase",
@@ -1014,7 +1014,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   modeLabel: {
-    fontFamily: "InstrumentSerif",
+    fontWeight: "700",
     fontSize: 21,
     color: COLORS.dark,
     marginBottom: 2,
@@ -1049,7 +1049,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   routeLabel: {
-    fontFamily: "JetBrainsMono",
+    fontWeight: "600",
     fontSize: 9.5,
     letterSpacing: 0.8,
     color: COLORS.gray400,

@@ -39,7 +39,7 @@ export default function TabsLayout() {
           </View>
         ),
         tabBarLabelStyle: {
-          fontFamily: "JetBrainsMono",
+          fontWeight: "600",
           fontSize: 9.5,
           letterSpacing: 0.6,
           textTransform: "uppercase",
