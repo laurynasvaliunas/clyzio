@@ -1013,7 +1013,7 @@ export default function MapScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        styleURL={isDark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Light}
+        styleURL={isDark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street}
         logoEnabled={false}
         attributionEnabled={true}
         onDidFinishLoadingMap={centerToUserLocation}
