@@ -45,6 +45,7 @@ interface TransportMode {
 }
 
 const TRANSPORT_OPTIONS: TransportMode[] = [
+  { id: "wfh", name: "Working from home", co2: 0, emoji: "🏠" },
   { id: "walking", name: "Walking", co2: 0, emoji: "🚶" },
   { id: "bike", name: "Bike/Scooter", co2: 0, emoji: "🚴" },
   { id: "ebike", name: "E-Bike/Scooter", co2: 0.023, emoji: "⚡" },
@@ -191,17 +192,20 @@ function ModeCard({ mode, isSelected, daysCount, onPress, TC }: ModeCardProps) {
  * DaySelector - Day selection UI for a transport mode
  */
 interface DaySelectorProps {
+  modeId: string;
   modeName: string;
   selectedDays: boolean[];
   onToggleDay: (index: number) => void;
   TC: ReturnType<typeof getThemeColors>;
 }
 
-function DaySelector({ modeName, selectedDays, onToggleDay, TC }: DaySelectorProps) {
+function DaySelector({ modeId, modeName, selectedDays, onToggleDay, TC }: DaySelectorProps) {
   return (
     <View style={[styles.daySelector, { backgroundColor: TC.surface }]}>
       <Text style={[styles.daySelectorTitle, { color: TC.text }]}>
-        Tap the days you use {modeName}:
+        {modeId === "wfh"
+          ? "Tap the days you work from home:"
+          : `Tap the days you use ${modeName}:`}
       </Text>
       <View style={styles.dayBubbles}>
         {DAYS.map((day, index) => {
@@ -593,6 +597,7 @@ export default function ProfileScreen() {
 
           {selectedModeId && (
             <DaySelector
+              modeId={selectedModeId}
               modeName={TRANSPORT_OPTIONS.find((m) => m.id === selectedModeId)?.name || ""}
               selectedDays={getHabitDays(selectedModeId)}
               onToggleDay={(index) => toggleDay(selectedModeId, index)}
