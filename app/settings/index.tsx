@@ -234,13 +234,18 @@ export default function SettingsScreen() {
             <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
 
-          <View style={[styles.settingItem, { backgroundColor: TC.surface, flexWrap: 'wrap' }]}>
+          <View style={[styles.settingItem, { backgroundColor: TC.surface }]}>
             <View style={[styles.iconBox, { backgroundColor: COLORS.dark + "20" }]}>
               <Moon size={20} color={COLORS.dark} />
             </View>
-            <Text style={[styles.settingLabel, { color: TC.text }]}>Appearance</Text>
+            <Text
+              style={[styles.settingLabel, { color: TC.text }]}
+              numberOfLines={1}
+            >
+              Appearance
+            </Text>
             <View
-              style={{ flexDirection: 'row', gap: 6 }}
+              style={{ flexDirection: 'row', gap: 4, flexShrink: 0 }}
               accessibilityRole="radiogroup"
               accessibilityLabel="Appearance"
             >
@@ -254,7 +259,7 @@ export default function SettingsScreen() {
                     accessibilityState={{ selected: active }}
                     accessibilityLabel={`${mode} mode`}
                     style={{
-                      paddingHorizontal: 12,
+                      paddingHorizontal: 10,
                       paddingVertical: 6,
                       borderRadius: 999,
                       backgroundColor: active ? COLORS.primary : TC.surface2 ?? COLORS.grayLight,
@@ -262,7 +267,7 @@ export default function SettingsScreen() {
                   >
                     <Text
                       style={{
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: "600",
                         color: active ? COLORS.white : TC.textSecondary,
                         textTransform: "capitalize",
