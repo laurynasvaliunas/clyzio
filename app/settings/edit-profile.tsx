@@ -302,9 +302,14 @@ export default function EditProfileScreen() {
   };
 
   // Per-vehicle Save from the Garage: persist the garage immediately (and keep
-  // the synced car_*/baseline_co2 in step) so a saved vehicle isn't lost if the
-  // user leaves before tapping the screen-level Save. Throws on error so the
+  // the synced car_* fields in step) so a saved vehicle isn't lost if the user
+  // leaves before tapping the screen-level Save. Throws on error so the
   // GarageEditor keeps the card expanded for a retry.
+  //
+  // NOTE: `baseline_co2` is deliberately NOT written here. The Profile
+  // commute-mix screen owns that column (it's a weighted per-km factor across
+  // weekly modes incl. WFH), and overwriting it with a fuel-only number would
+  // silently clobber the user's real baseline. See plan §4.
   const persistGarage = async (
     vehicles: Vehicle[],
     primaryVehicleId: string | null,
@@ -325,7 +330,6 @@ export default function EditProfileScreen() {
         car_color: derived.car_color,
         car_plate: derived.car_plate,
         car_fuel_type: derived.car_fuel_type,
-        baseline_co2: derived.baseline_co2,
       })
       .eq("id", userId);
 
@@ -341,9 +345,14 @@ export default function EditProfileScreen() {
     setSaving(true);
 
     try {
-      // Keep the legacy flat car_* / baseline_co2 columns synced from the
-      // primary garage vehicle so TripPlanner / useTripStore / ai-planner /
-      // the ai-commute-planner edge fn keep working with no changes.
+      // Keep the legacy flat car_* columns synced from the primary garage
+      // vehicle so TripPlanner / useTripStore / ai-planner / the
+      // ai-commute-planner edge fn keep working with no changes.
+      //
+      // NOTE: `baseline_co2` is deliberately NOT written here. The Profile
+      // commute-mix screen owns it (weighted per-km factor across weekly modes
+      // incl. WFH). Writing a fuel-only value on every Edit Profile save
+      // silently clobbered the user's real baseline.
       const primary = getPrimaryVehicle(profile.vehicles, profile.primary_vehicle_id);
       const derived = deriveProfileCarFields(primary);
 
@@ -358,7 +367,6 @@ export default function EditProfileScreen() {
         car_color: derived.car_color,
         car_plate: derived.car_plate,
         car_fuel_type: derived.car_fuel_type,
-        baseline_co2: derived.baseline_co2,
         home_address: profile.home_address || null,
         home_lat: profile.home_lat,
         home_long: profile.home_long,
