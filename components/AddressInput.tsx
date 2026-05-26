@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -37,6 +37,7 @@ interface AddressInputProps {
   placeholder: string;
   value?: string;
   onPress?: (data: any, details: any) => void;
+  onChangeText?: (text: string) => void;
   onClear?: () => void;
   isGoogle?: boolean; // kept for API compat — ignored, always uses Mapbox
   zIndex?: number;
@@ -53,6 +54,7 @@ export default function AddressInput({
   placeholder,
   value,
   onPress,
+  onChangeText,
   onClear,
   zIndex = 100,
   icon,
@@ -67,6 +69,14 @@ export default function AddressInput({
   const [isFocused, setIsFocused] = useState(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Keep the input in sync if the parent resets/loads `value` asynchronously
+  // (e.g. profile finishes loading, or an external clear). Without this, the
+  // input mirrors only the initial mount value and goes stale.
+  useEffect(() => {
+    if (value !== undefined && value !== query) setQuery(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   const bgColor = isDark
     ? theme === "accent" ? COLORS.accent + "15" : COLORS.slate700
@@ -98,6 +108,10 @@ export default function AddressInput({
 
   const handleChangeText = (text: string) => {
     setQuery(text);
+    // Surface every keystroke to the parent so typed addresses are captured
+    // even when the user never selects a Mapbox suggestion. Without this,
+    // plain typing stays trapped in local state and the parent saves null.
+    onChangeText?.(text);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => fetchSuggestions(text), 350);
   };

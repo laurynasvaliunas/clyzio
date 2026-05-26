@@ -535,10 +535,20 @@ export default function EditProfileScreen() {
           <Text style={[styles.inputLabel, { marginBottom: 8 }]}>Home Address</Text>
           <View style={{ zIndex: 200, marginBottom: 16 }}>
             <AddressInput
-              placeholder={profile.home_address || "Enter your home address"}
+              placeholder="Enter your home address"
               value={profile.home_address}
               icon={<MapPin size={16} color={COLORS.gray} />}
               zIndex={200}
+              onChangeText={(text) =>
+                setProfile((prev) => ({
+                  ...prev,
+                  home_address: text,
+                  // Typed text invalidates the previously-geocoded coords;
+                  // a fresh Mapbox selection (onPress below) will re-fill them.
+                  home_lat: null,
+                  home_long: null,
+                }))
+              }
               onPress={(_, details) => {
                 if (details?.geometry?.location) {
                   setProfile((prev) => ({
@@ -569,10 +579,18 @@ export default function EditProfileScreen() {
           <Text style={[styles.inputLabel, { marginBottom: 8 }]}>Work Address</Text>
           <View style={{ zIndex: 100, marginBottom: 4 }}>
             <AddressInput
-              placeholder={profile.work_address || "Enter your office address"}
+              placeholder="Enter your office address"
               value={profile.work_address}
               icon={<Briefcase size={16} color={COLORS.gray} />}
               zIndex={100}
+              onChangeText={(text) =>
+                setProfile((prev) => ({
+                  ...prev,
+                  work_address: text,
+                  work_lat: null,
+                  work_long: null,
+                }))
+              }
               onPress={(_, details) => {
                 if (details?.geometry?.location) {
                   setProfile((prev) => ({
