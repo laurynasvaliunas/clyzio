@@ -15,7 +15,8 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
-import { XP_PER_TRIP } from "../../lib/gamification";
+// Gamification math (XP per trip, level math, badge thresholds) lives
+// server-side in the `complete-trip` edge function. See audit C2.
 import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserLocation } from "@rnmapbox/maps";
 import * as Location from "expo-location";
 import { MessageCircle, Shield, X, Phone, AlertTriangle, Car, Footprints, Bike, Zap, Bus, Navigation as NavIcon, Circle, MapPin } from "lucide-react-native";
@@ -258,81 +259,31 @@ export default function TripScreen() {
     return R * c;
   };
 
-  // 1.5 — Award current user's XP / CO2 / badges. Extracted so passengers
-  // can collect their own credit without ending the ride lifecycle (which
-  // belongs to the driver). `endTripStatus=true` updates `rides.status` to
-  // "completed"; passengers pass `false` so the driver still controls when
-  // the ride is officially over.
-  const awardCurrentUserStats = async (endTripStatus: boolean) => {
+  // 1.5 — Award current user's XP / CO2 / badges via the `complete-trip` edge
+  // function. Audit C2: profile counters are protected against direct client
+  // writes by migration 018; this server path is the only legitimate writer.
+  //
+  // `endTripStatus=true` (driver / solo) tells the server to mark the ride
+  // completed. Passengers pass `false` so the driver still controls the ride
+  // lifecycle while the passenger collects their own credit.
+  //
+  // Returns the XP delta the server reports (matches the legacy contract
+  // — callers only ever used this to display "+N XP" in the toast).
+  const awardCurrentUserStats = async (endTripStatus: boolean): Promise<number> => {
     if (!ride || !currentUserId) return 0;
 
-    const completedAt = new Date().toISOString();
-    // Flat reward: every completed trip is worth the same so progress is
-    // legible ("N more trips to the next level"). See lib/gamification.
-    const xpEarned = XP_PER_TRIP;
-    const co2Saved = ride.co2_saved || 0;
+    const { data, error } = await supabase.functions.invoke<{
+      xp_earned: number;
+      already_completed?: boolean;
+    }>("complete-trip", {
+      body: { ride_id: id, end_trip: endTripStatus },
+    });
 
-    if (endTripStatus) {
-      await supabase
-        .from("rides")
-        .update({ status: "completed", completed_at: completedAt })
-        .eq("id", id);
+    if (error) {
+      showToast({ title: "Could not complete trip", message: error.message ?? "Please try again.", type: "error" });
+      return 0;
     }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("xp_points, total_co2_saved, trips_completed, badges")
-      .eq("id", currentUserId)
-      .single();
-
-    if (profile) {
-      const newXP = (profile.xp_points || 0) + xpEarned;
-      const newCO2 = (profile.total_co2_saved || 0) + co2Saved;
-      const newTripsCount = (profile.trips_completed || 0) + 1;
-
-      await supabase
-        .from("profiles")
-        .update({
-          xp_points: newXP,
-          total_co2_saved: newCO2,
-          trips_completed: newTripsCount,
-        })
-        .eq("id", currentUserId);
-
-      const existingBadges: string[] = profile.badges || [];
-      const newBadges: string[] = [];
-
-      if (newTripsCount >= 1 && !existingBadges.includes("first_trip"))
-        newBadges.push("first_trip");
-      if (newTripsCount >= 10 && !existingBadges.includes("trips_10"))
-        newBadges.push("trips_10");
-      if (newCO2 >= 50 && !existingBadges.includes("co2_50"))
-        newBadges.push("co2_50");
-      if (newCO2 >= 100 && !existingBadges.includes("co2_100"))
-        newBadges.push("co2_100");
-      if (ride.driver_id && ride.rider_id && !existingBadges.includes("first_carpool"))
-        newBadges.push("first_carpool");
-
-      if (ride.transport_mode === "walking") {
-        const { count: walkCount } = await supabase
-          .from("rides")
-          .select("id", { count: "exact", head: true })
-          .eq("rider_id", currentUserId)
-          .eq("transport_mode", "walking")
-          .eq("status", "completed");
-        if ((walkCount || 0) >= 5 && !existingBadges.includes("walker_5"))
-          newBadges.push("walker_5");
-      }
-
-      if (newBadges.length > 0) {
-        await supabase
-          .from("profiles")
-          .update({ badges: [...existingBadges, ...newBadges] })
-          .eq("id", currentUserId);
-      }
-    }
-
-    return xpEarned;
+    return data?.xp_earned ?? 0;
   };
 
   // Driver / solo path — ends the ride and awards the current user's stats.

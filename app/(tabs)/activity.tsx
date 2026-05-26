@@ -29,7 +29,9 @@ import { supabase } from "../../lib/supabase";
 import TripCompletionModal from "../../components/TripCompletionModal";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
-import { XP_PER_TRIP, getLevelInfo } from "../../lib/gamification";
+// Gamification math now lives server-side in the `complete-trip` edge fn.
+// Profile counters (xp_points / total_co2_saved / trips_completed / badges)
+// are protected against direct client writes by migration 018.
 import { useToast } from "../../contexts/ToastContext";
 
 // Enable LayoutAnimation on Android
@@ -72,40 +74,6 @@ interface Ride {
 }
 
 type TabType = "upcoming" | "history";
-
-/**
- * Haversine Formula - Calculates distance between two coordinates
- * @param lat1 Latitude of first point
- * @param lon1 Longitude of first point
- * @param lat2 Latitude of second point
- * @param lon2 Longitude of second point
- * @returns Distance in kilometers
- */
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth's radius in km
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-/**
- * Calculate XP earned from a trip
- * @param distance Distance traveled in km
- * @param transportMode Type of transport used
- * @returns Total XP earned
- */
-function calculateXP(_distance: number, _transportMode?: string): number {
-  // Flat reward: every completed trip is worth the same so level progress
-  // stays legible ("N more trips to the next level"). See lib/gamification.
-  return XP_PER_TRIP;
-}
 
 /**
  * UpcomingCard - Card component for upcoming trips
@@ -453,13 +421,16 @@ export default function ActivityScreen() {
 
   /**
    * Complete a trip
-   * 1. Confirms with native Alert (reversible action guard)
-   * 2. Shows per-card loading state while processing
-   * 3. Calculates distance, XP, CO2
-   * 4. Updates ride status + completed_at timestamp
-   * 5. Updates user profile stats (XP, CO2, trips count)
-   * 6. Unlocks badges based on milestones
-   * 7. Shows celebration modal, then switches to History tab
+   *
+   * As of audit fix C2, the entire XP / CO₂ / trips_completed / badges
+   * write happens in the `complete-trip` edge function — those columns are
+   * protected against direct client writes by the BEFORE-UPDATE trigger
+   * added in migration 018. This handler now:
+   *   1. Confirms with native Alert (reversible action guard)
+   *   2. Shows per-card loading state
+   *   3. Calls the edge function (server computes XP, CO₂, badges, distance)
+   *   4. Shows the celebration modal with the server-returned deltas
+   *   5. Refreshes the list so the trip moves to History
    */
   const completeTrip = useCallback(async (rideId: string) => {
     Alert.alert(
@@ -473,92 +444,37 @@ export default function ActivityScreen() {
           onPress: async () => {
             setCompletingId(rideId);
             try {
-              // Step 1: Fetch ride details
-              const { data: ride, error: fetchError } = await supabase
-                .from("rides")
-                .select("*")
-                .eq("id", rideId)
-                .single();
+              const { data, error } = await supabase.functions.invoke<{
+                xp_earned: number;
+                co2_saved: number;
+                distance_km: number;
+                new_level: number;
+                leveled_up: boolean;
+                already_completed?: boolean;
+              }>("complete-trip", {
+                body: { ride_id: rideId, end_trip: true },
+              });
 
-              if (fetchError || !ride) throw new Error("Failed to fetch ride details");
+              if (error) throw error;
+              if (!data) throw new Error("No response from server");
 
-              // Step 2: Calculate distance and XP
-              const distance = calculateDistance(
-                ride.origin_lat, ride.origin_long,
-                ride.dest_lat, ride.dest_long
-              );
-              const totalXP = calculateXP(distance, ride.transport_mode);
-              const co2Saved = ride.co2_saved || 0;
-
-              // Step 3: Mark ride as completed
-              const { error: updateError } = await supabase
-                .from("rides")
-                .update({ status: "completed", completed_at: new Date().toISOString() })
-                .eq("id", rideId);
-
-              if (updateError) throw updateError;
-
-              // Step 4: Update user profile stats
-              const { data: { user } } = await supabase.auth.getUser();
-              if (user) {
-                const { data: profile } = await supabase
-                  .from("profiles")
-                  .select("xp_points, total_co2_saved, trips_completed, badges")
-                  .eq("id", user.id)
-                  .single();
-
-                if (profile) {
-                  const oldXP = profile.xp_points || 0;
-                  const newXP = oldXP + totalXP;
-                  const newCO2 = (profile.total_co2_saved || 0) + co2Saved;
-                  const newTripsCount = (profile.trips_completed || 0) + 1;
-                  const oldLevel = getLevelInfo(oldXP).level;
-                  const newLevel = getLevelInfo(newXP).level;
-                  const leveledUp = newLevel > oldLevel;
-
-                  await supabase
-                    .from("profiles")
-                    .update({ xp_points: newXP, total_co2_saved: newCO2, trips_completed: newTripsCount })
-                    .eq("id", user.id);
-
-                  // Step 5: Unlock badges
-                  const existingBadges: string[] = profile.badges || [];
-                  const newBadges: string[] = [];
-
-                  if (newTripsCount >= 1 && !existingBadges.includes("first_trip"))
-                    newBadges.push("first_trip");
-                  if (newTripsCount >= 10 && !existingBadges.includes("trips_10"))
-                    newBadges.push("trips_10");
-                  if (newCO2 >= 50 && !existingBadges.includes("co2_50"))
-                    newBadges.push("co2_50");
-                  if (newCO2 >= 100 && !existingBadges.includes("co2_100"))
-                    newBadges.push("co2_100");
-                  if (ride.driver_id && ride.rider_id && !existingBadges.includes("first_carpool"))
-                    newBadges.push("first_carpool");
-                  if (ride.transport_mode === "walking") {
-                    const { count: walkCount } = await supabase
-                      .from("rides")
-                      .select("id", { count: "exact", head: true })
-                      .or(`rider_id.eq.${user.id},driver_id.eq.${user.id}`)
-                      .eq("transport_mode", "walking")
-                      .eq("status", "completed");
-                    if ((walkCount || 0) >= 5 && !existingBadges.includes("walker_5"))
-                      newBadges.push("walker_5");
-                  }
-                  if (newBadges.length > 0) {
-                    await supabase
-                      .from("profiles")
-                      .update({ badges: [...existingBadges, ...newBadges] })
-                      .eq("id", user.id);
-                  }
-
-                  // Step 6: Show celebration modal
-                  setCompletionData({ xpEarned: totalXP, co2Saved, distance, leveledUp, newLevel });
-                  setShowCompletionModal(true);
-                }
+              if (data.already_completed) {
+                showToast({ title: 'Already completed', message: 'This trip was already marked complete.', type: 'info' });
+              } else {
+                setCompletionData({
+                  xpEarned: data.xp_earned,
+                  co2Saved: data.co2_saved,
+                  distance: data.distance_km,
+                  leveledUp: data.leveled_up,
+                  newLevel: data.new_level,
+                });
+                setShowCompletionModal(true);
               }
+
+              // Refresh the list either way so status updates locally.
+              loadRides();
             } catch (error: any) {
-              showToast({ title: 'Could not complete trip', message: error.message, type: 'error' });
+              showToast({ title: 'Could not complete trip', message: error.message ?? 'Please try again.', type: 'error' });
             } finally {
               setCompletingId(null);
             }

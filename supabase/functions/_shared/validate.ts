@@ -102,3 +102,11 @@ export const DailyCommuteMatcherSchema = z
 export const DeleteAccountSchema = z.object({
   confirm: z.literal(true),
 });
+
+export const CompleteTripSchema = z.object({
+  ride_id: uuid,
+  // Driver / solo trips: true → marks the ride completed.
+  // Passenger collecting their own credit: false → leaves ride.status alone
+  //   (the driver still owns the ride lifecycle).
+  end_trip: z.boolean().default(true),
+});

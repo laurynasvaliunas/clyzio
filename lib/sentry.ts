@@ -8,8 +8,14 @@ export function initSentry() {
   Sentry.init({
     dsn: DSN,
     tracesSampleRate: __DEV__ ? 1.0 : 0.2,
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
+    // Session Replay is DISABLED for v1.0: the default capture mode records
+    // TextInput contents (home/work addresses, emails, phones) without PII
+    // masking, which would contradict our App Privacy nutrition label.
+    // Re-enable with explicit masking (Sentry.Mask wrappers or
+    // `_experiments.mobileReplay = { maskAllText: true, maskAllImages: true }`)
+    // and a privacy-label update in v1.1+. See security audit C3.
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0,
     debug: __DEV__,
     environment: __DEV__ ? "development" : "production",
   });
