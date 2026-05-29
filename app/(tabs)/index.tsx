@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,10 +17,10 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BrandHeader from "../../components/BrandHeader";
-import ActionDock from "../../components/ActionDock";
 import TripPlannerModal from "../../components/TripPlannerModal";
 import AISuggestionChip from "../../components/AISuggestionChip";
 import CarpoolMatchModal from "../../components/CarpoolMatchModal";
+import CommuteHomeCard, { type PlanDay, type PlannedRideSummary } from "../../components/CommuteHomeCard";
 import { supabase } from "../../lib/supabase";
 import { buildWebLink } from "../../lib/deepLinks";
 import { useAIStore } from "../../store/useAIStore";
@@ -349,6 +349,17 @@ export default function MapScreen() {
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [userName, setUserName] = useState("");
 
+  // ✅ STAGE 2 (customer-journey PDF) — home/work places, day toggle, plan card
+  const [places, setPlaces] = useState<{
+    homeLat: number | null; homeLng: number | null; homeAddress: string;
+    workLat: number | null; workLng: number | null; workAddress: string;
+  } | null>(null);
+  const [targetDay, setTargetDay] = useState<PlanDay>("tomorrow");
+  const [plannedRide, setPlannedRide] = useState<PlannedRideSummary | null>(null);
+  // Default home→work route, drawn when the user is idle (no active trip) so
+  // the map always shows their commute corridor.
+  const [defaultRouteCoords, setDefaultRouteCoords] = useState<number[][] | null>(null);
+
   // ✅ MINIMAL STATE - Only trip result data
   const [locationGranted, setLocationGranted] = useState(false);
   // Brand-coloured mask covers the empty Mapbox grid + UserLocation pulse
@@ -484,24 +495,123 @@ export default function MapScreen() {
     fetchRoute();
   }, [activeTrip]);
 
-  // ✅ Fetch user profile for avatar
+  // ✅ Fetch user profile for avatar + home/work places (Stage 2)
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase
         .from('profiles')
-        .select('first_name, last_name, avatar_url')
+        .select('first_name, last_name, avatar_url, home_lat, home_long, home_address, work_lat, work_long, work_address')
         .eq('id', user.id)
         .single();
       if (data) {
         setUserAvatar(data.avatar_url ?? null);
         const name = [data.first_name, data.last_name].filter(Boolean).join(' ');
         setUserName(name);
+        setPlaces({
+          homeLat: data.home_lat ?? null,
+          homeLng: data.home_long ?? null,
+          homeAddress: data.home_address ?? "",
+          workLat: data.work_lat ?? null,
+          workLng: data.work_long ?? null,
+          workAddress: data.work_address ?? "",
+        });
       }
     };
     fetchProfile();
   }, []);
+
+  // ✅ Default home→work route corridor — fetched once we know both places and
+  // only while idle (no active trip route takes precedence). Drawn subtly so
+  // the map always frames the user's commute even before they plan.
+  useEffect(() => {
+    if (activeTrip) return; // active route wins
+    const h = places;
+    if (h?.homeLat == null || h?.homeLng == null || h?.workLat == null || h?.workLng == null) {
+      setDefaultRouteCoords(null);
+      return;
+    }
+    // Capture as non-null locals so the async closure keeps the narrowing.
+    const homeLng: number = h.homeLng;
+    const homeLat: number = h.homeLat;
+    const workLng: number = h.workLng;
+    const workLat: number = h.workLat;
+    let cancelled = false;
+    (async () => {
+      try {
+        const coords = `${homeLng},${homeLat};${workLng},${workLat}`;
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        if (!cancelled && json.routes?.length > 0) {
+          setDefaultRouteCoords(json.routes[0].geometry.coordinates);
+          // Frame both endpoints on first load.
+          cameraRef.current?.fitBounds(
+            [workLng, workLat],
+            [homeLng, homeLat],
+            80,
+            800,
+          );
+        }
+      } catch {
+        if (!cancelled) setDefaultRouteCoords(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [places, activeTrip]);
+
+  // ✅ Planned-ride lookup for the selected day (Today/Tomorrow). Reads the
+  // user's most recent scheduled/requested ride whose scheduled_at falls on
+  // the target calendar day, and maps it to the bottom-card summary.
+  const refreshPlannedRide = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setPlannedRide(null); return; }
+
+      const base = new Date();
+      if (targetDay === "tomorrow") base.setDate(base.getDate() + 1);
+      const dayStart = new Date(base); dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(base); dayEnd.setHours(23, 59, 59, 999);
+
+      const { data } = await supabase
+        .from('rides')
+        .select('transport_mode, transport_label, distance_km, co2_saved, scheduled_at, status')
+        .or(`driver_id.eq.${user.id},rider_id.eq.${user.id}`)
+        .in('status', ['scheduled', 'requested', 'active'])
+        .gte('scheduled_at', dayStart.toISOString())
+        .lte('scheduled_at', dayEnd.toISOString())
+        .order('scheduled_at', { ascending: false })
+        .limit(1);
+
+      const ride = data?.[0];
+      if (ride) {
+        setPlannedRide({
+          modeId: ride.transport_mode ?? null,
+          modeLabel: ride.transport_label || ride.transport_mode || "Planned trip",
+          distanceKm: ride.distance_km ?? null,
+          co2SavedKg: ride.co2_saved ?? null,
+        });
+      } else {
+        setPlannedRide(null);
+      }
+    } catch {
+      setPlannedRide(null);
+    }
+  }, [targetDay]);
+
+  // Refresh the planned ride whenever the target day changes or the screen
+  // regains focus (e.g. returning from the planner having saved a trip).
+  useEffect(() => { refreshPlannedRide(); }, [refreshPlannedRide]);
+  useFocusEffect(
+    useCallback(() => { refreshPlannedRide(); }, [refreshPlannedRide])
+  );
+
+  // Today's date label for the top bar ("Wednesday, May 28").
+  const dateLabel = useMemo(
+    () => new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }),
+    [],
+  );
 
   // ✅ Fetch AI commute suggestions when screen is focused (6h cache, non-blocking)
   useFocusEffect(
@@ -1071,6 +1181,48 @@ export default function MapScreen() {
           </PointAnnotation>
         )}
 
+        {/* Default home→work corridor (Stage 2) — drawn dashed + subtle while
+            idle, so the map always frames the user's commute. Hidden once an
+            active trip's real route is shown. */}
+        {!activeTrip && defaultRouteCoords && defaultRouteCoords.length > 1 && (
+          <ShapeSource
+            id="defaultRoute"
+            shape={{
+              type: "Feature",
+              geometry: { type: "LineString", coordinates: defaultRouteCoords },
+              properties: {},
+            }}
+          >
+            <LineLayer
+              id="defaultRouteLine"
+              style={{
+                lineColor: COLORS.primary,
+                lineWidth: 4,
+                lineJoin: "round",
+                lineCap: "round",
+                lineOpacity: 0.7,
+                lineDasharray: [2, 1.5],
+              }}
+            />
+          </ShapeSource>
+        )}
+
+        {/* Home / Work pins (Stage 2) — shown while idle. */}
+        {!activeTrip && places?.homeLat != null && places?.homeLng != null && (
+          <PointAnnotation id="home-place" coordinate={[places.homeLng, places.homeLat]}>
+            <View style={[styles.placePin, { backgroundColor: COLORS.primary }]}>
+              <Text style={styles.placePinGlyph}>🏠</Text>
+            </View>
+          </PointAnnotation>
+        )}
+        {!activeTrip && places?.workLat != null && places?.workLng != null && (
+          <PointAnnotation id="work-place" coordinate={[places.workLng, places.workLat]}>
+            <View style={[styles.placePin, { backgroundColor: COLORS.green }]}>
+              <Text style={styles.placePinGlyph}>💼</Text>
+            </View>
+          </PointAnnotation>
+        )}
+
         {/* Route Line — follows real roads via Mapbox Directions */}
         {routeCoords && routeCoords.length > 1 && (
           <ShapeSource
@@ -1128,7 +1280,7 @@ export default function MapScreen() {
       </Animated.View>
 
       {/* Header */}
-      <BrandHeader userAvatar={userAvatar} userName={userName} />
+      <BrandHeader userAvatar={userAvatar} userName={userName} dateLabel={dateLabel} />
 
       {/* Daily Commute Intent Pill */}
       {intent && intent.status !== "expired" && (() => {
@@ -1224,53 +1376,18 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* 1.3 — Map empty-state hint.
-          Shown when the user has nothing in flight: no active trip, not searching,
-          no live intent, and no nearby commuters or AI suggestion to engage with.
-          Helps first-time / low-density users orient themselves instead of staring
-          at a bare map. The ActionDock below is the actual CTA; this card is the
-          why. */}
-      {!showPlanner &&
-        !activeTrip &&
-        searchStatus === 'idle' &&
-        nearbyCommuters.length === 0 &&
-        (!intent || intent.status === 'expired') &&
-        (!commuteResult?.insight || chipDismissed) && (
-          <View
-            style={[styles.emptyStateCard, { backgroundColor: TC.surface, borderColor: TC.border }]}
-            accessibilityRole="summary"
-            accessibilityLabel="No commutes nearby"
-          >
-            <View style={styles.emptyStateIcon}>
-              <Sparkles size={20} color={COLORS.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.emptyStateTitle, { color: TC.text }]} numberOfLines={1}>
-                No commutes nearby yet.
-              </Text>
-              <Text
-                style={[styles.emptyStateSub, { color: TC.textSecondary }]}
-                numberOfLines={2}
-              >
-                Be the first to plan one today, or invite a colleague to ride green together.
-              </Text>
-              <TouchableOpacity
-                onPress={handleInviteShare}
-                accessibilityRole="button"
-                accessibilityLabel="Invite a colleague"
-                hitSlop={8}
-              >
-                <Text style={[styles.emptyStateInvite, { color: COLORS.primary }]}>
-                  Invite a colleague →
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-      {/* Action Dock */}
+      {/* Stage 2 bottom card — Today/Tomorrow toggle + Plan your ride / plan
+          summary. Replaces the old ActionDock + empty-state card as the
+          primary idle-state CTA. Shown only when nothing is in flight. */}
       {!showPlanner && !activeTrip && searchStatus === 'idle' && (
-        <ActionDock onPress={() => setShowPlanner(true)} />
+        <CommuteHomeCard
+          targetDay={targetDay}
+          onChangeDay={setTargetDay}
+          plan={plannedRide}
+          onPlanRide={() => setShowPlanner(true)}
+          onChangePlan={() => setShowPlanner(true)}
+          isDark={isDark}
+        />
       )}
 
       {/* ✅ ISOLATED MODAL - Memoized, never re-renders parent */}
@@ -1415,6 +1532,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
+  },
+
+  // ===== HOME / WORK PLACE PINS (Stage 2) =====
+  placePin: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#FAF7EF",
+    shadowColor: "#0B1A1F",
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
+  },
+  placePinGlyph: {
+    fontSize: 16,
+    lineHeight: 20,
   },
 
   // ===== ACTIVE TRIP CARD =====
