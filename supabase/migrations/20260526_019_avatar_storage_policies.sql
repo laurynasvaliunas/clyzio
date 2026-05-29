@@ -34,18 +34,31 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit   = EXCLUDED.file_size_limit,
   allowed_mime_types= EXCLUDED.allowed_mime_types;
 
--- 2) Policies. Path convention: `<user_uuid>/<filename>` — matched by both
---    upload sites in the client (see edit-profile.tsx uploadAvatar() and
---    (tabs)/profile.tsx uploadAvatar()).
-
--- Read: everyone (even anon, for cached <Image> fetches by URL).
+-- 2) Drop any pre-existing avatar policies. We've seen prod accumulate
+--    duplicates created via the Dashboard (some scoped to `public`, some to
+--    `authenticated`), plus a broad SELECT that triggers the
+--    `public_bucket_allows_listing` advisor lint. Clear the slate.
+DROP POLICY IF EXISTS "Avatars are publicly accessible" ON storage.objects;
 DROP POLICY IF EXISTS "Avatars are readable by everyone" ON storage.objects;
-CREATE POLICY "Avatars are readable by everyone"
-  ON storage.objects FOR SELECT
-  USING (bucket_id = 'avatars');
+DROP POLICY IF EXISTS "Public can read avatar files"     ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload own avatar"      ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload their own avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update own avatar"      ON storage.objects;
+DROP POLICY IF EXISTS "Users can update their own avatar" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their own avatar" ON storage.objects;
+
+-- 3) Re-create the canonical four. Path convention: `<user_uuid>/<filename>`
+--    — matched by both upload sites in the client
+--    (edit-profile.tsx:uploadAvatar() and (tabs)/profile.tsx:uploadAvatar()).
+--
+-- NOTE on SELECT: there is **no SELECT policy** on purpose. The bucket is
+-- `public = true`, so cached `<Image>` reads via `getPublicUrl` go through
+-- the storage-api URL path and bypass RLS entirely. Adding any SELECT policy
+-- would enable `.list()` calls and re-trigger the
+-- `public_bucket_allows_listing` advisor lint. The client only ever calls
+-- `.upload()` + `.getPublicUrl()`, so this is the correct posture.
 
 -- Insert: only the owning user, only under their own UUID prefix.
-DROP POLICY IF EXISTS "Users can upload their own avatar" ON storage.objects;
 CREATE POLICY "Users can upload their own avatar"
   ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (
@@ -54,7 +67,6 @@ CREATE POLICY "Users can upload their own avatar"
   );
 
 -- Update (upsert path): same prefix-scoped check on both sides.
-DROP POLICY IF EXISTS "Users can update their own avatar" ON storage.objects;
 CREATE POLICY "Users can update their own avatar"
   ON storage.objects FOR UPDATE TO authenticated
   USING (
@@ -68,7 +80,6 @@ CREATE POLICY "Users can update their own avatar"
 
 -- Delete: scoped to own prefix (used by delete-account cleanup if ever wired
 -- in via service role; service role bypasses RLS anyway).
-DROP POLICY IF EXISTS "Users can delete their own avatar" ON storage.objects;
 CREATE POLICY "Users can delete their own avatar"
   ON storage.objects FOR DELETE TO authenticated
   USING (
