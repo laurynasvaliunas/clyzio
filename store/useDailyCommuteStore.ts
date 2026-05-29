@@ -14,6 +14,7 @@ export type FlowStep =
   | "passenger_details"
   | "passenger_submitted"
   | "passenger_review"
+  | "passenger_waiting"
   | "passenger_confirmed";
 
 export interface TripIntent {
@@ -49,10 +50,12 @@ export interface TripIntentMatch {
   detour_preference: "flexible" | "fixed" | null;
   custom_pickup_lat: number | null;
   custom_pickup_long: number | null;
+  // Symmetric approval (migration 021).
+  driver_approved: boolean;
+  passenger_approved: boolean;
   status:
-    | "pending_driver_review"
-    | "driver_accepted"
-    | "pending_passenger_confirm"
+    | "pending"
+    | "awaiting_other"
     | "confirmed"
     | "cancelled_by_driver"
     | "cancelled_by_passenger"
@@ -94,6 +97,8 @@ interface DailyCommuteState {
     custom_pickups?: Array<{ match_id: string; lat: number; lng: number }>;
   }) => Promise<void>;
   respondAsPassenger: (params: { match_id: string; accepted: boolean }) => Promise<void>;
+  /** Map-radar bridge: request a specific colleague → creates a pre-approved match. */
+  requestCarpool: (targetUserId: string, requesterRole: "driver" | "rider", tripDate?: string) => Promise<void>;
   subscribeToMatches: () => () => void;
   reset: () => void;
 }
@@ -173,15 +178,20 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
         if (confirmed) {
           step = isDriver ? "driver_confirmed" : "passenger_confirmed";
         } else if (isDriver) {
-          const pendingReview = activeMatches.find(m => m.status === "pending_driver_review");
-          const driverAccepted = activeMatches.find(m => m.status === "driver_accepted");
-          if (pendingReview) step = "driver_review";
-          else if (driverAccepted) step = "driver_waiting";
-          else step = "driver_submitted"; // unmatched — back to submitted
+          // Symmetric approval: the driver reviews any open match they haven't
+          // approved yet; once they have, they wait on the passenger.
+          const needsApproval = activeMatches.find(m => !m.driver_approved);
+          const waiting = activeMatches.find(m => m.driver_approved && !m.passenger_approved);
+          if (needsApproval) step = "driver_review";
+          else if (waiting) step = "driver_waiting";
+          else step = "driver_submitted"; // no open matches — back to submitted
         } else {
-          const driverAccepted = activeMatches.find(m => m.status === "driver_accepted");
-          if (driverAccepted) step = "passenger_review";
-          else step = "passenger_submitted"; // unmatched — back to submitted
+          // Passenger mirror of the same symmetric logic.
+          const needsApproval = activeMatches.find(m => !m.passenger_approved);
+          const waiting = activeMatches.find(m => m.passenger_approved && !m.driver_approved);
+          if (needsApproval) step = "passenger_review";
+          else if (waiting) step = "passenger_waiting";
+          else step = "passenger_submitted"; // no open matches — back to submitted
         }
       }
 
@@ -208,16 +218,30 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
     }
   },
 
+  // Both respond paths now go through the unified, symmetric `respond-to-match`
+  // edge function (migration 021). The driver/passenger method names are kept
+  // so the daily-commute screen's handlers don't have to change.
   respondAsDriver: async (params) => {
     set({ isLoading: true, error: null });
     try {
-      const { error } = await supabase.functions.invoke("driver-respond-to-matches", {
-        body: params,
-      });
-
-      if (error) throw error;
-
-      // Refresh matches and advance step
+      for (const matchId of params.accepted_ids) {
+        const cp = params.custom_pickups?.find((p) => p.match_id === matchId);
+        const { error } = await supabase.functions.invoke("respond-to-match", {
+          body: {
+            match_id: matchId,
+            accepted: true,
+            detour_preference: params.detour_preference,
+            custom_pickup: cp ? { lat: cp.lat, lng: cp.lng } : undefined,
+          },
+        });
+        if (error) throw error;
+      }
+      for (const matchId of params.declined_ids ?? []) {
+        const { error } = await supabase.functions.invoke("respond-to-match", {
+          body: { match_id: matchId, accepted: false },
+        });
+        if (error) throw error;
+      }
       await get().checkExistingIntent();
       set({ isLoading: false });
     } catch (err) {
@@ -229,12 +253,25 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
   respondAsPassenger: async (params) => {
     set({ isLoading: true, error: null });
     try {
-      const { error } = await supabase.functions.invoke("passenger-respond-to-match", {
-        body: params,
+      const { error } = await supabase.functions.invoke("respond-to-match", {
+        body: { match_id: params.match_id, accepted: params.accepted },
       });
-
       if (error) throw error;
+      await get().checkExistingIntent();
+      set({ isLoading: false });
+    } catch (err) {
+      set({ error: String(err), isLoading: false });
+      throw err;
+    }
+  },
 
+  requestCarpool: async (targetUserId, requesterRole, tripDate) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { error } = await supabase.functions.invoke("request-carpool", {
+        body: { target_user_id: targetUserId, requester_role: requesterRole, trip_date: tripDate },
+      });
+      if (error) throw error;
       await get().checkExistingIntent();
       set({ isLoading: false });
     } catch (err) {

@@ -226,7 +226,9 @@ function DriverReviewStep({
   onConfirm: (acceptedIds: string[], declinedIds: string[]) => void;
   isLoading: boolean;
 }) {
-  const pending = matches.filter(m => m.status === "pending_driver_review");
+  // Symmetric approval: the driver reviews any open match they haven't yet
+  // approved (regardless of whether the passenger has approved already).
+  const pending = matches.filter(m => !m.driver_approved && (m.status === "pending" || m.status === "awaiting_other"));
   const [acceptedIds, setAcceptedIds] = useState<Set<string>>(new Set(pending.map(m => m.id)));
 
   const toggle = (id: string) => {
@@ -363,15 +365,34 @@ function DriverDetourStep({
 // ─── Step: Driver Waiting ─────────────────────────────────────────────────────
 
 function DriverWaitingStep({ matches }: { matches: TripIntentMatch[] }) {
-  const accepted = matches.filter(m => m.status === "driver_accepted");
+  // Driver has approved; waiting on the passenger to approve too.
+  const waiting = matches.filter(m => m.driver_approved && !m.passenger_approved && m.status === "awaiting_other");
   return (
     <View style={styles.centeredStep}>
       <ActivityIndicator size="large" color={COLORS.primary} style={{ marginBottom: 20 }} />
-      <Text style={styles.stepTitle}>Waiting for Confirmation</Text>
+      <Text style={styles.stepTitle}>You're in — waiting for them</Text>
       <Text style={styles.stepDescription}>
-        {accepted.length} passenger{accepted.length !== 1 ? "s" : ""} notified. Waiting for them to confirm.
+        You approved {waiting.length} passenger{waiting.length !== 1 ? "s" : ""}. Waiting for them to approve too.
       </Text>
-      <Text style={styles.stepHint}>You'll be notified when they respond.</Text>
+      <Text style={styles.stepHint}>The ride is confirmed once you both approve. You'll be notified.</Text>
+    </View>
+  );
+}
+
+// ─── Step: Passenger Waiting ──────────────────────────────────────────────────
+
+function PassengerWaitingStep({ matches }: { matches: TripIntentMatch[] }) {
+  // Passenger has approved; waiting on the driver to approve too.
+  const waiting = matches.filter(m => m.passenger_approved && !m.driver_approved && m.status === "awaiting_other");
+  const driverName = waiting[0]?.driver_profile?.first_name ?? "your driver";
+  return (
+    <View style={styles.centeredStep}>
+      <ActivityIndicator size="large" color={COLORS.primary} style={{ marginBottom: 20 }} />
+      <Text style={styles.stepTitle}>You're in — waiting for them</Text>
+      <Text style={styles.stepDescription}>
+        You approved the carpool with {driverName}. Waiting for them to approve too.
+      </Text>
+      <Text style={styles.stepHint}>The ride is confirmed once you both approve. You'll be notified.</Text>
     </View>
   );
 }
@@ -476,7 +497,9 @@ function PassengerReviewStep({
   onRespond: (matchId: string, accepted: boolean) => void;
   isLoading: boolean;
 }) {
-  const available = matches.filter(m => m.status === "driver_accepted");
+  // Symmetric approval: the passenger reviews any open match they haven't yet
+  // approved (whether or not the driver has approved already).
+  const available = matches.filter(m => !m.passenger_approved && (m.status === "pending" || m.status === "awaiting_other"));
   const match = available[0];
 
   if (!match) {
@@ -732,6 +755,7 @@ export default function DailyCommuteScreen() {
       {step === "passenger_review" && (
         <PassengerReviewStep matches={matches} onRespond={handlePassengerRespond} isLoading={isLoading} />
       )}
+      {step === "passenger_waiting" && <PassengerWaitingStep matches={matches} />}
       {step === "passenger_confirmed" && <PassengerConfirmedStep matches={matches} />}
     </SafeAreaView>
   );

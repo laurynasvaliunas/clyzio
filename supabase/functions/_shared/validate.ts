@@ -113,3 +113,21 @@ export const CompleteTripSchema = z.object({
   //   (the driver still owns the ride lifecycle).
   end_trip: z.boolean().default(true),
 });
+
+// Symmetric carpool approval (migration 021). One function handles both roles.
+export const RespondToMatchSchema = z.object({
+  match_id: uuid,
+  accepted: z.boolean(),
+  // Driver-only optional pickup preference when approving.
+  detour_preference: z.enum(['flexible', 'fixed']).optional(),
+  custom_pickup: z.object({ lat, lng: lon }).optional(),
+});
+
+// Map-radar → mutual-approval bridge.
+export const RequestCarpoolSchema = z.object({
+  target_user_id: uuid,
+  // The CALLER's role for this trip. 'rider' → caller is passenger, target is
+  // driver; 'driver' → caller is driver, target is passenger.
+  requester_role: z.enum(['driver', 'rider']),
+  trip_date: isoDate.optional(),
+});

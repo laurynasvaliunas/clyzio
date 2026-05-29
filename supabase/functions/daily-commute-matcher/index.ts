@@ -190,6 +190,11 @@ async function evaluatePair(
         pickup_lat: pickupLat,
         pickup_long: pickupLon,
         pickup_address: pickupAddress,
+        // Symmetric approval (migration 021): auto-matches start with neither
+        // side approved. Both must approve (any order) to confirm the ride.
+        status: 'pending',
+        driver_approved: false,
+        passenger_approved: false,
       },
       { onConflict: 'driver_intent_id,passenger_intent_id', ignoreDuplicates: true },
     )
@@ -202,21 +207,27 @@ async function evaluatePair(
   return Array.isArray(inserted) && inserted.length > 0;
 }
 
-/** Push both sides of a freshly-created match. */
+/**
+ * Push both sides of a freshly-created match. Symmetric framing (migration
+ * 021): each side is asked to APPROVE — neither has to wait for the other to
+ * go first, and the ride confirms once both have approved.
+ */
 async function pushMatch(driver: any, passenger: any): Promise<void> {
+  const passengerName = passenger.profiles?.first_name ?? 'a passenger';
+  const driverName = driver.profiles?.first_name ?? 'a driver';
   if (driver.profiles?.expo_push_token) {
     await sendPush({
       to: driver.profiles.expo_push_token,
-      title: 'Commute match found!',
-      body: 'A passenger match is ready for your commute. Tap to review.',
+      title: 'Carpool match found!',
+      body: `You matched with ${passengerName}. Open Clyzio to approve and ride together.`,
       data: { screen: 'daily-commute' },
     });
   }
   if (passenger.profiles?.expo_push_token) {
     await sendPush({
       to: passenger.profiles.expo_push_token,
-      title: 'Driver match found!',
-      body: 'A driver match is ready for your commute. Tap to confirm.',
+      title: 'Carpool match found!',
+      body: `You matched with ${driverName}. Open Clyzio to approve and ride together.`,
       data: { screen: 'daily-commute' },
     });
   }
@@ -424,16 +435,16 @@ Deno.serve(async (req) => {
           const count = matchesCreated - before;
           await sendPush({
             to: driver.profiles.expo_push_token,
-            title: 'Commute matches found!',
-            body: `You have ${count} passenger match${count > 1 ? 'es' : ''} for tomorrow. Tap to review.`,
+            title: 'Carpool matches found!',
+            body: `You matched with ${count} passenger${count > 1 ? 's' : ''} for tomorrow. Open Clyzio to approve and ride together.`,
             data: { screen: 'daily-commute' },
           });
         }
         for (const token of passengerTokensToNotify) {
           await sendPush({
             to: token,
-            title: 'Driver match found!',
-            body: 'A driver match was found for your commute tomorrow. Tap to confirm.',
+            title: 'Carpool match found!',
+            body: 'You matched with a driver for tomorrow. Open Clyzio to approve and ride together.',
             data: { screen: 'daily-commute' },
           });
         }

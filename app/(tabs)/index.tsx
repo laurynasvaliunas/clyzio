@@ -410,7 +410,7 @@ export default function MapScreen() {
   const { commuteResult, isLoadingCommute, fetchCommuteSuggestions, carpoolResult, isLoadingCarpool, fetchCarpoolMatches } = useAIStore();
 
   // ✅ DAILY COMMUTE INTENT STATE
-  const { intent, matches, checkExistingIntent } = useDailyCommuteStore();
+  const { intent, matches, checkExistingIntent, requestCarpool } = useDailyCommuteStore();
 
   /**
    * ✅ AUTO-CENTER TO USER LOCATION ON MOUNT
@@ -1091,69 +1091,47 @@ export default function MapScreen() {
       }
 
       const targetProfile = selectedMatch.profiles;
-      if (!targetProfile) {
+      if (!targetProfile?.id) {
         showToast({ title: "User not found", type: "error" });
         setRequestStatus('idle');
         return;
       }
 
-      // Mock rides (demo data) — skip DB update, go straight to success
+      const partnerName = `${targetProfile.first_name ?? ''} ${targetProfile.last_name || ''}`.trim() || 'your match';
+
+      // Mock rides (demo data) — no real counterpart to request; just confirm UX.
       const isMockRide = matchId.startsWith('mock-');
 
-      if (!isMockRide) {
-        const updateData: any = { status: 'scheduled' };
-        if (searchMode === 'rider') {
-          updateData.rider_id = user.id;
-        } else {
-          updateData.driver_id = user.id;
-        }
-
-        const { error: updateError } = await supabase
-          .from('rides')
-          .update(updateData)
-          .eq('id', matchId);
-
-        if (updateError) throw updateError;
+      if (isMockRide) {
+        setConfirmedRide({ partnerName, role: searchMode });
+        setRequestStatus('success');
+        return;
       }
 
-      // Create a ride request record for history/approval tracking (real rides only)
-      if (!isMockRide) {
-        const { error: requestError } = await supabase
-          .from('ride_requests')
-          .insert({
-            requester_id: user.id,
-            target_id: targetProfile.id,
-            ride_id: matchId,
-            requester_role: searchMode,
-            status: 'accepted',
-            pickup_lat: selectedMatch.origin_lat,
-            pickup_long: selectedMatch.origin_long,
-            pickup_address: selectedMatch.origin_address,
-            dropoff_lat: selectedMatch.dest_lat,
-            dropoff_long: selectedMatch.dest_long,
-            dropoff_address: selectedMatch.dest_address,
-            responded_at: new Date().toISOString(),
-          });
+      // Symmetric mutual approval (migration 021): instead of one-sidedly
+      // booking the ride, create a match BOTH must approve. The current user's
+      // tap counts as their approval; the target is notified to approve too.
+      // `searchMode` is the current user's role: rider → we're the passenger,
+      // driver → we're the driver.
+      await requestCarpool(targetProfile.id, searchMode === 'rider' ? 'rider' : 'driver');
 
-        if (requestError) {
-          console.warn('Request record failed:', requestError);
-        }
-      }
-
-      // Store ride details for success overlay
-      setConfirmedRide({
-        partnerName: `${targetProfile.first_name} ${targetProfile.last_name || ''}`.trim(),
-        role: searchMode,
+      // Reset the radar and tell the user we're waiting on the other side.
+      setSelectedMatch(null);
+      setSearchStatus('idle');
+      setSearchMode(null);
+      setNearbyCommuters([]);
+      setRequestStatus('idle');
+      showToast({
+        title: 'Request sent',
+        message: `Waiting for ${partnerName} to approve. You'll both be set once they do.`,
+        type: 'success',
+        duration: 5000,
       });
-
-      // Show success overlay (DO NOT reset state here!)
-      setRequestStatus('success');
-      
     } catch (error: any) {
       setRequestStatus('idle');
-      showToast({ title: "Could not confirm ride", message: error.message, type: "error" });
+      showToast({ title: "Could not send request", message: error?.message ?? 'Please try again.', type: "error" });
     }
-  }, [selectedMatch, searchMode]);
+  }, [selectedMatch, searchMode, requestCarpool, showToast]);
 
   /**
    * Navigate to Activity tab and reset map
@@ -1357,9 +1335,14 @@ export default function MapScreen() {
 
       {/* Daily Commute Intent Pill */}
       {intent && intent.status !== "expired" && (() => {
-        const confirmedMatches = matches.filter(m => m.status === "confirmed");
-        const acceptedMatches = matches.filter(m => m.status === "driver_accepted");
         const isDriver = intent.role === "driver";
+        const open = matches.filter(m => m.status === "pending" || m.status === "awaiting_other");
+        const confirmedMatches = matches.filter(m => m.status === "confirmed");
+        const myApproved = (m: typeof matches[number]) => isDriver ? m.driver_approved : m.passenger_approved;
+        // Open matches that still need MY approval, vs. ones I've approved and
+        // am waiting on the other side for.
+        const needsMyApproval = open.filter(m => !myApproved(m));
+        const awaitingOther = open.filter(m => myApproved(m));
 
         let icon;
         let label: string;
@@ -1367,34 +1350,41 @@ export default function MapScreen() {
         let pillColor: string;
 
         if (confirmedMatches.length > 0) {
-          // Ride confirmed
+          // Ride confirmed — both approved.
           pillColor = "#4CAF50";
           if (isDriver) {
             const names = confirmedMatches.map(m => m.passenger_profile?.first_name ?? "Passenger").join(", ");
-            label = `${confirmedMatches.length} passenger${confirmedMatches.length > 1 ? "s" : ""} confirmed`;
+            label = `Carpool confirmed`;
             sublabel = names;
           } else {
             const driverName = confirmedMatches[0].driver_profile?.first_name ?? "Driver";
-            label = `${driverName} confirmed your ride`;
+            label = `Riding with ${driverName}`;
             sublabel = `Pickup ${confirmedMatches[0].proposed_pickup_time ?? confirmedMatches[0].proposed_departure ?? "tomorrow"}`;
           }
           icon = <Users size={14} color="#fff" />;
-        } else if (acceptedMatches.length > 0) {
-          // Pending passenger confirmation / driver waiting
+        } else if (needsMyApproval.length > 0) {
+          // A match is waiting for THIS user to approve.
           pillColor = "#FDD835";
-          if (isDriver) {
-            label = `${acceptedMatches.length} passenger${acceptedMatches.length > 1 ? "s" : ""} awaiting reply`;
-          } else {
-            const driverName = acceptedMatches[0].driver_profile?.first_name ?? "Driver";
-            label = `${driverName} accepted you`;
-            sublabel = "Tap to confirm";
-          }
+          const otherName = isDriver
+            ? (needsMyApproval[0].passenger_profile?.first_name ?? "a passenger")
+            : (needsMyApproval[0].driver_profile?.first_name ?? "a driver");
+          label = `Matched with ${otherName}`;
+          sublabel = "Tap to approve & ride together";
           icon = <Car size={14} color="#006064" />;
+        } else if (awaitingOther.length > 0) {
+          // This user approved; waiting on the other side.
+          pillColor = "#26C6DA";
+          const otherName = isDriver
+            ? (awaitingOther[0].passenger_profile?.first_name ?? "passenger")
+            : (awaitingOther[0].driver_profile?.first_name ?? "driver");
+          label = "You're in — waiting for them";
+          sublabel = `Waiting for ${otherName} to approve`;
+          icon = <Users size={14} color="#fff" />;
         } else if (intent.status === "pending") {
-          // Submitted, waiting for matching
+          // Submitted, matching runs instantly — no fixed wait time.
           pillColor = "#26C6DA";
           label = isDriver ? "Driver intent submitted" : "Passenger intent submitted";
-          sublabel = "Matching at 17:30";
+          sublabel = "Matching now…";
           icon = isDriver ? <Car size={14} color="#fff" /> : <Users size={14} color="#fff" />;
         } else {
           return null;
