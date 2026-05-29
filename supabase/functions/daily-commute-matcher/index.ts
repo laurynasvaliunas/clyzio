@@ -277,6 +277,70 @@ async function runTargeted(
   return respondJSON({ ok: true, targeted: true, matches_created: created });
 }
 
+/**
+ * 3:30 PM nudge (PDF D7): push commuters who haven't planned tomorrow yet.
+ *
+ * Cohort = profiles with a push token + a home location set, who have NO
+ * scheduled/requested/active ride for tomorrow. Gentle, once-a-day reminder.
+ * Idempotency reuses matcher_runs with a `nudge:<date>` sentinel so a double
+ * cron fire doesn't double-push.
+ */
+async function runNudge(supabase: SupabaseClient): Promise<Response> {
+  const tomorrow = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  })();
+
+  // Idempotency claim (sentinel date string distinct from the matcher's).
+  const claimKey = `nudge:${tomorrow}`;
+  const { error: claimError } = await supabase
+    .from('matcher_runs')
+    .insert({ run_date: claimKey });
+  if (claimError) {
+    return respondJSON({ ok: true, nudge: true, skipped: true, trip_date: tomorrow });
+  }
+
+  const dayStart = `${tomorrow}T00:00:00.000Z`;
+  const dayEnd = `${tomorrow}T23:59:59.999Z`;
+
+  // Users who already have a ride scheduled for tomorrow → exclude.
+  const { data: planned } = await supabase
+    .from('rides')
+    .select('rider_id, driver_id')
+    .in('status', ['scheduled', 'requested', 'active'])
+    .gte('scheduled_at', dayStart)
+    .lte('scheduled_at', dayEnd);
+
+  const plannedIds = new Set<string>();
+  for (const r of planned ?? []) {
+    if (r.rider_id) plannedIds.add(r.rider_id);
+    if (r.driver_id) plannedIds.add(r.driver_id);
+  }
+
+  // Candidate commuters: have a push token + a home location.
+  const { data: candidates } = await supabase
+    .from('profiles')
+    .select('id, expo_push_token')
+    .not('expo_push_token', 'is', null)
+    .not('home_lat', 'is', null);
+
+  let pushed = 0;
+  for (const c of candidates ?? []) {
+    if (plannedIds.has(c.id)) continue;
+    if (!c.expo_push_token) continue;
+    await sendPush({
+      to: c.expo_push_token,
+      title: 'Plan tomorrow’s commute',
+      body: 'Have you planned tomorrow’s commute yet? Tap to pick your greenest way to work.',
+      data: { screen: 'index' },
+    });
+    pushed++;
+  }
+
+  return respondJSON({ ok: true, nudge: true, pushed, trip_date: tomorrow });
+}
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -295,6 +359,11 @@ Deno.serve(async (req) => {
   const mapboxToken = Deno.env.get('MAPBOX_TOKEN') ?? Deno.env.get('EXPO_PUBLIC_MAPBOX_TOKEN') ?? '';
 
   try {
+    // Nudge mode: the 3:30 PM "plan tomorrow" reminder cohort.
+    if (parsed.data.nudge) {
+      return await runNudge(supabase);
+    }
+
     // Instant mode: a single newly-submitted intent fired this run. Match it
     // now and return — no date-claim, no full batch.
     if (parsed.data.new_intent_id) {

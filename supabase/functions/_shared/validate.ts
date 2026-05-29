@@ -96,6 +96,9 @@ export const DailyCommuteMatcherSchema = z
     // submitted intent against the opposite-role pool (bypasses the daily
     // batch idempotency claim). Absent = full daily batch sweep.
     new_intent_id: uuid.optional(),
+    // When true, run the 3:30 PM "plan tomorrow" nudge cohort instead of the
+    // matcher: push commuters who haven't planned tomorrow yet. (PDF D7)
+    nudge: z.boolean().optional(),
   })
   .passthrough();
 

@@ -33,6 +33,8 @@ import {
   Plus,
   School,
   TrendingDown,
+  Car as TaxiIcon,
+  Home as HomeIcon,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -64,8 +66,25 @@ const BASE_TRANSPORT_MODES = [
   { id: "ebike",   label: "E-Bike / E-Scooter",icon: Zap,        co2: 0.023, color: "#E91E63" },
   { id: "moto",    label: "Motorbike",          icon: NavIcon,    co2: 0.090, color: "#9C27B0" },
   { id: "public",  label: "Public Transport",   icon: Bus,        co2: 0.040, color: "#7C3AED" },
+  // Taxi — CO₂ estimated as an average hybrid car (Prius is the most common
+  // EU taxi). A disclaimer is shown when this mode is selected. (PDF Branch C)
+  { id: "taxi",    label: "Taxi",               icon: TaxiIcon,   co2: 0.120, color: "#F2C744" },
   { id: "my_car",  label: "My Car",             icon: Car,        co2: 0.192, color: COLORS.primary },
+  // Working from home — a zero-commute day. No route required. (PDF Stage 3)
+  { id: "wfh",     label: "Working from home",  icon: HomeIcon,   co2: 0,     color: "#5B8F5B" },
 ];
+
+/**
+ * CO₂ intensity → dot colour (PDF Stage 3: "each card shows a small CO₂
+ * indicator — a colored dot green/yellow/orange — so the user associates
+ * transport with impact before choosing"). Thresholds in kg/km.
+ */
+function co2DotColor(co2PerKm: number): string {
+  if (co2PerKm <= 0.001) return "#5B8F5B";   // leaf — zero/near-zero
+  if (co2PerKm < 0.05) return "#7FB069";      // soft green — low (e-bike, transit)
+  if (co2PerKm < 0.13) return "#F2C744";      // sun — medium (hybrid/taxi)
+  return "#C4623F";                            // clay — high (car/moto)
+}
 
 // --- ISOLATED INPUT COMPONENT ---
 interface CustomAddressInputProps {
@@ -416,9 +435,10 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
 
   const getModesByRole = () => {
     if (role === "solo") {
-      // Solo: Walking, Bike, E-Bike/E-Scooter, Motorbike, Public Transport, My Car
-      return TRANSPORT_MODES.filter((m) => 
-        ["walking", "bike", "ebike", "moto", "public", "my_car"].includes(m.id)
+      // Solo: Walking, Bike, E-Bike/E-Scooter, Motorbike, Public Transport,
+      // Taxi, My Car, Working from home. (PDF Stage 3 option cards)
+      return TRANSPORT_MODES.filter((m) =>
+        ["walking", "bike", "ebike", "moto", "public", "taxi", "my_car", "wfh"].includes(m.id)
       );
     } else if (role === "driver") {
       // Driver: Only Motorbike and My Car (for carpooling)
@@ -788,8 +808,11 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                       const isSelected = selectedMode?.id === m.id;
                       const totalCO2Kg = routeDistance * m.co2;
                       const totalCO2Grams = totalCO2Kg * 1000;
+                      const isWfh = m.id === "wfh";
                       let co2Display = "0 g";
-                      if (m.co2 === 0) {
+                      if (isWfh) {
+                        co2Display = "No commute";
+                      } else if (m.co2 === 0) {
                         co2Display = "Zero Emissions";
                       } else if (routeDistance === 0) {
                         co2Display = "—";
@@ -806,9 +829,14 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                             setSelectedMode(m);
                           }}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: isSelected }}
+                          accessibilityLabel={`${m.label}, ${co2Display}`}
                         >
                           <View style={[styles.iconBox, { backgroundColor: m.color + '20' }]}>
                             <IconComponent size={24} color={m.color} />
+                            {/* CO₂ intensity dot (PDF Stage 3) */}
+                            <View style={[styles.co2Dot, { backgroundColor: co2DotColor(m.co2) }]} />
                           </View>
                           <Text style={[styles.modeLabel, isSelected && { color: COLORS.primary, fontWeight: "700" }]}>
                             {m.label}
@@ -817,6 +845,15 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                         </TouchableOpacity>
                       );
                     })}
+                  </View>
+                )}
+
+                {/* Taxi disclaimer (PDF Branch C) */}
+                {selectedMode?.id === "taxi" && (
+                  <View style={styles.disclaimerRow}>
+                    <Text style={styles.disclaimerText}>
+                      Taxi CO₂ is estimated based on an average hybrid car.
+                    </Text>
                   </View>
                 )}
 
@@ -1144,6 +1181,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
+    position: "relative",
+  },
+  // CO₂ intensity dot, top-right of the mode icon (PDF Stage 3).
+  co2Dot: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.white,
   },
   modeLabel: {
     flex: 1,
@@ -1155,6 +1204,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.gray,
     fontWeight: "600",
+  },
+  disclaimerRow: {
+    paddingHorizontal: 4,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  disclaimerText: {
+    fontSize: 12,
+    color: COLORS.gray,
+    fontStyle: "italic",
+    lineHeight: 16,
   },
 
   // Mode List Container

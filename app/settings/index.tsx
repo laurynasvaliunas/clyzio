@@ -25,6 +25,8 @@ import {
   Building2,
   Download,
   Scale,
+  MapPin,
+  Car,
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 
@@ -172,6 +174,38 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Commute Section (PDF F1) — My Places + My Garage. Both open Edit
+            Profile, which holds the address fields and the garage editor. */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Commute</Text>
+
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: TC.surface }]}
+            onPress={handleEditProfile}
+            accessibilityRole="button"
+            accessibilityLabel="My Places — edit your home and work addresses"
+          >
+            <View style={[styles.iconBox, { backgroundColor: COLORS.primary + "20" }]}>
+              <MapPin size={20} color={COLORS.primary} />
+            </View>
+            <Text style={[styles.settingLabel, { color: TC.text }]}>My Places</Text>
+            <ChevronRight size={20} color={TC.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.settingItem, { backgroundColor: TC.surface }]}
+            onPress={handleEditProfile}
+            accessibilityRole="button"
+            accessibilityLabel="My Garage — add or edit your vehicles"
+          >
+            <View style={[styles.iconBox, { backgroundColor: COLORS.green + "20" }]}>
+              <Car size={20} color={COLORS.green} />
+            </View>
+            <Text style={[styles.settingLabel, { color: TC.text }]}>My Garage</Text>
+            <ChevronRight size={20} color={TC.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
         {/* Account Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Account</Text>

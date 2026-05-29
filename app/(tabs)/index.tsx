@@ -21,6 +21,8 @@ import TripPlannerModal from "../../components/TripPlannerModal";
 import AISuggestionChip from "../../components/AISuggestionChip";
 import CarpoolMatchModal from "../../components/CarpoolMatchModal";
 import CommuteHomeCard, { type PlanDay, type PlannedRideSummary } from "../../components/CommuteHomeCard";
+import YesterdayImpactCard, { type YesterdayImpact } from "../../components/YesterdayImpactCard";
+import * as SecureStore from "expo-secure-store";
 import { supabase } from "../../lib/supabase";
 import { buildWebLink } from "../../lib/deepLinks";
 import { useAIStore } from "../../store/useAIStore";
@@ -271,8 +273,14 @@ function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = fal
             </Text>
           </View>
         </View>
-        <TouchableOpacity onPress={onClose} style={styles.matchCloseBtn} disabled={isLoading}>
-          <Text style={styles.matchClose}>✕</Text>
+        <TouchableOpacity
+          onPress={onClose}
+          style={styles.matchCloseBtn}
+          disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel="Close match details"
+        >
+          <Text style={styles.matchClose} accessibilityElementsHidden importantForAccessibility="no">✕</Text>
         </TouchableOpacity>
       </View>
 
@@ -359,6 +367,10 @@ export default function MapScreen() {
   // Default home→work route, drawn when the user is idle (no active trip) so
   // the map always shows their commute corridor.
   const [defaultRouteCoords, setDefaultRouteCoords] = useState<number[][] | null>(null);
+
+  // ✅ STAGE 4 — yesterday's completed-commute impact card (shown at most once
+  // per day; dismissal persisted in SecureStore keyed by date).
+  const [yesterdayImpact, setYesterdayImpact] = useState<YesterdayImpact | null>(null);
 
   // ✅ MINIMAL STATE - Only trip result data
   const [locationGranted, setLocationGranted] = useState(false);
@@ -612,6 +624,67 @@ export default function MapScreen() {
     () => new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }),
     [],
   );
+
+  // ✅ STAGE 4 — load yesterday's completed commute for the re-engagement card.
+  // Shows once per calendar day; dismissal persists via a date-keyed SecureStore
+  // flag so it never nags after the user has acknowledged it.
+  const refreshYesterdayImpact = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setYesterdayImpact(null); return; }
+
+      const y = new Date();
+      y.setDate(y.getDate() - 1);
+      const yStart = new Date(y); yStart.setHours(0, 0, 0, 0);
+      const yEnd = new Date(y); yEnd.setHours(23, 59, 59, 999);
+      const dayKey = `clyzio.impactSeen.${yStart.toISOString().slice(0, 10)}`;
+
+      // Already dismissed for this date → don't show.
+      const seen = await SecureStore.getItemAsync(dayKey).catch(() => null);
+      if (seen === "1") { setYesterdayImpact(null); return; }
+
+      const { data } = await supabase
+        .from('rides')
+        .select('transport_mode, distance_km, co2_saved, completed_at, status')
+        .or(`driver_id.eq.${user.id},rider_id.eq.${user.id}`)
+        .eq('status', 'completed')
+        .gte('completed_at', yStart.toISOString())
+        .lte('completed_at', yEnd.toISOString())
+        .order('completed_at', { ascending: false })
+        .limit(1);
+
+      const ride = data?.[0];
+      if (!ride) { setYesterdayImpact(null); return; }
+
+      const distanceKm = Number(ride.distance_km) || 0;
+      const co2SavedKg = Number(ride.co2_saved) || 0;
+      // Car-equivalent for the comparison bar. Prefer distance × petrol factor;
+      // fall back to the saved amount so the bar never renders broken when
+      // distance wasn't recorded.
+      const carCo2Kg = Math.max(co2SavedKg, distanceKm * 0.192);
+
+      setYesterdayImpact({
+        distanceKm,
+        modeId: ride.transport_mode ?? null,
+        co2SavedKg,
+        carCo2Kg,
+      });
+    } catch {
+      setYesterdayImpact(null);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => { refreshYesterdayImpact(); }, [refreshYesterdayImpact])
+  );
+
+  const dismissYesterdayImpact = useCallback(async () => {
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    const dayKey = `clyzio.impactSeen.${new Date(y.setHours(0, 0, 0, 0)).toISOString().slice(0, 10)}`;
+    await SecureStore.setItemAsync(dayKey, "1").catch(() => undefined);
+    setYesterdayImpact(null);
+  }, []);
 
   // ✅ Fetch AI commute suggestions when screen is focused (6h cache, non-blocking)
   useFocusEffect(
@@ -1354,9 +1427,31 @@ export default function MapScreen() {
         );
       })()}
 
+      {/* Stage 4 — Yesterday's impact card. Takes priority over the AI chip
+          in the same top slot when present, so the two never stack. */}
+      {!activeTrip && searchStatus === 'idle' && yesterdayImpact && (
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute',
+            top: insets.top + 60,
+            left: 16,
+            right: 16,
+            zIndex: 41,
+          }}
+        >
+          <YesterdayImpactCard
+            impact={yesterdayImpact}
+            onSeeImpact={() => router.push('/(tabs)/stats')}
+            onDismiss={dismissYesterdayImpact}
+            isDark={isDark}
+          />
+        </View>
+      )}
+
       {/* AI Suggestion Chip — anchored below BrandHeader, never under the
-          iOS clock / Dynamic Island. */}
-      {!activeTrip && searchStatus === 'idle' && !chipDismissed && commuteResult?.insight && (
+          iOS clock / Dynamic Island. Suppressed while the impact card shows. */}
+      {!activeTrip && searchStatus === 'idle' && !yesterdayImpact && !chipDismissed && commuteResult?.insight && (
         <View
           pointerEvents="box-none"
           style={{
@@ -1465,6 +1560,8 @@ export default function MapScreen() {
       {searchStatus === 'matched' && searchMode && !selectedMatch && isViewingMap && (
         <TouchableOpacity
           style={styles.aiMatchBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Find AI carpool matches"
           onPress={() => {
             if (activeTrip?.origin && activeTrip?.destination) {
               fetchCarpoolMatches({
@@ -1500,8 +1597,10 @@ export default function MapScreen() {
       <TouchableOpacity
         style={[styles.myLocationBtn, isDark && styles.myLocationBtnDark]}
         onPress={centerToUserLocation}
+        accessibilityRole="button"
+        accessibilityLabel="Center map on my location"
       >
-        <Text style={styles.myLocationBtnText}>⊙</Text>
+        <Text style={styles.myLocationBtnText} accessibilityElementsHidden importantForAccessibility="no">⊙</Text>
       </TouchableOpacity>
     </View>
   );

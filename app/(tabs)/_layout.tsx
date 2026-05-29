@@ -40,8 +40,9 @@ export default function TabsLayout() {
         ),
         tabBarLabelStyle: {
           fontWeight: "600",
-          fontSize: 9.5,
-          letterSpacing: 0.6,
+          // Bumped 9.5 → 11 for legibility (accessibility sweep G1/G4).
+          fontSize: 11,
+          letterSpacing: 0.4,
           textTransform: "uppercase",
         },
       }}
