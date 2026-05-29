@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { View, Platform } from "react-native";
 import { BlurView } from "expo-blur";
-import { Map, Calendar, BarChart3, User, Sparkles } from "lucide-react-native";
+import { Map, Calendar, BarChart3, User } from "lucide-react-native";
 import { useTheme } from "../../contexts/ThemeContext";
 
 // Editorial reskin — tab tints on the paper-ink system.
@@ -100,22 +100,20 @@ export default function TabsLayout() {
           ),
         }}
       />
+      {/*
+        AI Planner — hidden from the tab bar as of the customer-journey
+        rebuild (5 tabs → 4: Map · Activity · Stats · Profile). The route
+        file `ai-planner.tsx` is kept so:
+          (a) existing navigators / deep links don't crash, and
+          (b) Phase 4 of the rebuild can fold its logic into the new
+              Plan Ride bottom sheet anchored to the Map screen.
+        Using `href: null` is the expo-router idiom for "registered but
+        not shown in the tab bar".
+      */}
       <Tabs.Screen
         name="ai-planner"
         options={{
-          title: "My Coach",
-          tabBarAccessibilityLabel: "My Personal Commute Coach tab",
-          tabBarIcon: ({ color, focused }) => (
-            <View
-              style={{
-                backgroundColor: focused ? COLORS.primary + "20" : "transparent",
-                borderRadius: 12,
-                padding: 8,
-              }}
-            >
-              <Sparkles size={22} color={color} />
-            </View>
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen

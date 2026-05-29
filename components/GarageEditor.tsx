@@ -36,13 +36,22 @@ const FUEL_TYPES = [
   { id: "cng", label: "CNG (Natural Gas)", emoji: "🟢" },
 ];
 
-const TYPE_ORDER: VehicleType[] = ["car", "motorcycle", "scooter", "bicycle"];
+const TYPE_ORDER: VehicleType[] = [
+  "car",
+  "motorcycle",
+  "bicycle",
+  "scooter",
+  "ebike",
+  "escooter",
+];
 
 const TYPE_EMOJI: Record<VehicleType, string> = {
   car: "🚗",
   motorcycle: "🏍️",
-  scooter: "🛵",
   bicycle: "🚲",
+  scooter: "🛵",
+  ebike: "⚡🚲",
+  escooter: "⚡🛵",
 };
 
 interface Props {

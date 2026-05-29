@@ -385,6 +385,14 @@ export default function EditProfileScreen() {
         payload.share_pickup_address = profile.share_pickup_address;
       }
 
+      // First-run gate: when finishing setup mode, also flip
+      // `commute_setup_done = true` so `nextRouteAfterAuth` stops gating the
+      // user on subsequent launches. As of the customer-journey rebuild, this
+      // screen is the last forced first-run step.
+      if (isSetup) {
+        (payload as Record<string, unknown>).commute_setup_done = true;
+      }
+
       const { error } = await supabase
         .from("profiles")
         .update(payload as never)

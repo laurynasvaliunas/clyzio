@@ -17,8 +17,15 @@ import { supabase } from './supabase';
 
 export const PERMISSIONS_PRIMED_KEY = 'clyzio.permissionsPrimed.v1';
 
-/** Where a brand-new user must finish setup before reaching the Map. */
-export const COMMUTE_SETUP_ROUTE = '/(tabs)/profile?setup=1';
+/**
+ * Where a brand-new user must finish setup before reaching the Map.
+ *
+ * The route is the entry point for the customer-journey PDF's Stage 1
+ * (3-screen setup flow): Places → Garage → Done. The Done screen flips
+ * `profiles.commute_setup_done = true`, after which the resolver below
+ * routes subsequent launches straight to `/(tabs)`.
+ */
+export const COMMUTE_SETUP_ROUTE = '/setup/places';
 
 export async function hasPrimedPermissions(): Promise<boolean> {
   try {

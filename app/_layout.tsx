@@ -17,7 +17,8 @@ import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
 import { parseLink, toRoutePath, notificationToRoute } from "../lib/deepLinks";
-import { hasCompletedCommuteSetup } from "../lib/permissionsPriming";
+import { hasCompletedCommuteSetup, COMMUTE_SETUP_ROUTE } from "../lib/permissionsPriming";
+import { WELCOME_SEEN_KEY } from "./welcome";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 import { ToastProvider } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
@@ -243,7 +244,7 @@ function AnimatedSplash({
           { opacity: taglineOpacity, transform: [{ translateY: taglineY }] },
         ]}
       >
-        Ride green. Save the planet.
+        Track your commute. Shrink your footprint.
       </Animated.Text>
     </Animated.View>
   );
@@ -356,39 +357,66 @@ function RootLayoutContent() {
     });
   }, [isAuthenticated]);
 
+  // Welcome-seen gate: first-ever cold-launch on this device sees the
+  // Welcome (Stage 0 of the customer-journey PDF) before login. The flag
+  // is persisted in SecureStore by `app/welcome.tsx` when the user taps
+  // "Let's set up". `null` = still resolving (we don't route until we know).
+  const [welcomeSeen, setWelcomeSeen] = useState<boolean | null>(null);
+  useEffect(() => {
+    SecureStore.getItemAsync(WELCOME_SEEN_KEY)
+      .then((v) => setWelcomeSeen(v === "1"))
+      .catch(() => setWelcomeSeen(true)); // on storage error, skip welcome — never block launch
+  }, []);
+
   // Handle navigation based on auth state
   useEffect(() => {
-    if (isAuthenticated === null) return; // Still loading
+    if (isAuthenticated === null) return;      // Still loading auth
+    if (welcomeSeen === null) return;          // Still loading welcome flag
 
     const inAuthGroup = segments[0] === '(auth)';
     // Public (no auth required) screens — Terms / Privacy / Licenses pages
     // must be reachable without login for App Store / Play Store review.
     const inPublicGroup = segments[0] === 'legal';
+    const inWelcome = segments[0] === 'welcome';
+    // First-run setup screens (Stage 1 of the PDF). Authenticated route, but
+    // outside (auth) so the "kick auth'd users out of (auth)" rule below
+    // doesn't fire. Setup is reached only via nextRouteAfterAuth.
+    const inSetup = segments[0] === 'setup';
 
-    if (!isAuthenticated && !inAuthGroup && !inPublicGroup) {
+    // Unauthed + never seen Welcome → land on Welcome first.
+    if (!isAuthenticated && !welcomeSeen && !inWelcome && !inAuthGroup && !inPublicGroup) {
+      router.replace('/welcome' as any);
+      return;
+    }
+    if (!isAuthenticated && !inAuthGroup && !inPublicGroup && !inWelcome && !inSetup) {
       router.replace('/(auth)/login');
-    } else if (isAuthenticated && inAuthGroup) {
+    } else if (isAuthenticated && (inAuthGroup || inWelcome)) {
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, segments]);
+  }, [isAuthenticated, welcomeSeen, segments]);
 
   // First-run resilience: if an authenticated user hasn't finished commute setup
-  // (e.g. they quit mid-flow), resume them at Profile setup on this launch. Runs
-  // once per launch and only outside the auth/legal groups so it doesn't fight
-  // the login routing. Tolerates the flag column being absent (treated as done).
+  // (e.g. they quit mid-flow), resume them on this launch. Runs once per launch
+  // and only outside the auth/legal/welcome groups so it doesn't fight other
+  // routing. Tolerates the flag column being absent (treated as done).
+  // The destination is the canonical first-run route from permissionsPriming
+  // (changed in Phase 1.2 of the customer-journey rebuild — was profile?setup=1,
+  // now edit-profile?setup=1; Phase 2 will move it to /setup/places).
   const commuteGateChecked = useRef(false);
   useEffect(() => {
     if (isAuthenticated !== true || commuteGateChecked.current) return;
     const inAuthGroup = segments[0] === '(auth)';
     const inPublicGroup = segments[0] === 'legal';
-    if (inAuthGroup || inPublicGroup) return; // let the auth flow route
+    const inWelcome = segments[0] === 'welcome';
+    const inSetup = segments[0] === 'setup';
+    if (inAuthGroup || inPublicGroup || inWelcome || inSetup) return;
     commuteGateChecked.current = true;
     (async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         if (!(await hasCompletedCommuteSetup(user.id))) {
-          router.replace('/(tabs)/profile?setup=1' as any);
+          router.replace(COMMUTE_SETUP_ROUTE as any);
         }
       } catch { /* ignore — never block launch */ }
     })();

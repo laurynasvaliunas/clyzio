@@ -5,7 +5,22 @@
 // (TripPlanner, useTripStore, ai-planner, ai-commute-planner edge fn) is
 // untouched. CO₂ math per vehicle lives in lib/commuteUtils (getVehicleCO2).
 
-export type VehicleType = "car" | "motorcycle" | "scooter" | "bicycle";
+export type VehicleType =
+  | "car"
+  | "motorcycle"
+  | "bicycle"
+  | "scooter"
+  | "ebike"      // electric bike — added with the customer-journey rebuild (PDF Stage 1.2)
+  | "escooter";  // electric scooter — added with the customer-journey rebuild (PDF Stage 1.2)
+
+export const ALL_VEHICLE_TYPES: VehicleType[] = [
+  "car",
+  "motorcycle",
+  "bicycle",
+  "scooter",
+  "ebike",
+  "escooter",
+];
 
 export interface Vehicle {
   /** Stable client-generated id (used as primary_vehicle_id). */
@@ -25,8 +40,10 @@ export const FUELED_VEHICLE_TYPES: VehicleType[] = ["car", "motorcycle"];
 export const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
   car: "Car",
   motorcycle: "Motorcycle",
+  bicycle: "Bike",
   scooter: "Scooter",
-  bicycle: "Bicycle",
+  ebike: "E-Bike",
+  escooter: "E-Scooter",
 };
 
 export function newVehicleId(): string {
@@ -52,7 +69,7 @@ export function parseVehicles(raw: unknown): Vehicle[] {
     .filter((v) => v && typeof v === "object")
     .map((v: any) => ({
       id: String(v.id ?? newVehicleId()),
-      type: (["car", "motorcycle", "scooter", "bicycle"].includes(v.type)
+      type: (ALL_VEHICLE_TYPES.includes(v.type)
         ? v.type
         : "car") as VehicleType,
       make: v.make ?? "",
