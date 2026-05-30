@@ -167,7 +167,9 @@ export default function IncomingSuggestionBanner() {
   const pending = incomingSuggestions.filter((s) => s.status === "pending");
   if (pending.length === 0) return null;
 
-  const topOffset = insets.top + (Platform.OS === "android" ? 8 : 20);
+  // Offset clears on-screen headers (e.g. the Map's BrandHeader) so the banner
+  // doesn't land on the logo/avatar band.
+  const topOffset = insets.top + (Platform.OS === "android" ? 48 : 56);
 
   return (
     <View

@@ -372,6 +372,10 @@ export default function MapScreen() {
   // per day; dismissal persisted in SecureStore keyed by date).
   const [yesterdayImpact, setYesterdayImpact] = useState<YesterdayImpact | null>(null);
 
+  // Measured height of the bottom CommuteHomeCard stack, so the My-Location FAB
+  // can be lifted clear of it (the card height differs by plan/no-plan state).
+  const [homeCardHeight, setHomeCardHeight] = useState(0);
+
   // ✅ MINIMAL STATE - Only trip result data
   const [locationGranted, setLocationGranted] = useState(false);
   // Brand-coloured mask covers the empty Mapbox grid + UserLocation pulse
@@ -1333,133 +1337,126 @@ export default function MapScreen() {
       {/* Header */}
       <BrandHeader userAvatar={userAvatar} userName={userName} dateLabel={dateLabel} />
 
-      {/* Daily Commute Intent Pill */}
-      {intent && intent.status !== "expired" && (() => {
-        const isDriver = intent.role === "driver";
-        const open = matches.filter(m => m.status === "pending" || m.status === "awaiting_other");
-        const confirmedMatches = matches.filter(m => m.status === "confirmed");
-        const myApproved = (m: typeof matches[number]) => isDriver ? m.driver_approved : m.passenger_approved;
-        // Open matches that still need MY approval, vs. ones I've approved and
-        // am waiting on the other side for.
-        const needsMyApproval = open.filter(m => !myApproved(m));
-        const awaitingOther = open.filter(m => myApproved(m));
+      {/* ── Top floating stack ──────────────────────────────────────────────
+          A single column below the header holding (in order) the daily-commute
+          intent pill, then EITHER the yesterday-impact card OR the AI chip.
+          Stacked with a gap so they never overlap each other or BrandHeader.
+          Anchored at insets.top + 56 to clear the logo/date/avatar band. */}
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: 'absolute',
+          top: insets.top + 56,
+          left: 16,
+          right: 16,
+          zIndex: 41,
+          gap: 8,
+        }}
+      >
+        {/* Daily Commute Intent Pill */}
+        {intent && intent.status !== "expired" && (() => {
+          const isDriver = intent.role === "driver";
+          const open = matches.filter(m => m.status === "pending" || m.status === "awaiting_other");
+          const confirmedMatches = matches.filter(m => m.status === "confirmed");
+          const myApproved = (m: typeof matches[number]) => isDriver ? m.driver_approved : m.passenger_approved;
+          // Open matches that still need MY approval, vs. ones I've approved and
+          // am waiting on the other side for.
+          const needsMyApproval = open.filter(m => !myApproved(m));
+          const awaitingOther = open.filter(m => myApproved(m));
 
-        let icon;
-        let label: string;
-        let sublabel: string | null = null;
-        let pillColor: string;
+          let icon;
+          let label: string;
+          let sublabel: string | null = null;
+          let pillColor: string;
 
-        if (confirmedMatches.length > 0) {
-          // Ride confirmed — both approved.
-          pillColor = "#4CAF50";
-          if (isDriver) {
-            const names = confirmedMatches.map(m => m.passenger_profile?.first_name ?? "Passenger").join(", ");
-            label = `Carpool confirmed`;
-            sublabel = names;
+          if (confirmedMatches.length > 0) {
+            // Ride confirmed — both approved.
+            pillColor = "#4CAF50";
+            if (isDriver) {
+              const names = confirmedMatches.map(m => m.passenger_profile?.first_name ?? "Passenger").join(", ");
+              label = `Carpool confirmed`;
+              sublabel = names;
+            } else {
+              const driverName = confirmedMatches[0].driver_profile?.first_name ?? "Driver";
+              label = `Riding with ${driverName}`;
+              sublabel = `Pickup ${confirmedMatches[0].proposed_pickup_time ?? confirmedMatches[0].proposed_departure ?? "tomorrow"}`;
+            }
+            icon = <Users size={14} color="#fff" />;
+          } else if (needsMyApproval.length > 0) {
+            // A match is waiting for THIS user to approve.
+            pillColor = "#FDD835";
+            const otherName = isDriver
+              ? (needsMyApproval[0].passenger_profile?.first_name ?? "a passenger")
+              : (needsMyApproval[0].driver_profile?.first_name ?? "a driver");
+            label = `Matched with ${otherName}`;
+            sublabel = "Tap to approve & ride together";
+            icon = <Car size={14} color="#006064" />;
+          } else if (awaitingOther.length > 0) {
+            // This user approved; waiting on the other side.
+            pillColor = "#26C6DA";
+            const otherName = isDriver
+              ? (awaitingOther[0].passenger_profile?.first_name ?? "passenger")
+              : (awaitingOther[0].driver_profile?.first_name ?? "driver");
+            label = "You're in — waiting for them";
+            sublabel = `Waiting for ${otherName} to approve`;
+            icon = <Users size={14} color="#fff" />;
+          } else if (intent.status === "pending") {
+            // Submitted, matching runs instantly — no fixed wait time.
+            pillColor = "#26C6DA";
+            label = isDriver ? "Driver intent submitted" : "Passenger intent submitted";
+            sublabel = "Matching now…";
+            icon = isDriver ? <Car size={14} color="#fff" /> : <Users size={14} color="#fff" />;
           } else {
-            const driverName = confirmedMatches[0].driver_profile?.first_name ?? "Driver";
-            label = `Riding with ${driverName}`;
-            sublabel = `Pickup ${confirmedMatches[0].proposed_pickup_time ?? confirmedMatches[0].proposed_departure ?? "tomorrow"}`;
+            return null;
           }
-          icon = <Users size={14} color="#fff" />;
-        } else if (needsMyApproval.length > 0) {
-          // A match is waiting for THIS user to approve.
-          pillColor = "#FDD835";
-          const otherName = isDriver
-            ? (needsMyApproval[0].passenger_profile?.first_name ?? "a passenger")
-            : (needsMyApproval[0].driver_profile?.first_name ?? "a driver");
-          label = `Matched with ${otherName}`;
-          sublabel = "Tap to approve & ride together";
-          icon = <Car size={14} color="#006064" />;
-        } else if (awaitingOther.length > 0) {
-          // This user approved; waiting on the other side.
-          pillColor = "#26C6DA";
-          const otherName = isDriver
-            ? (awaitingOther[0].passenger_profile?.first_name ?? "passenger")
-            : (awaitingOther[0].driver_profile?.first_name ?? "driver");
-          label = "You're in — waiting for them";
-          sublabel = `Waiting for ${otherName} to approve`;
-          icon = <Users size={14} color="#fff" />;
-        } else if (intent.status === "pending") {
-          // Submitted, matching runs instantly — no fixed wait time.
-          pillColor = "#26C6DA";
-          label = isDriver ? "Driver intent submitted" : "Passenger intent submitted";
-          sublabel = "Matching now…";
-          icon = isDriver ? <Car size={14} color="#fff" /> : <Users size={14} color="#fff" />;
-        } else {
-          return null;
-        }
 
-        const textColor = pillColor === "#FDD835" ? "#006064" : "#fff";
-        const seatsLabel = isDriver && intent.passenger_capacity != null
-          ? ` · ${confirmedMatches.length}/${intent.passenger_capacity} seats`
-          : "";
+          const textColor = pillColor === "#FDD835" ? "#006064" : "#fff";
+          const seatsLabel = isDriver && intent.passenger_capacity != null
+            ? ` · ${confirmedMatches.length}/${intent.passenger_capacity} seats`
+            : "";
 
-        return (
-          <TouchableOpacity
-            style={[styles.intentPill, { backgroundColor: pillColor, top: insets.top + 12 }]}
-            onPress={() => router.push("/daily-commute")}
-            activeOpacity={0.85}
-          >
-            {icon}
-            <View style={{ flex: 1, marginLeft: 6 }}>
-              <Text style={[styles.intentPillLabel, { color: textColor }]} numberOfLines={1}>
-                {label}{seatsLabel}
-              </Text>
-              {sublabel && (
-                <Text style={[styles.intentPillSub, { color: textColor, opacity: 0.8 }]} numberOfLines={1}>
-                  {sublabel}
+          return (
+            <TouchableOpacity
+              style={[styles.intentPill, { backgroundColor: pillColor }]}
+              onPress={() => router.push("/daily-commute")}
+              activeOpacity={0.85}
+            >
+              {icon}
+              <View style={{ flex: 1, marginLeft: 6 }}>
+                <Text style={[styles.intentPillLabel, { color: textColor }]} numberOfLines={1}>
+                  {label}{seatsLabel}
                 </Text>
-              )}
-            </View>
-            <Text style={{ color: textColor, opacity: 0.7, fontSize: 12, fontWeight: "600" }}>›</Text>
-          </TouchableOpacity>
-        );
-      })()}
+                {sublabel && (
+                  <Text style={[styles.intentPillSub, { color: textColor, opacity: 0.8 }]} numberOfLines={1}>
+                    {sublabel}
+                  </Text>
+                )}
+              </View>
+              <Text style={{ color: textColor, opacity: 0.7, fontSize: 12, fontWeight: "600" }}>›</Text>
+            </TouchableOpacity>
+          );
+        })()}
 
-      {/* Stage 4 — Yesterday's impact card. Takes priority over the AI chip
-          in the same top slot when present, so the two never stack. */}
-      {!activeTrip && searchStatus === 'idle' && yesterdayImpact && (
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: 'absolute',
-            top: insets.top + 60,
-            left: 16,
-            right: 16,
-            zIndex: 41,
-          }}
-        >
+        {/* Stage 4 — Yesterday's impact card (takes the slot over the AI chip). */}
+        {!activeTrip && searchStatus === 'idle' && yesterdayImpact && (
           <YesterdayImpactCard
             impact={yesterdayImpact}
             onSeeImpact={() => router.push('/(tabs)/stats')}
             onDismiss={dismissYesterdayImpact}
             isDark={isDark}
           />
-        </View>
-      )}
+        )}
 
-      {/* AI Suggestion Chip — anchored below BrandHeader, never under the
-          iOS clock / Dynamic Island. Suppressed while the impact card shows. */}
-      {!activeTrip && searchStatus === 'idle' && !yesterdayImpact && !chipDismissed && commuteResult?.insight && (
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: 'absolute',
-            top: insets.top + 60,
-            left: 16,
-            right: 16,
-            zIndex: 40,
-          }}
-        >
+        {/* AI Suggestion Chip — suppressed while the impact card shows. */}
+        {!activeTrip && searchStatus === 'idle' && !yesterdayImpact && !chipDismissed && commuteResult?.insight && (
           <AISuggestionChip
             insight={commuteResult.insight}
             loading={isLoadingCommute}
             onPress={() => router.push('/(tabs)/ai-planner')}
             onDismiss={() => setChipDismissed(true)}
           />
-        </View>
-      )}
+        )}
+      </View>
 
       {/* Stage 2 bottom card — Today/Tomorrow toggle + Plan your ride / plan
           summary. Replaces the old ActionDock + empty-state card as the
@@ -1472,6 +1469,7 @@ export default function MapScreen() {
           onPlanRide={() => setShowPlanner(true)}
           onChangePlan={() => setShowPlanner(true)}
           isDark={isDark}
+          onHeightChange={setHomeCardHeight}
         />
       )}
 
@@ -1583,15 +1581,25 @@ export default function MapScreen() {
         }}
       />
 
-      {/* My Location FAB */}
-      <TouchableOpacity
-        style={[styles.myLocationBtn, isDark && styles.myLocationBtnDark]}
-        onPress={centerToUserLocation}
-        accessibilityRole="button"
-        accessibilityLabel="Center map on my location"
-      >
-        <Text style={styles.myLocationBtnText} accessibilityElementsHidden importantForAccessibility="no">⊙</Text>
-      </TouchableOpacity>
+      {/* My Location FAB — lifted above the bottom CommuteHomeCard while idle
+          (its measured height varies by plan/no-plan state); otherwise the
+          default offset that clears active-trip / search overlays. */}
+      {(() => {
+        const idleCardShown = !showPlanner && !activeTrip && searchStatus === 'idle';
+        const fabBottom = idleCardShown && homeCardHeight > 0
+          ? 100 + homeCardHeight + 12
+          : 172;
+        return (
+          <TouchableOpacity
+            style={[styles.myLocationBtn, isDark && styles.myLocationBtnDark, { bottom: fabBottom }]}
+            onPress={centerToUserLocation}
+            accessibilityRole="button"
+            accessibilityLabel="Center map on my location"
+          >
+            <Text style={styles.myLocationBtnText} accessibilityElementsHidden importantForAccessibility="no">⊙</Text>
+          </TouchableOpacity>
+        );
+      })()}
     </View>
   );
 }
@@ -1685,12 +1693,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   // ===== DAILY COMMUTE INTENT PILL =====
+  // Positioned by the top-floating-stack container (not absolute itself).
   intentPill: {
-    position: "absolute",
-    top: 100,
-    alignSelf: "center",
-    left: 16,
-    right: 16,
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 9,

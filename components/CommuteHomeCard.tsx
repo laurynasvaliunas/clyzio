@@ -34,6 +34,9 @@ interface Props {
   onPlanRide: () => void;
   onChangePlan: () => void;
   isDark?: boolean;
+  /** Reports the card stack's measured height so the Map can lift the
+   *  My-Location FAB clear of it (heights differ by plan/no-plan state). */
+  onHeightChange?: (height: number) => void;
 }
 
 const COLORS = {
@@ -80,6 +83,7 @@ export default function CommuteHomeCard({
   onPlanRide,
   onChangePlan,
   isDark = false,
+  onHeightChange,
 }: Props) {
   const surface = isDark ? COLORS.surfaceDark : COLORS.surface;
   const ink = isDark ? COLORS.inkDark : COLORS.ink;
@@ -96,7 +100,11 @@ export default function CommuteHomeCard({
   };
 
   return (
-    <View style={styles.wrap} pointerEvents="box-none">
+    <View
+      style={styles.wrap}
+      pointerEvents="box-none"
+      onLayout={(e) => onHeightChange?.(e.nativeEvent.layout.height)}
+    >
       {/* Today / Tomorrow toggle */}
       <View style={[styles.toggle, { backgroundColor: track }]} accessibilityRole="tablist">
         {(["today", "tomorrow"] as PlanDay[]).map((day) => {
