@@ -333,10 +333,13 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    justifyContent: "space-between",
+    // rowGap only — a column `gap` plus 48%+48% widths exceeded 100% and forced
+    // a single column. space-between spreads the gutter horizontally instead.
+    rowGap: 12,
   },
   gridItem: {
-    width: "48.5%",
+    width: "48%",
     gap: 0,
   },
   card: {

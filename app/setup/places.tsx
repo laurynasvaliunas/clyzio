@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Platform,
   KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -67,6 +68,15 @@ export default function PlacesScreen() {
   const [detected, setDetected] = useState<Pin>(null);     // current-location reverse-geocoded
   const [promptVisible, setPromptVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Hide the (preview-only) map while the keyboard is up, so both address
+  // fields + their autocomplete dropdowns clear the keyboard.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardOpen(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   // Detect current location on mount; reverse-geocode to a friendly address
   // and show the "Is this home?" prompt if we get a clean hit.
@@ -222,7 +232,8 @@ export default function PlacesScreen() {
         </Text>
       </View>
 
-      {/* Map */}
+      {/* Map — hidden while typing so the fields clear the keyboard. */}
+      {!keyboardOpen && (
       <View style={styles.mapWrap}>
         {IS_MAPBOX_TOKEN_VALID ? (
           <MapView
@@ -299,6 +310,7 @@ export default function PlacesScreen() {
           </View>
         )}
       </View>
+      )}
 
       {/* Search bars */}
       <KeyboardAvoidingView

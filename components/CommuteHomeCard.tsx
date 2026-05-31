@@ -106,13 +106,13 @@ export default function CommuteHomeCard({
       onLayout={(e) => onHeightChange?.(e.nativeEvent.layout.height)}
     >
       {/* Today / Tomorrow toggle */}
-      <View style={[styles.toggle, { backgroundColor: track }]} accessibilityRole="tablist">
+      <View style={[styles.toggle, { backgroundColor: surface }]} accessibilityRole="tablist">
         {(["today", "tomorrow"] as PlanDay[]).map((day) => {
           const active = day === targetDay;
           return (
             <TouchableOpacity
               key={day}
-              style={[styles.toggleSeg, active && { backgroundColor: surface }]}
+              style={[styles.toggleSeg, active && styles.toggleSegActive]}
               onPress={() => selectDay(day)}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
@@ -121,7 +121,7 @@ export default function CommuteHomeCard({
               <Text
                 style={[
                   styles.toggleText,
-                  { color: active ? ink : inkSoft },
+                  { color: active ? "#FFFFFF" : inkSoft },
                 ]}
               >
                 {day === "today" ? "Today" : "Tomorrow"}
@@ -212,6 +212,14 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     padding: 4,
     gap: 4,
+    // Lift the toggle crisply off the map (was washed-out / translucent).
+    borderWidth: 1,
+    borderColor: "rgba(11,26,31,0.06)",
+    shadowColor: "#0B1A1F",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
   },
   toggleSeg: {
     paddingHorizontal: 22,
@@ -219,6 +227,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     minWidth: 96,
     alignItems: "center",
+  },
+  toggleSegActive: {
+    // Strong brand fill so the selected day pops.
+    backgroundColor: COLORS.teal,
   },
   toggleText: {
     fontSize: 13,
