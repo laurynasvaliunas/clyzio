@@ -629,6 +629,40 @@ export default function MapScreen() {
     [],
   );
 
+  // Planner prefill (P1): seed the planner with the profile's home→work and the
+  // day chosen on the Today/Tomorrow toggle, so "Plan your ride" lands on the
+  // transport cards for the right date. AI-Planner deep-links still take
+  // precedence via the pendingPreset* values.
+  const plannerOrigin = useMemo(() => {
+    if (pendingPresetOrigin) return pendingPresetOrigin;
+    if (places?.homeLat != null && places?.homeLng != null) {
+      return { lat: places.homeLat, lng: places.homeLng, description: places.homeAddress || "Home" };
+    }
+    return undefined;
+  }, [pendingPresetOrigin, places]);
+
+  const plannerDest = useMemo(() => {
+    if (pendingPresetDest) return pendingPresetDest;
+    if (places?.workLat != null && places?.workLng != null) {
+      return { lat: places.workLat, lng: places.workLng, description: places.workAddress || "Work" };
+    }
+    return undefined;
+  }, [pendingPresetDest, places]);
+
+  // Resolve the toggle's day to a concrete scheduled date: tomorrow → 08:00
+  // (a sensible commute slot), today → now + 15 min so it lands in "Upcoming".
+  const plannerDate = useMemo(() => {
+    const d = new Date();
+    if (targetDay === "tomorrow") {
+      d.setDate(d.getDate() + 1);
+      d.setHours(8, 0, 0, 0);
+    } else {
+      d.setMinutes(d.getMinutes() + 15);
+    }
+    return d;
+    // showPlanner in deps so the date is fresh each time the sheet opens.
+  }, [targetDay, showPlanner]);
+
   // ✅ STAGE 4 — load yesterday's completed commute for the re-engagement card.
   // Shows once per calendar day; dismissal persists via a date-keyed SecureStore
   // flag so it never nags after the user has acknowledged it.
@@ -1485,8 +1519,9 @@ export default function MapScreen() {
         onTripStart={handleTripStart}
         onDailyCommute={() => router.push("/daily-commute")}
         initialMode={pendingPresetMode ?? undefined}
-        initialOrigin={pendingPresetOrigin ?? undefined}
-        initialDest={pendingPresetDest ?? undefined}
+        initialOrigin={plannerOrigin}
+        initialDest={plannerDest}
+        initialDate={plannerDate}
       />
 
       {/* ✅ SEARCHING OVERLAY: Shows during driver/rider search, hidden when viewing map */}

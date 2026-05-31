@@ -193,23 +193,48 @@ function DriverDetailsStep({
 
 // ─── Step: Submitted (driver or passenger) ────────────────────────────────────
 
-function SubmittedStep({ role }: { role: "driver" | "passenger" }) {
+// Carpool cutoff hour (local). Before it, we reassure + offer to be notified;
+// after it, we stop implying a match is coming and surface greener options.
+// Mirror of the server-side CARPOOL_NUDGE_CUTOFF_HOUR.
+const CARPOOL_CUTOFF_HOUR = 16;
+
+function SubmittedStep({ role, onSeeOptions }: { role: "driver" | "passenger"; onSeeOptions?: () => void }) {
+  const afterCutoff = new Date().getHours() >= CARPOOL_CUTOFF_HOUR;
+  const counterpart = role === "driver" ? "passenger" : "driver";
+
+  if (afterCutoff) {
+    // PDF 2c — no dead end: acknowledge + redirect to the greenest options.
+    return (
+      <View style={styles.centeredStep}>
+        <View style={styles.bigCheckWrap}>
+          <CheckCircle size={64} color={COLORS.green} />
+        </View>
+        <Text style={styles.stepTitle}>You're registered</Text>
+        <Text style={styles.stepDescription}>
+          No {counterpart} match yet for tomorrow. We'll notify you the moment
+          someone matches — or pick another way to get there.
+        </Text>
+        {onSeeOptions && (
+          <TouchableOpacity style={styles.greenOptionsBtn} onPress={onSeeOptions}>
+            <Text style={styles.greenOptionsBtnText}>See your greenest options</Text>
+          </TouchableOpacity>
+        )}
+        <Text style={styles.stepHint}>Keep notifications on to receive your match.</Text>
+      </View>
+    );
+  }
+
+  // PDF 2b — before cutoff: reassure, matching is live + instant.
   return (
     <View style={styles.centeredStep}>
       <View style={styles.bigCheckWrap}>
         <CheckCircle size={64} color={COLORS.green} />
       </View>
-      <Text style={styles.stepTitle}>You're Registered!</Text>
+      <Text style={styles.stepTitle}>You're registered!</Text>
       <Text style={styles.stepDescription}>
-        {role === "driver"
-          ? "We'll find passenger matches and notify you at 17:30."
-          : "We'll find a driver match and notify you at 17:30."}
+        We'll match you with a {counterpart} as soon as one is available and
+        notify you right away.
       </Text>
-      <View style={styles.countdownCard}>
-        <Clock size={18} color={COLORS.primary} />
-        <Text style={styles.countdownLabel}>Match notification in</Text>
-        <CountdownTimer targetHour={17} />
-      </View>
       <Text style={styles.stepHint}>Keep notifications on to receive your match.</Text>
     </View>
   );
@@ -735,7 +760,7 @@ export default function DailyCommuteScreen() {
       {step === "driver_details" && (
         <DriverDetailsStep onSubmit={handleDriverDetailsSubmit} isLoading={isLoading} />
       )}
-      {step === "driver_submitted" && <SubmittedStep role="driver" />}
+      {step === "driver_submitted" && <SubmittedStep role="driver" onSeeOptions={() => router.replace("/(tabs)")} />}
       {step === "driver_review" && (
         <DriverReviewStep matches={matches} onConfirm={handleDriverReviewConfirm} isLoading={isLoading} />
       )}
@@ -751,7 +776,7 @@ export default function DailyCommuteScreen() {
       {step === "passenger_details" && (
         <PassengerDetailsStep onSubmit={handlePassengerDetailsSubmit} isLoading={isLoading} />
       )}
-      {step === "passenger_submitted" && <SubmittedStep role="passenger" />}
+      {step === "passenger_submitted" && <SubmittedStep role="passenger" onSeeOptions={() => router.replace("/(tabs)")} />}
       {step === "passenger_review" && (
         <PassengerReviewStep matches={matches} onRespond={handlePassengerRespond} isLoading={isLoading} />
       )}
@@ -837,6 +862,19 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     textAlign: "center",
     marginTop: 4,
+  },
+  greenOptionsBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 999,
+    marginTop: 20,
+    marginBottom: 4,
+  },
+  greenOptionsBtnText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
   },
 
   // ── Role cards ──

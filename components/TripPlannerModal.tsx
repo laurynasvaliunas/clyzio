@@ -178,11 +178,12 @@ interface TripPlannerModalProps {
   }) => void;
   onDailyCommute?: () => void;
   initialMode?: string; // Pre-select a transport mode when opened from AI Planner
-  initialOrigin?: { lat: number; lng: number; description: string }; // Pre-fill origin from AI Planner
-  initialDest?: { lat: number; lng: number; description: string };   // Pre-fill destination from AI Planner
+  initialOrigin?: { lat: number; lng: number; description: string }; // Pre-fill origin (AI Planner / Map home)
+  initialDest?: { lat: number; lng: number; description: string };   // Pre-fill destination (AI Planner / Map work)
+  initialDate?: Date; // Seed the scheduled date (e.g. from the Today/Tomorrow toggle)
 }
 
-const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, onTripStart, onDailyCommute, initialMode, initialOrigin, initialDest }) => {
+const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, onTripStart, onDailyCommute, initialMode, initialOrigin, initialDest, initialDate }) => {
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   // Tab bar height = standard 49px + device bottom safe area (home indicator)
@@ -353,7 +354,21 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     if (initialOrigin || initialDest) {
       setAddressMountKey(k => k + 1); // Re-mount inputs so they show the pre-filled values
     }
+    // Cards-first: when BOTH endpoints are known (e.g. opened from the Map with
+    // the user's home→work prefilled), skip the location step and land directly
+    // on the transport cards. Restores the PDF's 4-tap planning flow.
+    if (initialOrigin && initialDest) {
+      setStep("mode");
+    }
   }, [visible, initialOrigin, initialDest]);
+
+  // Seed the scheduled date from the caller (Today/Tomorrow toggle). Keeps the
+  // planner's own date picker for fine-tuning, but defaults to the chosen day.
+  React.useEffect(() => {
+    if (visible && initialDate) {
+      setScheduledDate(new Date(initialDate));
+    }
+  }, [visible, initialDate]);
 
   // Calculate route distance when origin and destination are set
   React.useEffect(() => {

@@ -35,6 +35,7 @@ import {
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import CostSavingsCard from "../../components/CostSavingsCard";
+import CommuteCalendar, { type CalendarRide } from "../../components/CommuteCalendar";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
 import { getLevelInfo, XP_PER_TRIP, TRIPS_PER_LEVEL, MAX_LEVEL, LEVEL_TITLES } from "../../lib/gamification";
@@ -281,6 +282,13 @@ export default function StatsScreen() {
   const [topModes, setTopModes] = useState<TopMode[]>([]);
   const [hasCompany, setHasCompany] = useState(false);
   const [userBaselineCo2, setUserBaselineCo2] = useState(0.192);
+
+  // Completed rides (date + mode + co2 + distance) — powers the period summary
+  // toggle and the commute calendar (Stage 5).
+  const [completedRides, setCompletedRides] = useState<
+    { completed_at: string | null; transport_mode: string | null; co2_saved: number | null; distance_km: number | null }[]
+  >([]);
+  const [period, setPeriod] = useState<"week" | "month" | "all">("week");
   
   const treeScale = useRef(new Animated.Value(0.5)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -328,13 +336,23 @@ export default function StatsScreen() {
         });
       }
 
-      // Get top commuting modes
+      // Get top commuting modes + the full completed-ride set (date / mode /
+      // co2 / distance) for the period summary + commute calendar.
       const { data: ridesData } = await supabase
         .from("rides")
-        .select("transport_mode, transport_label")
-        .eq("rider_id", user.id)
+        .select("transport_mode, transport_label, co2_saved, distance_km, completed_at")
+        .or(`rider_id.eq.${user.id},driver_id.eq.${user.id}`)
         .eq("status", "completed");
-      
+
+      setCompletedRides(
+        (ridesData ?? []).map((r: any) => ({
+          completed_at: r.completed_at ?? null,
+          transport_mode: r.transport_mode ?? null,
+          co2_saved: r.co2_saved ?? null,
+          distance_km: r.distance_km ?? null,
+        })),
+      );
+
       if (ridesData && ridesData.length > 0) {
         // Group by mode and count
         const modeCount: Record<string, { label: string; count: number }> = {};
@@ -416,6 +434,34 @@ export default function StatsScreen() {
   const treesPlanted = useMemo(() => Math.floor(stats.total_co2_saved / CO2_PER_TREE), [stats.total_co2_saved]);
   const treeProgress = useMemo(() => (stats.total_co2_saved % CO2_PER_TREE) / CO2_PER_TREE, [stats.total_co2_saved]);
   const maxBar = useMemo(() => Math.max(stats.this_week_co2, stats.last_week_co2, 1), [stats.this_week_co2, stats.last_week_co2]);
+
+  // Period summary (week / month / all) computed client-side from completed
+  // rides — distance, CO₂ saved, and trip count for the selected window.
+  const periodSummary = useMemo(() => {
+    const now = new Date();
+    const since = new Date(now);
+    if (period === "week") since.setDate(now.getDate() - 7);
+    else if (period === "month") since.setMonth(now.getMonth() - 1);
+    else since.setTime(0); // all time
+
+    let distanceKm = 0;
+    let co2Saved = 0;
+    let trips = 0;
+    for (const r of completedRides) {
+      if (!r.completed_at) continue;
+      if (period !== "all" && new Date(r.completed_at) < since) continue;
+      trips += 1;
+      distanceKm += Number(r.distance_km) || 0;
+      co2Saved += Number(r.co2_saved) || 0;
+    }
+    return { distanceKm, co2Saved, trips };
+  }, [completedRides, period]);
+
+  // Calendar rides cast (date + mode only).
+  const calendarRides: CalendarRide[] = useMemo(
+    () => completedRides.map((r) => ({ completed_at: r.completed_at, transport_mode: r.transport_mode })),
+    [completedRides],
+  );
   
   // Color array for department breakdown bars
   const departmentColors = useMemo(() => [COLORS.primary, COLORS.accent, "#8BC34A", "#FF9800", "#9C27B0"], []);
@@ -616,6 +662,45 @@ export default function StatsScreen() {
             <Text style={[styles.statLabel, { color: TC.textSecondary }]}>XP</Text>
           </View>
         </View>
+
+        {/* Period summary — Weekly / Monthly / All-time (Stage 5 toggle) */}
+        <View style={[styles.periodCard, { backgroundColor: TC.surface }]}>
+          <View style={[styles.periodToggle, { backgroundColor: TC.background }]}>
+            {(["week", "month", "all"] as const).map((p) => {
+              const active = period === p;
+              const label = p === "week" ? "Week" : p === "month" ? "Month" : "All-time";
+              return (
+                <TouchableOpacity
+                  key={p}
+                  style={[styles.periodSeg, active && { backgroundColor: TC.surface }]}
+                  onPress={() => setPeriod(p)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={`Show ${label} stats`}
+                >
+                  <Text style={[styles.periodSegText, { color: active ? TC.text : TC.textSecondary }]}>{label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <View style={styles.periodMetrics}>
+            <View style={styles.periodMetric}>
+              <Text style={[styles.periodValue, { color: TC.text }]}>{periodSummary.distanceKm.toFixed(1)}</Text>
+              <Text style={[styles.periodLabel, { color: TC.textSecondary }]}>km travelled</Text>
+            </View>
+            <View style={styles.periodMetric}>
+              <Text style={[styles.periodValue, { color: COLORS.green }]}>{periodSummary.co2Saved.toFixed(1)}</Text>
+              <Text style={[styles.periodLabel, { color: TC.textSecondary }]}>kg CO₂ saved</Text>
+            </View>
+            <View style={styles.periodMetric}>
+              <Text style={[styles.periodValue, { color: TC.text }]}>{periodSummary.trips}</Text>
+              <Text style={[styles.periodLabel, { color: TC.textSecondary }]}>trips</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Commute calendar (Stage 5) */}
+        <CommuteCalendar rides={calendarRides} isDark={isDark} />
 
         {/* Weekly Chart */}
         <View style={[styles.chartCard, { backgroundColor: TC.surface }]}>
@@ -1025,6 +1110,16 @@ const styles = StyleSheet.create({
   
   // ===== WEEKLY CHART =====
   chartCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+
+  // ── Period summary (week/month/all) ──
+  periodCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 16, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+  periodToggle: { flexDirection: "row", borderRadius: 999, padding: 4, gap: 4, marginBottom: 16 },
+  periodSeg: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: 999 },
+  periodSegText: { fontSize: 13, fontWeight: "700" },
+  periodMetrics: { flexDirection: "row" },
+  periodMetric: { flex: 1, alignItems: "center" },
+  periodValue: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
+  periodLabel: { fontSize: 11, fontWeight: "600", marginTop: 2 },
   chartTitle: { fontSize: 16, fontWeight: "bold", color: COLORS.dark, marginBottom: 16 },
   chartContainer: { gap: 16 },
   chartBar: { gap: 8 },
