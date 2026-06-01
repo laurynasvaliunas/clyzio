@@ -222,6 +222,17 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
   const [isLoadingCarpool, setIsLoadingCarpool] = useState(false);
   const [carpoolFetched, setCarpoolFetched] = useState(false);
 
+  // Branch B — public-transit options (Google Directions via transit-routes fn)
+  type TransitOption = {
+    summary: string; submode: string; duration_min: number;
+    departure_text: string | null; arrival_text: string | null;
+    distance_km: number; co2_per_km: number; co2_kg: number;
+  };
+  const [transitOptions, setTransitOptions] = useState<TransitOption[]>([]);
+  const [isLoadingTransit, setIsLoadingTransit] = useState(false);
+  const [transitFetched, setTransitFetched] = useState(false);
+  const [selectedTransitIdx, setSelectedTransitIdx] = useState<number | null>(null);
+
   // Key used to force re-mount address inputs (so they reset when modal closes/pre-fills)
   const [addressMountKey, setAddressMountKey] = useState(0);
 
@@ -390,6 +401,43 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     if (!originCoords || !destCoords) return;
     fetchTripCarpoolCandidates();
   }, [originCoords, destCoords, role]);
+
+  // Branch B — fetch real transit options when Public Transport is selected.
+  useEffect(() => {
+    if (selectedMode?.id !== "public" || !originCoords || !destCoords) {
+      setTransitOptions([]);
+      setTransitFetched(false);
+      setSelectedTransitIdx(null);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setIsLoadingTransit(true);
+      setTransitFetched(false);
+      try {
+        const { data, error } = await supabase.functions.invoke<{ options: TransitOption[] }>(
+          "transit-routes",
+          {
+            body: {
+              origin_lat: originCoords.lat,
+              origin_long: originCoords.lng,
+              dest_lat: destCoords.lat,
+              dest_long: destCoords.lng,
+              departure_time: scheduledDate.toISOString(),
+            },
+          },
+        );
+        if (cancelled) return;
+        if (error) { setTransitOptions([]); }
+        else { setTransitOptions(data?.options ?? []); }
+      } catch {
+        if (!cancelled) setTransitOptions([]);
+      } finally {
+        if (!cancelled) { setIsLoadingTransit(false); setTransitFetched(true); }
+      }
+    }, 350);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [selectedMode?.id, originCoords, destCoords, scheduledDate]);
 
   const fetchTripCarpoolCandidates = async () => {
     if (!originCoords || !destCoords) return;
@@ -872,6 +920,56 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                   </View>
                 )}
 
+                {/* Branch B — public-transit options (Google Directions) */}
+                {selectedMode?.id === "public" && (
+                  <View style={styles.transitWrap}>
+                    {isLoadingTransit ? (
+                      <View style={styles.transitLoading}>
+                        <ActivityIndicator size="small" color={COLORS.primary} />
+                        <Text style={styles.transitLoadingText}>Finding transit routes…</Text>
+                      </View>
+                    ) : transitOptions.length > 0 ? (
+                      transitOptions.map((opt, idx) => {
+                        const active = selectedTransitIdx === idx;
+                        return (
+                          <TouchableOpacity
+                            key={`${opt.summary}-${idx}`}
+                            style={[styles.transitRow, active && styles.transitRowActive]}
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setSelectedTransitIdx(idx);
+                              // Refine the selected mode so the saved trip records
+                              // this sub-mode's CO₂ + label (handleTripSubmit reuses it).
+                              setSelectedMode((prev: any) => ({
+                                ...prev,
+                                co2: opt.co2_per_km,
+                                label: opt.summary,
+                              }));
+                            }}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: active }}
+                            accessibilityLabel={`${opt.summary}, ${opt.duration_min} minutes, ${opt.co2_kg} kg CO2, leaves ${opt.departure_text ?? "soon"}`}
+                          >
+                            <View style={[styles.co2Dot, styles.transitDot, { backgroundColor: co2DotColor(opt.co2_per_km) }]} />
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.transitSummary, active && { color: COLORS.primary }]} numberOfLines={1}>
+                                {opt.summary}
+                              </Text>
+                              <Text style={styles.transitMeta} numberOfLines={1}>
+                                {opt.duration_min} min · {opt.co2_kg} kg CO₂{opt.departure_text ? ` · leaves ${opt.departure_text}` : ""}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })
+                    ) : transitFetched ? (
+                      <Text style={styles.disclaimerText}>
+                        No transit routes found — we'll estimate with an average.
+                      </Text>
+                    ) : null}
+                  </View>
+                )}
+
                 {/* Which garage vehicle for this trip? (drives the CO₂ comparison) */}
                 {selectedMode?.id === "my_car" && garage.length > 0 && (
                   <View style={styles.vehiclePickerWrap}>
@@ -1230,6 +1328,57 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     fontStyle: "italic",
     lineHeight: 16,
+  },
+
+  // Branch B — transit options
+  transitWrap: {
+    paddingTop: 4,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  transitLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  transitLoadingText: {
+    fontSize: 13,
+    color: COLORS.gray,
+  },
+  transitRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 12,
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: COLORS.lightGray,
+  },
+  transitRowActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary + "10",
+  },
+  transitDot: {
+    position: "relative",
+    top: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 0,
+  },
+  transitSummary: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.dark,
+  },
+  transitMeta: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 2,
   },
 
   // Mode List Container

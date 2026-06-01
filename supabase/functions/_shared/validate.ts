@@ -131,3 +131,12 @@ export const RequestCarpoolSchema = z.object({
   requester_role: z.enum(['driver', 'rider']),
   trip_date: isoDate.optional(),
 });
+
+// Public-transit routes (Google Directions) for the planner's Branch B.
+export const TransitRoutesSchema = z.object({
+  origin_lat: lat,
+  origin_long: lon,
+  dest_lat: lat,
+  dest_long: lon,
+  departure_time: z.string().optional(), // ISO; defaults to now server-side
+});
