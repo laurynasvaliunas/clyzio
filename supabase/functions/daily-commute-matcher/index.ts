@@ -6,6 +6,18 @@ import { respondJSON, respondError, respondInternalError } from '../_shared/resp
 import { parseBody, DailyCommuteMatcherSchema } from '../_shared/validate.ts';
 import { sendPush } from '../_shared/expoPush.ts';
 
+// ─── Time helper ───────────────────────────────────────────────────────────────
+// Parse a "HH:MM" / "HH:MM:SS" TIME string to minutes-since-midnight, or null.
+function parseTimeToMinutes(t: string | null | undefined): number | null {
+  if (!t) return null;
+  const m = /^(\d{1,2}):(\d{2})/.exec(t);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (Number.isNaN(h) || Number.isNaN(min)) return null;
+  return h * 60 + min;
+}
+
 // ─── Geo helpers ─────────────────────────────────────────────────────────────
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -142,6 +154,14 @@ async function evaluatePair(
     p_target: passenger.user_id,
   });
   if (!visibleErr && visible === false) return false;
+
+  // Hard ±15 min leaving-time gate: both sides give a departure (leaving) time;
+  // pair only if they leave within 15 minutes of each other (e.g. rider 08:00
+  // and driver 08:15 → match). If either time is missing, fall through (treat
+  // as flexible) rather than block.
+  const dMin = parseTimeToMinutes(driver.departure_time);
+  const pMin = parseTimeToMinutes(passenger.departure_time);
+  if (dMin != null && pMin != null && Math.abs(dMin - pMin) > 15) return false;
 
   const homeDist = haversineKm(driver.home_lat, driver.home_long, passenger.home_lat, passenger.home_long);
   if (homeDist > 10) return false;

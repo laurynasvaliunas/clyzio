@@ -52,7 +52,10 @@ Deno.serve(async (req) => {
     const basePayload = {
       role,
       passenger_capacity: role === 'driver' ? (passenger_capacity ?? null) : null,
-      departure_time: role === 'driver' ? (departure_time ?? null) : null,
+      // departure_time is the LEAVING time for BOTH roles — the matcher pairs
+      // driver & passenger whose leaving times are within ±15 min.
+      departure_time: departure_time ?? null,
+      // required_arrival_time stays optional (passenger display only).
       required_arrival_time: role === 'passenger' ? (required_arrival_time ?? null) : null,
     };
 

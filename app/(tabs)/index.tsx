@@ -1146,6 +1146,18 @@ export default function MapScreen() {
         return;
       }
 
+      // Pre-check: carpool needs the current user's home + work set. Surface a
+      // clear, actionable message instead of a backend error.
+      if (places?.homeLat == null || places?.workLat == null) {
+        setRequestStatus('idle');
+        showToast({
+          title: 'Add your commute first',
+          message: 'Set your home and work addresses in Settings to carpool.',
+          type: 'warning',
+        });
+        return;
+      }
+
       // Symmetric mutual approval (migration 021): instead of one-sidedly
       // booking the ride, create a match BOTH must approve. The current user's
       // tap counts as their approval; the target is notified to approve too.
@@ -1165,11 +1177,17 @@ export default function MapScreen() {
         type: 'success',
         duration: 5000,
       });
-    } catch (error: any) {
+    } catch {
       setRequestStatus('idle');
-      showToast({ title: "Could not send request", message: error?.message ?? 'Please try again.', type: "error" });
+      // Most common backend cause is the target hasn't set their commute yet.
+      const name = selectedMatch?.profiles?.first_name ?? 'This colleague';
+      showToast({
+        title: "Couldn't send request",
+        message: `${name} may not have set their commute yet — try another colleague.`,
+        type: "error",
+      });
     }
-  }, [selectedMatch, searchMode, requestCarpool, showToast]);
+  }, [selectedMatch, searchMode, requestCarpool, showToast, places]);
 
   /**
    * Navigate to Activity tab and reset map

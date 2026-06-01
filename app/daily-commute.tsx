@@ -454,10 +454,10 @@ function PassengerDetailsStep({
   onSubmit,
   isLoading,
 }: {
-  onSubmit: (arrivalTime: string) => void;
+  onSubmit: (leavingTime: string) => void;
   isLoading: boolean;
 }) {
-  const [hour, setHour] = useState("09");
+  const [hour, setHour] = useState("08");
   const [minute, setMinute] = useState("00");
 
   const handleSubmit = () => {
@@ -466,12 +466,12 @@ function PassengerDetailsStep({
 
   return (
     <ScrollView contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
-      <Text style={styles.stepTitle}>Arrival Time</Text>
+      <Text style={styles.stepTitle}>Leaving Time</Text>
       <Text style={styles.stepSubtitle}>{getTomorrow()}</Text>
-      <Text style={styles.stepDescription}>What time do you need to arrive at work?</Text>
+      <Text style={styles.stepDescription}>What time do you want to leave? We'll match you with a driver leaving within 15 minutes.</Text>
 
       <View style={styles.fieldCard}>
-        <Text style={styles.fieldLabel}>I need to arrive by</Text>
+        <Text style={styles.fieldLabel}>I want to leave at</Text>
         <View style={styles.timeRow}>
           <TextInput
             style={styles.timeInput}
@@ -679,9 +679,11 @@ export default function DailyCommuteScreen() {
     }
   };
 
-  const handlePassengerDetailsSubmit = async (arrivalTime: string) => {
+  const handlePassengerDetailsSubmit = async (leavingTime: string) => {
     try {
-      await submitIntent({ role: "passenger", required_arrival_time: arrivalTime });
+      // Passenger now gives a LEAVING time so the matcher can compare both
+      // sides' departure times within ±15 min (see daily-commute-matcher).
+      await submitIntent({ role: "passenger", departure_time: leavingTime });
     } catch {
       Alert.alert("Error", "Could not submit your intent. Check your profile has home/work addresses set.");
     }
