@@ -157,14 +157,18 @@ async function evaluatePair(
 
   // Hard ±15 min leaving-time gate: both sides give a departure (leaving) time;
   // pair only if they leave within 15 minutes of each other (e.g. rider 08:00
-  // and driver 08:15 → match). If either time is missing, fall through (treat
-  // as flexible) rather than block.
+  // and driver 08:15 → match). Both times are required — a missing time can't be
+  // verified, so it is not a match.
   const dMin = parseTimeToMinutes(driver.departure_time);
   const pMin = parseTimeToMinutes(passenger.departure_time);
-  if (dMin != null && pMin != null && Math.abs(dMin - pMin) > 15) return false;
+  if (dMin == null || pMin == null || Math.abs(dMin - pMin) > 15) return false;
 
+  // Deterministic location gate: BOTH endpoints must be within 200 m — the home
+  // (pickup) points AND the work (arrival) points. A genuine shared commute.
+  const PROX_KM = 0.2; // 200 m
   const homeDist = haversineKm(driver.home_lat, driver.home_long, passenger.home_lat, passenger.home_long);
-  if (homeDist > 10) return false;
+  const workDist = haversineKm(driver.work_lat, driver.work_long, passenger.work_lat, passenger.work_long);
+  if (homeDist > PROX_KM || workDist > PROX_KM) return false;
 
   const driverRoute = await fetchMapboxRoute(
     driver.home_long, driver.home_lat, driver.work_long, driver.work_lat, mapboxToken,
@@ -187,8 +191,10 @@ async function evaluatePair(
       haversineKm(driver.home_lat, driver.home_long, driver.work_lat, driver.work_long),
   );
 
+  // Matching is deterministic on location + time (above). The AI score is kept
+  // only to populate the reasoning / proposed times on the match row — it no
+  // longer gates the match.
   const scored = await scoreMatch(anthropic, driver, passenger, detourKm);
-  if (scored.score < 40) return false;
 
   const pickupAddress = await reverseGeocode(pickupLon, pickupLat, mapboxToken);
 
