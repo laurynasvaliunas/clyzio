@@ -1535,7 +1535,7 @@ export default function MapScreen() {
           setPendingPresetDest(null);
         }}
         onTripStart={handleTripStart}
-        onDailyCommute={() => router.push("/daily-commute")}
+        onDailyCommute={(role) => router.push({ pathname: "/daily-commute", params: role ? { role } : {} })}
         initialMode={pendingPresetMode ?? undefined}
         initialOrigin={plannerOrigin}
         initialDest={plannerDest}

@@ -176,7 +176,7 @@ interface TripPlannerModalProps {
     role: string;
     scheduledTime?: Date;
   }) => void;
-  onDailyCommute?: () => void;
+  onDailyCommute?: (role?: "driver" | "passenger") => void;
   initialMode?: string; // Pre-select a transport mode when opened from AI Planner
   initialOrigin?: { lat: number; lng: number; description: string }; // Pre-fill origin (AI Planner / Map home)
   initialDest?: { lat: number; lng: number; description: string };   // Pre-fill destination (AI Planner / Map work)
@@ -654,6 +654,20 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     onClose();
   };
 
+  // Carpool roles hand off to the dedicated instant-match flow (daily-commute
+  // screen) with the role pre-selected. Solo stays in-place in the planner.
+  const handleRoleSelect = (r: "solo" | "driver" | "rider") => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (r === "solo") {
+      setRole("solo");
+      setSelectedMode(null);
+      return;
+    }
+    // Driver → daily-commute as driver; Rider → daily-commute as passenger.
+    onClose();
+    onDailyCommute?.(r === "driver" ? "driver" : "passenger");
+  };
+
   const modeReady = originCoords && destCoords;
 
   return (
@@ -720,6 +734,34 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 100 }}
           >
+            {/* ── Role selector (top) — Solo plans here; Driver/Rider open the
+                 dedicated carpool matcher. ── */}
+            <View style={styles.roleSelector}>
+              {([
+                { key: "solo",   label: "Solo",   sub: "Just me",      Icon: Footprints },
+                { key: "driver", label: "Driver", sub: "Offer a ride", Icon: Car },
+                { key: "rider",  label: "Rider",  sub: "Get a ride",   Icon: Users },
+              ] as const).map(({ key, label, sub, Icon }) => {
+                const active = role === key; // only Solo can be active in-planner
+                const tint = active ? COLORS.primary : COLORS.gray;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={[styles.roleSelectorItem, active && styles.roleSelectorItemActive]}
+                    onPress={() => handleRoleSelect(key)}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`${label} — ${sub}`}
+                  >
+                    <Icon size={24} color={tint} />
+                    <Text style={[styles.roleSelectorLabel, { color: tint }]}>{label}</Text>
+                    <Text style={styles.roleSelectorSub} numberOfLines={1}>{sub}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
             {/* ── Location Inputs ── */}
             <CustomAddressInput
               key={`origin-${addressMountKey}`}
@@ -776,24 +818,6 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
               }}
             />
 
-            {/* ── Daily Commute shortcut ── */}
-            {!!onDailyCommute && (
-              <TouchableOpacity
-                style={styles.dailyCommuteRow}
-                onPress={() => { onClose(); onDailyCommute(); }}
-                activeOpacity={0.8}
-              >
-                <View style={styles.dailyCommuteIcon}>
-                  <Users size={18} color="#26C6DA" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.dailyCommuteTitle}>Plan Tomorrow's Commute</Text>
-                  <Text style={styles.dailyCommuteSub}>Find a carpool match before 17:00</Text>
-                </View>
-                <ChevronDown size={16} color="#90A4AE" style={{ transform: [{ rotate: "-90deg" }] }} />
-              </TouchableOpacity>
-            )}
-
             {/* ── Mode Section — appears once both addresses are filled ── */}
             {modeReady && (
               <>
@@ -814,28 +838,6 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                     </View>
                   );
                 })()}
-
-                {/* Role Toggle */}
-                <View style={styles.roleRow}>
-                  {(['solo', 'driver', 'rider'] as const).map((r) => (
-                    <TouchableOpacity
-                      key={r}
-                      style={[styles.roleChip, role === r && styles.roleChipActive]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setRole(r);
-                        setSelectedMode(null);
-                      }}
-                    >
-                      {r === 'solo' && <Footprints size={16} color={role === r ? COLORS.primary : COLORS.gray} />}
-                      {r === 'driver' && <Car size={16} color={role === r ? COLORS.primary : COLORS.gray} />}
-                      {r === 'rider' && <Users size={16} color={role === r ? COLORS.primary : COLORS.gray} />}
-                      <Text style={[styles.roleText, role === r && { color: COLORS.primary, fontWeight: "700" }]}>
-                        {r.charAt(0).toUpperCase() + r.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
 
                 {/* Mode tiles or Rider message */}
                 {role === "rider" ? (
@@ -1203,34 +1205,39 @@ const styles = StyleSheet.create({
     color: COLORS.dark,
   },
 
-  // Role Toggle
-  roleRow: {
+  // Role selector (top of sheet) — Solo / Driver / Rider
+  roleSelector: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 18,
     backgroundColor: COLORS.lightGray,
-    borderRadius: 12,
-    padding: 4,
+    borderRadius: 16,
+    padding: 5,
   },
-  roleChip: {
+  roleSelectorItem: {
     flex: 1,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    borderRadius: 12,
+    gap: 4,
+    minHeight: 64,
   },
-  roleChipActive: {
+  roleSelectorItemActive: {
     backgroundColor: COLORS.white,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
-  roleText: {
-    fontSize: 13,
+  roleSelectorLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  roleSelectorSub: {
+    fontSize: 11,
     fontWeight: "600",
     color: COLORS.gray,
   },
@@ -1496,39 +1503,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#006064",
     lineHeight: 18,
-  },
-
-  // Daily commute shortcut row
-  dailyCommuteRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: "#E0F7FA",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#B2EBF2",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  dailyCommuteIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dailyCommuteTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#006064",
-  },
-  dailyCommuteSub: {
-    fontSize: 12,
-    color: "#546E7A",
-    marginTop: 1,
   },
 
   // Carpool match count badge (below mode tiles)
