@@ -47,6 +47,9 @@ import { useDailyCommuteStore } from "../store/useDailyCommuteStore";
 
 import { MAPBOX_TOKEN } from "../lib/config";
 const { height } = Dimensions.get("window");
+// Fixed sheet height once the mode section is visible, so toggling
+// Solo/Driver/Rider swaps inner content without resizing (and jumping) the sheet.
+const SHEET_HEIGHT = height * 0.85;
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
@@ -678,7 +681,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         </Animated.View>
 
         <Animated.View
-          style={[styles.sheet, { transform: [{ translateY: minimizeTranslate }] }]}
+          style={[styles.sheet, modeReady && { height: SHEET_HEIGHT }, { transform: [{ translateY: minimizeTranslate }] }]}
           onLayout={(e) => { sheetHeightRef.current = e.nativeEvent.layout.height; }}
         >
           {/* ── Handle — tap to minimize/expand ── */}
@@ -716,12 +719,13 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
           {/* ── Scrollable body — hidden while minimized (state is preserved) ── */}
           {!isMinimized && (
           <ScrollView
+            style={modeReady ? styles.scrollFill : undefined}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 100 }}
           >
-            {/* ── Role selector (top) — Solo plans here; Driver/Rider open the
-                 dedicated carpool matcher. ── */}
+            {/* ── Role selector (top) — Solo, Driver, Rider are all handled
+                 inline in this sheet. ── */}
             <View style={styles.roleSelector}>
               {([
                 { key: "solo",   label: "Solo",   sub: "Just me",      Icon: Footprints },
@@ -1121,6 +1125,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 10,
+  },
+  // Lets the body fill the fixed-height sheet (modeReady) and scroll, instead of
+  // the content dictating the sheet height.
+  scrollFill: {
+    flex: 1,
   },
   handleContainer: {
     alignItems: "center",
