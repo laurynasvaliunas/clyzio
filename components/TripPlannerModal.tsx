@@ -13,7 +13,6 @@ import {
   Keyboard,
   ScrollView,
   ActivityIndicator,
-  Switch,
 } from "react-native";
 import {
   Car,
@@ -31,6 +30,7 @@ import {
   Calendar,
   Clock,
   Plus,
+  Minus,
   School,
   TrendingDown,
   Car as TaxiIcon,
@@ -43,6 +43,7 @@ import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
 import { computeLocalModes, getFuelBaseCO2, getVehicleCO2, getPrimaryVehicle } from "../lib/commuteUtils";
 import { Vehicle, parseVehicles } from "../lib/vehicles";
+import { useDailyCommuteStore } from "../store/useDailyCommuteStore";
 
 import { MAPBOX_TOKEN } from "../lib/config";
 const { height } = Dimensions.get("window");
@@ -176,14 +177,13 @@ interface TripPlannerModalProps {
     role: string;
     scheduledTime?: Date;
   }) => void;
-  onDailyCommute?: (role?: "driver" | "passenger") => void;
   initialMode?: string; // Pre-select a transport mode when opened from AI Planner
   initialOrigin?: { lat: number; lng: number; description: string }; // Pre-fill origin (AI Planner / Map home)
   initialDest?: { lat: number; lng: number; description: string };   // Pre-fill destination (AI Planner / Map work)
   initialDate?: Date; // Seed the scheduled date (e.g. from the Today/Tomorrow toggle)
 }
 
-const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, onTripStart, onDailyCommute, initialMode, initialOrigin, initialDest, initialDate }) => {
+const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, onTripStart, initialMode, initialOrigin, initialDest, initialDate }) => {
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   // Tab bar height = standard 49px + device bottom safe area (home indicator)
@@ -217,10 +217,9 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     m.id === "my_car" ? { ...m, co2: userCarCO2 } : m
   );
 
-  // Per-trip carpool candidate state
-  const [carpoolCandidates, setCarpoolCandidates] = useState<any[]>([]);
-  const [isLoadingCarpool, setIsLoadingCarpool] = useState(false);
-  const [carpoolFetched, setCarpoolFetched] = useState(false);
+  // Carpool (Driver/Rider) inline form state.
+  const [capacity, setCapacity] = useState(1);          // driver seats
+  const [isSubmittingCarpool, setIsSubmittingCarpool] = useState(false);
 
   // Branch B — public-transit options (Google Directions via transit-routes fn)
   type TransitOption = {
@@ -242,8 +241,9 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     date.setMinutes(date.getMinutes() + 15);
     return date;
   });
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  
+  // Which carpool picker is open: separate Date and Time controls.
+  const [pickerField, setPickerField] = useState<"date" | "time" | null>(null);
+
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   // ── Minimize state ──────────────────────────────────────────────────────────
@@ -396,12 +396,6 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     }
   }, [originCoords, destCoords]);
 
-  // Auto-fetch carpool candidates when both locations are set (or when role changes)
-  useEffect(() => {
-    if (!originCoords || !destCoords) return;
-    fetchTripCarpoolCandidates();
-  }, [originCoords, destCoords, role]);
-
   // Branch B — fetch real transit options when Public Transport is selected.
   useEffect(() => {
     if (selectedMode?.id !== "public" || !originCoords || !destCoords) {
@@ -438,48 +432,6 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     }, 350);
     return () => { cancelled = true; clearTimeout(t); };
   }, [selectedMode?.id, originCoords, destCoords, scheduledDate]);
-
-  const fetchTripCarpoolCandidates = async () => {
-    if (!originCoords || !destCoords) return;
-    setIsLoadingCarpool(true);
-    setCarpoolFetched(false);
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      // Pass p_caller_id so the visibility predicate (is_peer_visible) on
-      // the server filters by same-company / mutual-opt-in cross-org rules.
-      // If the pre-migration RPC signature (no p_caller_id) is still
-      // deployed, retry without it so review builds aren't blocked.
-      let resp = await supabase.rpc("find_carpool_candidates", {
-        p_origin_lat:      originCoords.lat,
-        p_origin_long:     originCoords.lng,
-        p_dest_lat:        destCoords.lat,
-        p_dest_long:       destCoords.lng,
-        p_departure_time:  scheduledDate.toISOString(),
-        p_role:            role === "solo" ? "rider" : role,
-        p_radius_km:       5,
-        p_caller_id:       user?.id ?? null,
-      });
-      if (resp.error) {
-        resp = await supabase.rpc("find_carpool_candidates", {
-          p_origin_lat:      originCoords.lat,
-          p_origin_long:     originCoords.lng,
-          p_dest_lat:        destCoords.lat,
-          p_dest_long:       destCoords.lng,
-          p_departure_time:  scheduledDate.toISOString(),
-          p_role:            role === "solo" ? "rider" : role,
-          p_radius_km:       5,
-        });
-      }
-      setCarpoolCandidates(resp.data ?? []);
-    } catch {
-      setCarpoolCandidates([]);
-    } finally {
-      setIsLoadingCarpool(false);
-      setCarpoolFetched(true);
-    }
-  };
 
   // Helper: Calculate distance using Haversine formula (returns km)
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -622,8 +574,6 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       setWaypointDescription("");
       setShowWaypointInput(false);
       setSelectedMode(null);
-      setCarpoolCandidates([]);
-      setCarpoolFetched(false);
       // Reset to 15 minutes in the future
       const futureDate = new Date();
       futureDate.setMinutes(futureDate.getMinutes() + 15);
@@ -648,24 +598,60 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     setDestCoords(null);
     setSelectedMode(null);
     setRole("solo");
-    setCarpoolCandidates([]);
-    setCarpoolFetched(false);
     setAddressMountKey(k => k + 1); // Re-mount address inputs fresh
     onClose();
   };
 
-  // Carpool roles hand off to the dedicated instant-match flow (daily-commute
-  // screen) with the role pre-selected. Solo stays in-place in the planner.
+  // All three roles stay in the planner. Solo shows transport modes; Driver/Rider
+  // show the inline carpool form (date + time + seats) below.
   const handleRoleSelect = (r: "solo" | "driver" | "rider") => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (r === "solo") {
-      setRole("solo");
-      setSelectedMode(null);
-      return;
+    setRole(r);
+    setSelectedMode(null);
+  };
+
+  // Local date/time formatters (avoid toISOString → UTC off-by-one for date).
+  const ymdLocal = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const hhmmLocal = (d: Date) =>
+    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+  // Driver/Rider → submit a carpool INTENT for the typed origin/dest on the
+  // chosen date + leaving time (matched instantly by daily-commute-matcher).
+  const handleCarpoolSubmit = async () => {
+    if (!originCoords || !destCoords) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsSubmittingCarpool(true);
+    try {
+      await useDailyCommuteStore.getState().submitIntent({
+        role: role === "driver" ? "driver" : "passenger",
+        passenger_capacity: role === "driver" ? capacity : undefined,
+        departure_time: hhmmLocal(scheduledDate),
+        trip_date: ymdLocal(scheduledDate),
+        origin_lat: originCoords.lat,
+        origin_long: originCoords.lng,
+        dest_lat: destCoords.lat,
+        dest_long: destCoords.lng,
+        origin_address: originDescription,
+        dest_address: destDescription,
+      });
+      showToast({
+        title: role === "driver" ? "Ride offered!" : "Looking for a match",
+        message: "We'll match you with someone on your route. Track it on the map.",
+        type: "success",
+        duration: 5000,
+      });
+      handleClose();
+    } catch (err) {
+      showToast({
+        title: "Could not submit",
+        message: "Please try again in a moment.",
+        type: "error",
+      });
+      if (__DEV__) console.error("carpool submit failed:", err);
+    } finally {
+      setIsSubmittingCarpool(false);
     }
-    // Driver → daily-commute as driver; Rider → daily-commute as passenger.
-    onClose();
-    onDailyCommute?.(r === "driver" ? "driver" : "passenger");
   };
 
   const modeReady = originCoords && destCoords;
@@ -824,8 +810,8 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                 {/* Divider */}
                 <View style={styles.modeSectionDivider} />
 
-                {/* AI Insight Banner */}
-                {routeDistance > 0 && (() => {
+                {/* AI Insight Banner (solo trips only) */}
+                {role === "solo" && routeDistance > 0 && (() => {
                   const best = computeLocalModes(routeDistance, 1, userCarCO2)[0];
                   if (!best) return null;
                   return (
@@ -839,32 +825,99 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                   );
                 })()}
 
-                {/* Mode tiles or Rider message */}
-                {role === "rider" ? (
-                  <View style={styles.riderMessageContainer}>
-                    <Users size={40} color={COLORS.primary} />
-                    <Text style={styles.riderMessageTitle}>Looking for a ride?</Text>
-                    <Text style={styles.riderMessageText}>
-                      We will match you with a driver heading your way.
-                    </Text>
-                    <View style={styles.sharePickupRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.sharePickupLabel}>
-                          Share my pickup address with the driver
-                        </Text>
-                        <Text style={styles.sharePickupSub}>
-                          {sharePickup
-                            ? "The driver sees your exact pickup point."
-                            : "The driver sees only a pickup area until they accept."}
-                        </Text>
+                {/* Solo: transport modes · Driver/Rider: inline carpool form */}
+                {role !== "solo" ? (
+                  <View style={styles.carpoolForm}>
+                    {/* Date + Time, side by side */}
+                    <View style={styles.dtRow}>
+                      <View style={styles.dtCol}>
+                        <Text style={styles.fieldLabelSm}>Date</Text>
+                        <TouchableOpacity
+                          style={styles.dtBtn}
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setPickerField(pickerField === "date" ? null : "date");
+                          }}
+                        >
+                          <Calendar size={18} color={COLORS.primary} />
+                          <Text style={styles.dtBtnText}>
+                            {scheduledDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
-                      <Switch
-                        value={sharePickup}
-                        onValueChange={setSharePickup}
-                        trackColor={{ false: COLORS.gray + "55", true: COLORS.primary + "80" }}
-                        thumbColor={sharePickup ? COLORS.primary : COLORS.gray}
-                      />
+                      <View style={styles.dtCol}>
+                        <Text style={styles.fieldLabelSm}>Time</Text>
+                        <TouchableOpacity
+                          style={styles.dtBtn}
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setPickerField(pickerField === "time" ? null : "time");
+                          }}
+                        >
+                          <Clock size={18} color={COLORS.primary} />
+                          <Text style={styles.dtBtnText}>
+                            {scheduledDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
+
+                    {pickerField && (
+                      <View>
+                        {Platform.OS === "ios" && (
+                          <TouchableOpacity
+                            onPress={() => setPickerField(null)}
+                            style={{ alignSelf: "flex-end", paddingHorizontal: 12, paddingVertical: 4 }}
+                          >
+                            <Text style={{ color: COLORS.primary, fontWeight: "700", fontSize: 15 }}>Done</Text>
+                          </TouchableOpacity>
+                        )}
+                        <DateTimePicker
+                          value={scheduledDate}
+                          mode={pickerField}
+                          display={Platform.OS === "ios" ? "spinner" : "default"}
+                          minimumDate={pickerField === "date" ? new Date() : undefined}
+                          onChange={(event, date) => {
+                            if (Platform.OS !== "ios") setPickerField(null);
+                            if (date) setScheduledDate(date);
+                          }}
+                        />
+                      </View>
+                    )}
+
+                    {/* Seats (driver only) */}
+                    {role === "driver" && (
+                      <View style={styles.seatsRow}>
+                        <Text style={styles.fieldLabelSm}>Seats for passengers</Text>
+                        <View style={styles.stepper}>
+                          <TouchableOpacity
+                            style={styles.stepperBtn}
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setCapacity((c) => Math.max(0, c - 1));
+                            }}
+                          >
+                            <Minus size={18} color={COLORS.primary} />
+                          </TouchableOpacity>
+                          <Text style={styles.stepperValue}>{capacity}</Text>
+                          <TouchableOpacity
+                            style={styles.stepperBtn}
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setCapacity((c) => Math.min(9, c + 1));
+                            }}
+                          >
+                            <Plus size={18} color={COLORS.primary} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+
+                    <Text style={styles.carpoolHint}>
+                      {role === "driver"
+                        ? "We'll match you with riders on this route leaving within 15 min."
+                        : "We'll match you with a driver on this route leaving within 15 min."}
+                    </Text>
                   </View>
                 ) : (
                   <View style={styles.modeListContainer}>
@@ -1007,66 +1060,6 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                   </View>
                 )}
 
-                {/* Carpool match badge */}
-                {(role === "driver" || role === "rider") && carpoolFetched && (
-                  <View style={styles.carpoolMatchBanner}>
-                    <Users size={18} color={carpoolCandidates.length > 0 ? COLORS.primary : COLORS.gray} />
-                    {isLoadingCarpool ? (
-                      <ActivityIndicator size="small" color={COLORS.primary} />
-                    ) : (
-                      <Text style={styles.carpoolMatchText}>
-                        {carpoolCandidates.length > 0
-                          ? `${carpoolCandidates.length} potential match${carpoolCandidates.length > 1 ? "es" : ""} found near your route 🎉`
-                          : "No matches yet. You'll be added to the pool."}
-                      </Text>
-                    )}
-                  </View>
-                )}
-
-                {/* Date/time scheduler (driver/rider only) */}
-                {(role === "driver" || role === "rider") && (
-                  <View style={styles.schedulerContainer}>
-                    <TouchableOpacity
-                      style={styles.schedulerBtn}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setShowDatePicker(!showDatePicker);
-                      }}
-                    >
-                      <Calendar size={20} color={COLORS.primary} />
-                      <Text style={styles.schedulerText}>
-                        {scheduledDate.toLocaleString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                        })}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {showDatePicker && (
-                      <View>
-                        {Platform.OS === "ios" && (
-                          <TouchableOpacity
-                            onPress={() => setShowDatePicker(false)}
-                            style={{ alignSelf: "flex-end", paddingHorizontal: 12, paddingVertical: 4 }}
-                          >
-                            <Text style={{ color: COLORS.primary, fontWeight: "700", fontSize: 15 }}>Done</Text>
-                          </TouchableOpacity>
-                        )}
-                        <DateTimePicker
-                          value={scheduledDate}
-                          mode="datetime"
-                          display={Platform.OS === "ios" ? "spinner" : "default"}
-                          onChange={(event, date) => {
-                            if (Platform.OS !== "ios") setShowDatePicker(false);
-                            if (date) setScheduledDate(date);
-                          }}
-                        />
-                      </View>
-                    )}
-                  </View>
-                )}
               </>
             )}
           </ScrollView>
@@ -1075,19 +1068,31 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
           {/* Submit button — pinned to bottom, hidden while minimized */}
           {!isMinimized && modeReady && (
             <View style={styles.submitBtn}>
-              <TouchableOpacity
-                style={[styles.btn, !(role === "rider" || selectedMode) && styles.btnDisabled]}
-                onPress={handleTripSubmit}
-                disabled={!(role === "rider" || selectedMode)}
-              >
-                <Text style={styles.btnText}>
-                  {role === "rider"
-                    ? "Find a Driver"
-                    : selectedMode
-                    ? `Go with ${selectedMode.label}`
-                    : "Select a mode above"}
-                </Text>
-              </TouchableOpacity>
+              {role !== "solo" ? (
+                <TouchableOpacity
+                  style={[styles.btn, isSubmittingCarpool && styles.btnDisabled]}
+                  onPress={handleCarpoolSubmit}
+                  disabled={isSubmittingCarpool}
+                >
+                  {isSubmittingCarpool ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.btnText}>
+                      {role === "driver" ? "Offer ride" : "Find a match"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.btn, !selectedMode && styles.btnDisabled]}
+                  onPress={handleTripSubmit}
+                  disabled={!selectedMode}
+                >
+                  <Text style={styles.btnText}>
+                    {selectedMode ? `Go with ${selectedMode.label}` : "Select a mode above"}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </Animated.View>
@@ -1240,6 +1245,74 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     color: COLORS.gray,
+  },
+
+  // Carpool (Driver/Rider) inline form
+  carpoolForm: {
+    paddingVertical: 8,
+    gap: 14,
+  },
+  dtRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  dtCol: {
+    flex: 1,
+  },
+  fieldLabelSm: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.gray,
+    marginBottom: 8,
+  },
+  dtBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  dtBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.dark,
+  },
+  seatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  stepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 18,
+  },
+  stepperBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.primary + "14",
+    borderWidth: 1,
+    borderColor: COLORS.primary + "55",
+  },
+  stepperValue: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLORS.dark,
+    minWidth: 24,
+    textAlign: "center",
+  },
+  carpoolHint: {
+    fontSize: 12,
+    color: COLORS.gray,
+    lineHeight: 16,
   },
 
   // Garage vehicle picker

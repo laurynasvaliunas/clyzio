@@ -11,7 +11,7 @@ import {
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import {
   Car,
   Users,
@@ -654,28 +654,10 @@ export default function DailyCommuteScreen() {
   const pendingAcceptedIds = useRef<string[]>([]);
   const pendingDeclinedIds = useRef<string[]>([]);
 
-  // Optional ?role=driver|passenger deep-link from the planner's top selector.
-  // We skip the in-screen "I'll Drive / I Need a Ride" step and jump straight to
-  // details — but only if there's no existing intent (an existing intent always
-  // wins, showing the current status). Consumed once per mount.
-  const params = useLocalSearchParams<{ role?: string }>();
-  const roleParamConsumed = useRef(false);
-
   useFocusEffect(
     useCallback(() => {
-      (async () => {
-        await checkExistingIntent();
-        if (roleParamConsumed.current) return;
-        const r = params.role;
-        if (r !== "driver" && r !== "passenger") return;
-        const cur = useDailyCommuteStore.getState();
-        if (cur.step === "role_select" && !cur.intent) {
-          roleParamConsumed.current = true;
-          setSelectedRole(r);
-          setStep(r === "driver" ? "driver_details" : "passenger_details");
-        }
-      })();
-    }, [params.role])
+      checkExistingIntent();
+    }, [])
   );
 
   useEffect(() => {

@@ -89,6 +89,14 @@ interface DailyCommuteState {
     passenger_capacity?: number;
     departure_time?: string;
     required_arrival_time?: string;
+    // Planner inline carpool form: chosen date + typed origin/destination.
+    trip_date?: string;
+    origin_lat?: number;
+    origin_long?: number;
+    dest_lat?: number;
+    dest_long?: number;
+    origin_address?: string;
+    dest_address?: string;
   }) => Promise<void>;
   respondAsDriver: (params: {
     accepted_ids: string[];

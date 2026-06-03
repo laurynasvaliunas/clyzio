@@ -55,6 +55,14 @@ export const SubmitTripIntentSchema = z.object({
   departure_time: hhmm.optional().nullable(),
   required_arrival_time: hhmm.optional().nullable(),
   trip_date: isoDate.optional(),
+  // Optional TYPED trip endpoints from the planner's inline carpool form. When
+  // present, these (not the profile's home/work) become the matching endpoints.
+  origin_lat: lat.optional(),
+  origin_long: lon.optional(),
+  dest_lat: lat.optional(),
+  dest_long: lon.optional(),
+  origin_address: z.string().optional(),
+  dest_address: z.string().optional(),
 });
 
 export const DriverRespondSchema = z.object({

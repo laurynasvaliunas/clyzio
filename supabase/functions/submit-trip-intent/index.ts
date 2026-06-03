@@ -18,22 +18,41 @@ Deno.serve(async (req) => {
 
   const parsed = await parseBody(req, SubmitTripIntentSchema);
   if (!parsed.ok) return parsed.response;
-  const { role, passenger_capacity, departure_time, required_arrival_time, trip_date } = parsed.data;
+  const {
+    role, passenger_capacity, departure_time, required_arrival_time, trip_date,
+    origin_lat, origin_long, dest_lat, dest_long, origin_address, dest_address,
+  } = parsed.data;
+
+  // When the planner supplies a TYPED origin + destination, those are the
+  // matching endpoints (the matcher compares home_/work_ columns, so we route
+  // the typed coords through them). Otherwise fall back to the profile commute.
+  const hasTyped =
+    origin_lat != null && origin_long != null && dest_lat != null && dest_long != null;
 
   try {
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('home_lat, home_long, work_lat, work_long')
-      .eq('id', userId)
-      .single();
+    // Matching endpoints: typed origin/dest when provided, else profile home/work.
+    let homeLat: number, homeLong: number, workLat: number, workLong: number;
 
-    if (profileError) {
-      console.error('submit-trip-intent profile err:', profileError.message);
-      return respondError(500, 'internal_error', 'profile_query_failed');
-    }
+    if (hasTyped) {
+      homeLat = origin_lat!; homeLong = origin_long!;
+      workLat = dest_lat!;   workLong = dest_long!;
+    } else {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('home_lat, home_long, work_lat, work_long')
+        .eq('id', userId)
+        .single();
 
-    if (!profile || profile.home_lat == null || profile.work_lat == null) {
-      return respondError(400, 'bad_request', 'missing_home_or_work_location');
+      if (profileError) {
+        console.error('submit-trip-intent profile err:', profileError.message);
+        return respondError(500, 'internal_error', 'profile_query_failed');
+      }
+
+      if (!profile || profile.home_lat == null || profile.work_lat == null) {
+        return respondError(400, 'bad_request', 'missing_home_or_work_location');
+      }
+      homeLat = profile.home_lat; homeLong = profile.home_long;
+      workLat = profile.work_lat; workLong = profile.work_long;
     }
 
     const targetDate = trip_date ?? (() => {
@@ -59,11 +78,27 @@ Deno.serve(async (req) => {
       required_arrival_time: role === 'passenger' ? (required_arrival_time ?? null) : null,
     };
 
+    // Matching endpoints + (when typed) the per-trip origin/dest record.
+    const endpointPayload = {
+      home_lat: homeLat,
+      home_long: homeLong,
+      work_lat: workLat,
+      work_long: workLong,
+      origin_lat: hasTyped ? origin_lat : null,
+      origin_long: hasTyped ? origin_long : null,
+      dest_lat: hasTyped ? dest_lat : null,
+      dest_long: hasTyped ? dest_long : null,
+      origin_address: hasTyped ? (origin_address ?? null) : null,
+      dest_address: hasTyped ? (dest_address ?? null) : null,
+    };
+
     let intent;
     if (existing) {
       const { data, error } = await supabase
         .from('trip_intents')
-        .update({ ...basePayload, status: 'pending' })
+        // Refresh the endpoints too when the planner sent a typed route, so
+        // changing the route for an already-submitted date actually updates it.
+        .update({ ...basePayload, status: 'pending', ...(hasTyped ? endpointPayload : {}) })
         .eq('id', existing.id)
         .select()
         .single();
@@ -76,10 +111,7 @@ Deno.serve(async (req) => {
           user_id: userId,
           ...basePayload,
           trip_date: targetDate,
-          home_lat: profile.home_lat,
-          home_long: profile.home_long,
-          work_lat: profile.work_lat,
-          work_long: profile.work_long,
+          ...endpointPayload,
         })
         .select()
         .single();
