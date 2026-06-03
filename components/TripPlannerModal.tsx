@@ -1338,20 +1338,6 @@ const styles = StyleSheet.create({
   },
   vehicleChipText: { fontSize: 13, color: COLORS.gray },
 
-  // Rider pickup-address privacy
-  sharePickupRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginTop: 18,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.gray + "33",
-    alignSelf: "stretch",
-  },
-  sharePickupLabel: { fontSize: 14, fontWeight: "600", color: COLORS.dark },
-  sharePickupSub: { fontSize: 12, color: COLORS.gray, marginTop: 3, lineHeight: 16 },
-
   // Mode List
   modeItem: {
     flexDirection: "row",
@@ -1531,28 +1517,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // Rider message
-  riderMessageContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-  },
-  riderMessageTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: COLORS.dark,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  riderMessageText: {
-    fontSize: 16,
-    color: COLORS.gray,
-    textAlign: "center",
-    lineHeight: 24,
-  },
-
   // Divider between location section and mode section
   modeSectionDivider: {
     height: 1,
@@ -1576,50 +1540,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#006064",
     lineHeight: 18,
-  },
-
-  // Carpool match count badge (below mode tiles)
-  carpoolMatchBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: "#F5FAFA",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#B2EBF2",
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  carpoolMatchText: {
-    flex: 1,
-    fontSize: 14,
-    color: "#006064",
-    fontWeight: "600",
-  },
-
-  // Scheduler
-  schedulerContainer: {
-    marginTop: 12,
-    marginBottom: 12,
-  },
-  schedulerBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.lightGray,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    gap: 10,
-  },
-  schedulerText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.dark,
   },
 });
 
