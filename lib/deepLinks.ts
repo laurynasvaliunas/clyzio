@@ -17,12 +17,15 @@ export type DeepLinkTarget =
   | { type: 'ride'; id: string }
   | { type: 'profile'; id: string }
   | { type: 'invite'; code: string }
+  | { type: 'reset' }
   | { type: 'unknown'; url: string };
 
 const APP_SCHEME = 'clyzio://';
 const WEB_HOST = 'clyzio.app';
 
-export function buildLink(t: Exclude<DeepLinkTarget, { type: 'unknown' }>): string {
+type ShareTarget = Extract<DeepLinkTarget, { type: 'ride' | 'profile' | 'invite' }>;
+
+export function buildLink(t: ShareTarget): string {
   switch (t.type) {
     case 'ride':
       return `${APP_SCHEME}ride/${t.id}`;
@@ -33,7 +36,7 @@ export function buildLink(t: Exclude<DeepLinkTarget, { type: 'unknown' }>): stri
   }
 }
 
-export function buildWebLink(t: Exclude<DeepLinkTarget, { type: 'unknown' }>): string {
+export function buildWebLink(t: ShareTarget): string {
   switch (t.type) {
     case 'ride':
       return `https://${WEB_HOST}/ride/${t.id}`;
@@ -49,6 +52,8 @@ export function parseLink(url: string): DeepLinkTarget {
     const parsed = Linking.parse(url);
     const path = parsed.path ?? '';
     const [head, tail] = path.split('/');
+    // Password-recovery deep link has no tail (clyzio://reset-password#tokens…).
+    if (head === 'reset-password') return { type: 'reset' };
     if (!head || !tail) return { type: 'unknown', url };
     if (head === 'ride') return { type: 'ride', id: tail };
     if (head === 'profile') return { type: 'profile', id: tail };
@@ -68,6 +73,8 @@ export function toRoutePath(t: DeepLinkTarget): string | null {
       return `/profile/${t.id}`;
     case 'invite':
       return `/(auth)/onboarding?ref=${encodeURIComponent(t.code)}`;
+    case 'reset':
+      return `/reset-password`;
     default:
       return null;
   }

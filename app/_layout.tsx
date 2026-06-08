@@ -290,6 +290,10 @@ function RootLayoutContent() {
       } else {
         clearSentryUser();
       }
+      // Password-recovery deep link: route to the set-new-password screen.
+      if (_event === "PASSWORD_RECOVERY") {
+        try { router.push("/reset-password"); } catch { /* router not ready; deep-link queue handles it */ }
+      }
     });
 
     return () => {
@@ -566,6 +570,7 @@ function RootLayoutContent() {
           <Stack.Screen name="settings" options={{ headerShown: false }} />
           <Stack.Screen name="legal" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="daily-commute" options={{ headerShown: false, presentation: "modal" }} />
+          <Stack.Screen name="reset-password" options={{ headerShown: false }} />
         </Stack>
         <IncomingSuggestionBanner />
         <InAppNotificationToast />

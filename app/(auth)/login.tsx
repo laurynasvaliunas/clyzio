@@ -247,7 +247,9 @@ export default function LoginScreen() {
                 return;
               }
               try {
-                const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+                const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+                  redirectTo: "clyzio://reset-password",
+                });
                 if (error) {
                   showToast({ title: 'Error', message: error.message, type: 'error' });
                 } else {
