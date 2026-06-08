@@ -119,6 +119,9 @@ export default function LoginScreen() {
             .update({ terms_accepted_at: now, privacy_policy_accepted_at: now })
             .eq("id", data.user.id);
 
+          // Fire-and-forget branded welcome email (idempotent server-side).
+          supabase.functions.invoke("welcome-self").catch(() => {});
+
           // Resolve onboarding → permissions → first-run commute setup → Map.
           const next = await nextRouteAfterAuth(data.user.id);
           router.replace(next as any);
