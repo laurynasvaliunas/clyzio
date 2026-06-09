@@ -25,6 +25,7 @@ import YesterdayImpactCard, { type YesterdayImpact } from "../../components/Yest
 import * as SecureStore from "expo-secure-store";
 import { supabase } from "../../lib/supabase";
 import { buildWebLink } from "../../lib/deepLinks";
+import { logger } from "../../lib/logger";
 import { useAIStore } from "../../store/useAIStore";
 import { useDailyCommuteStore } from "../../store/useDailyCommuteStore";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -248,6 +249,8 @@ interface MatchCardProps {
 
 function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = false }: MatchCardProps) {
   const { showToast } = useToast();
+  const router = useRouter();
+  const peerId: string | null = match.profiles?.id ?? (searchMode === 'rider' ? match.driver_id : match.rider_id) ?? null;
   return (
     <View style={styles.matchCard}>
       {/* Drag handle */}
@@ -319,7 +322,10 @@ function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = fal
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.viewProfileBtn, isLoading && styles.viewProfileBtnDisabled]}
-          onPress={() => showToast({ title: 'Coming Soon', message: 'Profile view coming soon!', type: 'info' })}
+          onPress={() => {
+            if (peerId) router.push(`/profile/${peerId}` as any);
+            else showToast({ title: 'Profile unavailable', message: 'This commuter has no public profile.', type: 'info' });
+          }}
           disabled={isLoading}
         >
           <Text style={styles.viewProfileBtnText}>View Profile</Text>
@@ -828,43 +834,9 @@ export default function MapScreen() {
   );
 
   /**
-   * Generate mock nearby commuters for demo/testing
-   */
-  const generateMockCommuters = useCallback((origin: any, role: 'driver' | 'rider', count: number = 3) => {
-    const mockCommuters = [];
-    for (let i = 0; i < count; i++) {
-      // Generate random coordinates near origin (±0.01 degrees, ~1km)
-      const latOffset = (Math.random() - 0.5) * 0.02;
-      const lngOffset = (Math.random() - 0.5) * 0.02;
-      
-      mockCommuters.push({
-        id: `mock-${Date.now()}-${i}`,
-        origin_lat: origin.lat + latOffset,
-        origin_long: origin.lng + lngOffset,
-        dest_lat: origin.lat + (Math.random() - 0.5) * 0.05,
-        dest_long: origin.lng + (Math.random() - 0.5) * 0.05,
-        origin_address: `${Math.floor(Math.random() * 900) + 100} Main St, City`,
-        dest_address: `${Math.floor(Math.random() * 900) + 100} Oak Ave, City`,
-        status: 'active',
-        driver_id: role === 'rider' ? `mock-driver-${i}` : null,
-        rider_id: role === 'driver' ? `mock-rider-${i}` : null,
-        profiles: {
-          id: `mock-user-${i}`,
-          first_name: ['Alex', 'Sam', 'Jordan', 'Taylor', 'Morgan'][i % 5],
-          last_name: ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones'][i % 5],
-          department: ['Marketing', 'Engineering', 'Sales', 'HR', 'Finance'][i % 5],
-          avatar_url: null,
-        },
-      });
-    }
-    return mockCommuters;
-  }, []);
-
-  /**
    * ✅ FETCH NEARBY COMMUTERS - For Driver/Rider matching
    * Fetches available drivers (if user is rider) or riders (if user is driver)
-   * Uses a two-step query: rides first, then profiles, to avoid complex joins
-   * Falls back to mock data if no real matches found
+   * Uses a two-step query: rides first, then profiles, to avoid complex joins.
    */
   const fetchNearbyCommuters = useCallback(async (role: 'driver' | 'rider', origin: any) => {
     try {
@@ -918,31 +890,21 @@ export default function MapScreen() {
       }
 
       if (!rides || rides.length === 0) {
-        if (__DEV__) {
-          // Generate mock data for development/demo only
-          const mockData = generateMockCommuters(origin, role, 2);
-          setNearbyCommuters(mockData);
-          if (mockData.length > 0) {
-            setSearchStatus('matched');
-          } else {
-            setSearchStatus('waiting');
-          }
-        } else {
-          setSearchStatus('waiting');
-        }
+        setNearbyCommuters([]);
+        setSearchStatus('waiting');
         return;
       }
 
       // Step 2: Fetch profile details for each commuter
       const userIds = rides.map((ride: any) => ride[searchColumn]).filter(Boolean);
       
+      // Peer profile fields come via a SECURITY DEFINER RPC (profiles RLS is
+      // own-row/managers-only); is_peer_visible gates which peers are returned.
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, department, avatar_url, is_public')
-        .in('id', userIds);
+        .rpc('get_public_profiles', { p_ids: userIds });
 
       if (profilesError) {
-        console.error('Error fetching commuter profiles:', profilesError);
+        logger.error('Error fetching commuter profiles:', profilesError);
         setNearbyCommuters(rides); // Show rides even if profile fetch fails
         setSearchStatus(rides.length > 0 ? 'matched' : 'waiting');
         return;
@@ -958,10 +920,10 @@ export default function MapScreen() {
       setNearbyCommuters(commutersWithProfiles);
       setSearchStatus(commutersWithProfiles.length > 0 ? 'matched' : 'waiting');
     } catch (error) {
-      console.error('Error in fetchNearbyCommuters:', error);
+      logger.error('Error in fetchNearbyCommuters:', error);
       setSearchStatus('waiting');
     }
-  }, [generateMockCommuters]);
+  }, []);
 
   // ✅ LIVE SEARCH — while actively looking for a match, subscribe to `rides` so a
   // counterpart who starts searching flips "waiting" → "matched" the same second
@@ -1136,15 +1098,6 @@ export default function MapScreen() {
       }
 
       const partnerName = `${targetProfile.first_name ?? ''} ${targetProfile.last_name || ''}`.trim() || 'your match';
-
-      // Mock rides (demo data) — no real counterpart to request; just confirm UX.
-      const isMockRide = matchId.startsWith('mock-');
-
-      if (isMockRide) {
-        setConfirmedRide({ partnerName, role: searchMode });
-        setRequestStatus('success');
-        return;
-      }
 
       // Pre-check: carpool needs the current user's home + work set. Surface a
       // clear, actionable message instead of a backend error.

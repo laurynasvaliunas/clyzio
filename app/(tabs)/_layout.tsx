@@ -135,13 +135,6 @@ export default function TabsLayout() {
           ),
         }}
       />
-      {/* Hide trips tab - replaced by activity */}
-      <Tabs.Screen
-        name="trips"
-        options={{
-          href: null,
-        }}
-      />
     </Tabs>
   );
 }
