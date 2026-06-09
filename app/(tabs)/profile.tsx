@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { User, LogOut, Save, Leaf, Check, Settings, ChevronRight, Camera } from "lucide-react-native";
+import { User, LogOut, Save, Leaf, Check, Settings, ChevronRight, Camera, Building2 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../../lib/supabase";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -81,13 +81,14 @@ interface UserCardProps {
   userName: string;
   userEmail: string;
   userAvatar: string | null;
+  companyName: string | null;
   uploading: boolean;
   onPress: () => void;
   onPickImage: () => void;
   TC: ReturnType<typeof getThemeColors>;
 }
 
-function UserCard({ userName, userEmail, userAvatar, uploading, onPress, onPickImage, TC }: UserCardProps) {
+function UserCard({ userName, userEmail, userAvatar, companyName, uploading, onPress, onPickImage, TC }: UserCardProps) {
   return (
     <TouchableOpacity style={[styles.userCard, { backgroundColor: TC.surface }]} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.avatarContainer}>
@@ -116,6 +117,14 @@ function UserCard({ userName, userEmail, userAvatar, uploading, onPress, onPickI
       <View style={styles.userInfo}>
         <Text style={[styles.userName, { color: TC.text }]}>{userName || "Set up your profile"}</Text>
         <Text style={[styles.userEmail, { color: TC.textSecondary }]}>{userEmail}</Text>
+        {!!companyName && (
+          <View style={styles.companyRow}>
+            <Building2 size={13} color={COLORS.primary} />
+            <Text style={[styles.companyName, { color: TC.textSecondary }]} numberOfLines={1}>
+              {companyName}
+            </Text>
+          </View>
+        )}
       </View>
       <ChevronRight size={20} color={TC.textSecondary} />
     </TouchableOpacity>
@@ -247,6 +256,7 @@ export default function ProfileScreen() {
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
   const [selectedModeId, setSelectedModeId] = useState<string | null>(null);
   const [habits, setHabits] = useState<CommuteHabit[]>([]);
   const [baseline, setBaseline] = useState(0);
@@ -275,11 +285,12 @@ export default function ProfileScreen() {
         
         const { data: profile } = await supabase
           .from("profiles")
-          .select("commuting_habits, baseline_co2, first_name, last_name, avatar_url")
+          .select("commuting_habits, baseline_co2, first_name, last_name, avatar_url, company_name, companies:company_id(name)")
           .eq("id", user.id)
           .single();
 
         if (profile) {
+          setCompanyName((profile as any).companies?.name ?? (profile as any).company_name ?? null);
           if (profile.commuting_habits && Array.isArray(profile.commuting_habits)) {
             setHabits(profile.commuting_habits);
           }
@@ -554,6 +565,7 @@ export default function ProfileScreen() {
           userName={userName}
           userEmail={userEmail}
           userAvatar={userAvatar}
+          companyName={companyName}
           uploading={uploading}
           onPress={() => router.push("/settings/edit-profile")}
           onPickImage={handlePickImage}
@@ -712,6 +724,8 @@ const styles = StyleSheet.create({
   userInfo: { flex: 1, marginLeft: 14 },
   userName: { fontWeight: "700", fontSize: 22, color: COLORS.dark },
   userEmail: { fontSize: 13, color: COLORS.gray, marginTop: 2 },
+  companyRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4 },
+  companyName: { fontSize: 13, fontWeight: "600", color: COLORS.gray, flexShrink: 1 },
   
   // ===== SCORE CARD =====
   scoreCardContainer: { marginHorizontal: 16, marginBottom: 20, position: "relative" },
