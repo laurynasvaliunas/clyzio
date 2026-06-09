@@ -30,7 +30,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     backgroundColor: '#09E0E8',
   },
   ios: {
-    supportsTablet: true,
+    supportsTablet: false,
     bundleIdentifier: 'com.clyzio.app',
     buildNumber: '6',
     infoPlist: {
