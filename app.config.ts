@@ -135,7 +135,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     eas: {
       projectId: '565dc638-6385-4dcf-885d-8abd3f0d9c30',
     },
-    privacyPolicyUrl: 'https://www.clyzio.com/privacy',
+    privacyPolicyUrl: 'https://clyzio.com/legal/privacy',
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     mapboxPublicToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN,
