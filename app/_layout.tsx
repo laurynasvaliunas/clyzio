@@ -594,6 +594,7 @@ function RootLayoutContent() {
           <Stack.Screen name="legal" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="daily-commute" options={{ headerShown: false, presentation: "modal" }} />
           <Stack.Screen name="reset-password" options={{ headerShown: false }} />
+          <Stack.Screen name="join" options={{ headerShown: false }} />
           <Stack.Screen name="profile/[id]" options={{ headerShown: false }} />
         </Stack>
         <IncomingSuggestionBanner />

@@ -5,6 +5,7 @@
  *   clyzio://ride/<id>        → opens a specific ride detail
  *   clyzio://profile/<id>     → opens a public profile
  *   clyzio://invite/<code>    → opens signup prefilled with a referral code
+ *   clyzio://join/<token>     → company invite (also clyzio.com/join?token=…)
  *   https://clyzio.app/<…>    → universal link equivalent (same routes)
  *
  * Keep this module pure: no React imports — it's consumed by
@@ -17,6 +18,7 @@ export type DeepLinkTarget =
   | { type: 'ride'; id: string }
   | { type: 'profile'; id: string }
   | { type: 'invite'; code: string }
+  | { type: 'join'; token: string }
   | { type: 'reset' }
   | { type: 'unknown'; url: string };
 
@@ -51,9 +53,17 @@ export function parseLink(url: string): DeepLinkTarget {
   try {
     const parsed = Linking.parse(url);
     const path = parsed.path ?? '';
+    const qp = (parsed.queryParams ?? {}) as Record<string, unknown>;
     const [head, tail] = path.split('/');
     // Password-recovery deep link has no tail (clyzio://reset-password#tokens…).
     if (head === 'reset-password') return { type: 'reset' };
+    // Company invite: clyzio://join/<token> or https://clyzio.com/join?token=<token>.
+    if (head === 'join') {
+      const token = tail && tail.length > 0
+        ? tail
+        : (typeof qp.token === 'string' ? qp.token : '');
+      return token ? { type: 'join', token } : { type: 'unknown', url };
+    }
     if (!head || !tail) return { type: 'unknown', url };
     if (head === 'ride') return { type: 'ride', id: tail };
     if (head === 'profile') return { type: 'profile', id: tail };
@@ -73,6 +83,8 @@ export function toRoutePath(t: DeepLinkTarget): string | null {
       return `/profile/${t.id}`;
     case 'invite':
       return `/(auth)/onboarding?ref=${encodeURIComponent(t.code)}`;
+    case 'join':
+      return `/join?token=${encodeURIComponent(t.token)}`;
     case 'reset':
       return `/reset-password`;
     default:

@@ -11,7 +11,7 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Mail, Lock, Eye, EyeOff, Leaf, Building2, Check } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
@@ -52,6 +52,21 @@ export default function LoginScreen() {
   const [companyMatch, setCompanyMatch] = useState<string | null>(null);
   const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "done">("idle");
   const domainCache = useRef<Map<string, string | null>>(new Map());
+
+  // Company-invite deep link (clyzio://join/<token> routes here with the invited
+  // email). Pre-fill + lock the email so the signup email matches the invite
+  // (accept_invite_on_signup links new users); redeem on sign-in for users who
+  // already have an account.
+  const params = useLocalSearchParams<{ invite?: string | string[]; email?: string | string[]; company?: string | string[] }>();
+  const inviteToken = Array.isArray(params.invite) ? params.invite[0] : params.invite;
+  const inviteCompany = Array.isArray(params.company) ? params.company[0] : params.company;
+  const inviteEmail = Array.isArray(params.email) ? params.email[0] : params.email;
+
+  useEffect(() => {
+    if (!inviteToken) return;
+    setIsSignUp(true);
+    if (inviteEmail) setEmail(inviteEmail);
+  }, [inviteToken, inviteEmail]);
 
   // Debounced lookup: when a work-email domain is typed, ask the shared DB
   // whether it belongs to a registered+verified company. Pre-auth, so this
@@ -154,6 +169,19 @@ export default function LoginScreen() {
         const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) { showToast({ title: 'Sign In Failed', message: error.message, type: 'error' }); return; }
         if (data.session && data.user) {
+          // Redeem a company invite if we arrived from an invite link and the
+          // account already existed (the signup trigger won't have fired).
+          if (inviteToken) {
+            try {
+              const { data: res } = await supabase.rpc("accept_company_invite", { p_token: inviteToken });
+              const row = Array.isArray(res) ? res[0] : null;
+              if (row?.status === "joined") {
+                showToast({ title: 'Joined', message: `You've joined ${row.company_name ?? inviteCompany ?? 'your company'}.`, type: 'success' });
+              } else if (row?.status === "email_mismatch") {
+                showToast({ title: 'Heads up', message: 'That invite was sent to a different email address.', type: 'warning' });
+              }
+            } catch { /* non-blocking */ }
+          }
           const next = await nextRouteAfterAuth(data.user.id);
           router.replace(next as any);
         }
@@ -195,12 +223,27 @@ export default function LoginScreen() {
           {isSignUp ? "Join your company's eco team" : "Sign in to your eco commute"}
         </Text>
 
+        {/* Company invite banner — shown when arriving from an invite link. */}
+        {!!inviteToken && (
+          <View style={styles.corpBanner}>
+            <Building2 size={22} color={COLORS.primary} />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={styles.corpBannerTitle}>
+                {inviteCompany ? `Join ${inviteCompany}` : "Accept your invite"}
+              </Text>
+              <Text style={styles.corpBannerSub}>
+                Create your account with this email to join the team. 🌱
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Email */}
         <Text style={styles.label}>Email</Text>
         <View style={styles.inputWrap}>
           <Mail size={20} color={COLORS.gray} style={styles.inputIcon} />
           <TextInput
-            style={styles.input}
+            style={[styles.input, !!inviteToken && { color: COLORS.textSecondary }]}
             placeholder="your.email@company.com"
             placeholderTextColor={COLORS.gray}
             keyboardType="email-address"
@@ -208,6 +251,7 @@ export default function LoginScreen() {
             autoCorrect={false}
             value={email}
             onChangeText={setEmail}
+            editable={!inviteToken}
             testID="login-email"
             accessibilityLabel="Email address"
           />
@@ -215,7 +259,7 @@ export default function LoginScreen() {
 
         {/* Corporate detection banner — truthful: names the real verified
             company, or nudges the user to have their admin register it. */}
-        {isCorpEmail && (
+        {isCorpEmail && !inviteToken && (
           <View style={styles.corpBanner}>
             <Building2 size={22} color={COLORS.primary} />
             <View style={{ flex: 1, marginLeft: 10 }}>
