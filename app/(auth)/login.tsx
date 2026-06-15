@@ -109,11 +109,35 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+        const now = new Date().toISOString();
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          // Carry consent with the user so it survives email confirmation (when
+          // the session is deferred past signup). _layout backfills it into the
+          // profile on the first authenticated session.
+          options: { data: { terms_accepted_at: now, privacy_policy_accepted_at: now } },
+        });
         if (error) { showToast({ title: 'Sign Up Failed', message: error.message, type: 'error' }); return; }
-        if (data.user) {
-          // Record terms acceptance timestamp
-          const now = new Date().toISOString();
+
+        // Email confirmation ON → signUp returns a user but NO session. Don't
+        // navigate into the app (it would be unauthenticated); prompt the user
+        // to confirm their email, then sign in.
+        if (data.user && !data.session) {
+          setIsSignUp(false);
+          setPassword("");
+          setTermsAccepted(false);
+          showToast({
+            title: 'Confirm your email',
+            message: `We sent a confirmation link to ${email.trim()}. Tap it, then sign in.`,
+            type: 'success',
+          });
+          return;
+        }
+
+        // Immediate session (email confirmation off) → record consent now, send
+        // the branded welcome email, and continue into onboarding.
+        if (data.user && data.session) {
           await supabase
             .from("profiles")
             .update({ terms_accepted_at: now, privacy_policy_accepted_at: now })

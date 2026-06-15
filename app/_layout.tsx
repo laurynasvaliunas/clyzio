@@ -345,18 +345,41 @@ function RootLayoutContent() {
     };
   }, [isAuthenticated]);
 
-  // Seed trip store CO2 baseline from user's car fuel type on sign-in
+  // On sign-in: seed the CO2 baseline from the user's car fuel type, backfill
+  // any signup consent captured in user_metadata (needed when email
+  // confirmation defers the session past signup), and fire the one-time branded
+  // welcome email (idempotent server-side via profiles.welcomed_at).
   useEffect(() => {
     if (!isAuthenticated) return;
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return;
       const { data } = await supabase
         .from('profiles')
-        .select('car_fuel_type')
+        .select('car_fuel_type, welcomed_at, terms_accepted_at, privacy_policy_accepted_at')
         .eq('id', user.id)
         .single();
       if (data?.car_fuel_type) {
         setUserBaselineFromFuelType(data.car_fuel_type);
+      }
+
+      // Backfill consent recorded at signup (carried in user_metadata) when the
+      // profile doesn't have it yet — the email-confirmation path can't write it
+      // at signup because there's no session until the user confirms + signs in.
+      const meta = (user.user_metadata ?? {}) as Record<string, any>;
+      const patch: Record<string, string> = {};
+      if (!data?.terms_accepted_at && typeof meta.terms_accepted_at === 'string') {
+        patch.terms_accepted_at = meta.terms_accepted_at;
+      }
+      if (!data?.privacy_policy_accepted_at && typeof meta.privacy_policy_accepted_at === 'string') {
+        patch.privacy_policy_accepted_at = meta.privacy_policy_accepted_at;
+      }
+      if (Object.keys(patch).length > 0) {
+        await supabase.from('profiles').update(patch).eq('id', user.id);
+      }
+
+      // One-time welcome email (skipped once welcomed_at is set server-side).
+      if (!data?.welcomed_at) {
+        supabase.functions.invoke('welcome-self').catch(() => {});
       }
     });
   }, [isAuthenticated]);
