@@ -193,49 +193,6 @@ function SearchingOverlay({ status, searchMode, matchCount, onCancel, onViewMap 
 }
 
 /**
- * RideConfirmedOverlay - Success modal after booking
- * Shows confirmation and navigation options
- */
-interface RideConfirmedOverlayProps {
-  partnerName: string;
-  role: 'driver' | 'rider';
-  onGoToUpcoming: () => void;
-  onStayOnMap: () => void;
-}
-
-function RideConfirmedOverlay({ partnerName, role, onGoToUpcoming, onStayOnMap }: RideConfirmedOverlayProps) {
-  return (
-    <View style={styles.successOverlay}>
-      <View style={styles.successCard}>
-        {/* Success Icon */}
-        <View style={styles.successIconContainer}>
-          <Text style={styles.successIcon}>🎉</Text>
-        </View>
-
-        {/* Success Message */}
-        <Text style={styles.successTitle}>Ride Confirmed!</Text>
-        <Text style={styles.successMessage}>
-          You have booked a {role === 'rider' ? 'ride' : 'pickup'} with{' '}
-          <Text style={styles.successPartner}>{partnerName}</Text>.{'\n'}
-          Check 'Upcoming' for details.
-        </Text>
-
-        {/* Action Buttons */}
-        <View style={styles.successActions}>
-          <TouchableOpacity style={styles.primaryButton} onPress={onGoToUpcoming}>
-            <Text style={styles.primaryButtonText}>Go to Upcoming Trips</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.secondaryButton} onPress={onStayOnMap}>
-            <Text style={styles.secondaryButtonText}>Stay on Map</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-/**
  * MatchCard - Bottom sheet showing detailed info about a selected commuter
  * Allows requesting a ride or offering a pickup
  */
@@ -411,8 +368,7 @@ export default function MapScreen() {
   const [isViewingMap, setIsViewingMap] = useState(false); // Track if overlay is dismissed
 
   // ✅ REQUEST STATUS STATE
-  const [requestStatus, setRequestStatus] = useState<'idle' | 'loading' | 'success'>('idle');
-  const [confirmedRide, setConfirmedRide] = useState<any>(null);
+  const [requestStatus, setRequestStatus] = useState<'idle' | 'loading'>('idle');
 
   // ✅ AI STATE
   const [chipDismissed, setChipDismissed] = useState(false);
@@ -808,8 +764,7 @@ export default function MapScreen() {
               setSearchStatus('idle');
               setIsViewingMap(false);
               setRequestStatus('idle');
-              setConfirmedRide(null);
-              
+
               // Re-center map to user location
               const location = await Location.getCurrentPositionAsync({
                 accuracy: Location.Accuracy.Balanced,
@@ -1154,26 +1109,10 @@ export default function MapScreen() {
     setSearchStatus('idle');
     setIsViewingMap(false);
     setRequestStatus('idle');
-    setConfirmedRide(null);
-    
+
     // Navigate to Activity tab
     router.push('/(tabs)/activity');
   }, [router]);
-
-  /**
-   * Stay on map after booking
-   */
-  const handleStayOnMap = useCallback(() => {
-    // Close success overlay
-    setRequestStatus('idle');
-    setConfirmedRide(null);
-    
-    // Close match card
-    setSelectedMatch(null);
-    
-    // Keep route visible, markers visible
-    // User can continue browsing other matches or plan another trip
-  }, []);
 
   // Fallback UI when Mapbox token is missing/malformed at build time —
   // prevents a blank white screen and gives Sentry a clear signal.
@@ -1529,23 +1468,13 @@ export default function MapScreen() {
       )}
 
       {/* ✅ MATCH CARD: Shows when user clicks a nearby commuter marker */}
-      {selectedMatch && searchStatus === 'matched' && requestStatus !== 'success' && (
+      {selectedMatch && searchStatus === 'matched' && (
         <MatchCard
           match={selectedMatch}
           searchMode={searchMode}
           onClose={() => setSelectedMatch(null)}
           onRequestMatch={() => handleRequestMatch(selectedMatch.id)}
           isLoading={requestStatus === 'loading'}
-        />
-      )}
-
-      {/* ✅ SUCCESS OVERLAY: Shows after successful ride confirmation */}
-      {requestStatus === 'success' && confirmedRide && (
-        <RideConfirmedOverlay
-          partnerName={confirmedRide.partnerName}
-          role={confirmedRide.role}
-          onGoToUpcoming={handleGoToUpcoming}
-          onStayOnMap={handleStayOnMap}
         />
       )}
 
@@ -1989,94 +1918,6 @@ const styles = StyleSheet.create({
   viewProfileBtnText: {
     color: COLORS.primary,
     fontSize: 15,
-    fontWeight: "600",
-  },
-  
-  // ===== SUCCESS OVERLAY STYLES =====
-  successOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: COLORS.overlay,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-  successCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 28,
-    padding: 32,
-    width: "100%",
-    maxWidth: 400,
-    alignItems: "center",
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 20,
-  },
-  successIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.green + "20",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  successIcon: {
-    fontSize: 48,
-  },
-  successTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: COLORS.dark,
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  successMessage: {
-    fontSize: 16,
-    color: COLORS.gray,
-    textAlign: "center",
-    lineHeight: 24,
-    marginBottom: 32,
-  },
-  successPartner: {
-    fontWeight: "bold",
-    color: COLORS.dark,
-  },
-  successActions: {
-    width: "100%",
-    gap: 12,
-  },
-  primaryButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: "center",
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  primaryButtonText: {
-    color: COLORS.white,
-    fontSize: 17,
-    fontWeight: "bold",
-  },
-  secondaryButton: {
-    backgroundColor: COLORS.white,
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: COLORS.gray + "40",
-  },
-  secondaryButtonText: {
-    color: COLORS.dark,
-    fontSize: 17,
     fontWeight: "600",
   },
   
