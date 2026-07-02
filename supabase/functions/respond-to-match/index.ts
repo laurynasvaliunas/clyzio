@@ -38,6 +38,17 @@ interface MatchRow {
 
 const TERMINAL = ['confirmed', 'cancelled_by_driver', 'cancelled_by_passenger', 'expired'];
 
+// Build a UTC ISO timestamp for "HH:MM local wall-clock on trip_date", given the
+// approver's UTC offset in minutes (Date.getTimezoneOffset(): +ve west of UTC).
+// offset absent → interpret as UTC (legacy behaviour). M1.
+function buildScheduledAt(tripDate: string, hhmm: string, tzOffsetMinutes?: number): string {
+  const [y, mo, d] = tripDate.split('-').map(Number);
+  const [hh, mm] = (hhmm || '08:00').split(':').map(Number);
+  const baseUtcMs = Date.UTC(y, (mo || 1) - 1, d, hh || 0, mm || 0);
+  const off = Number.isFinite(tzOffsetMinutes) ? (tzOffsetMinutes as number) : 0;
+  return new Date(baseUtcMs + off * 60_000).toISOString();
+}
+
 // deno-lint-ignore no-explicit-any
 async function notify(supabase: any, userId: string, title: string, body: string) {
   const { data: prof } = await supabase
@@ -73,7 +84,7 @@ Deno.serve(async (req) => {
 
   const parsed = await parseBody(req, RespondToMatchSchema);
   if (!parsed.ok) return parsed.response;
-  const { match_id, accepted, detour_preference, custom_pickup } = parsed.data;
+  const { match_id, accepted, detour_preference, custom_pickup, tz_offset_minutes } = parsed.data;
 
   try {
     const { data: match, error: matchErr } = await supabase
@@ -164,7 +175,7 @@ Deno.serve(async (req) => {
         origin_long: m.pickup_long ?? 0,
         dest_lat: driverProfile?.work_lat ?? 0,
         dest_long: driverProfile?.work_long ?? 0,
-        scheduled_at: new Date(`${m.trip_date}T${m.proposed_departure ?? '08:00'}:00`).toISOString(),
+        scheduled_at: buildScheduledAt(m.trip_date, m.proposed_departure ?? '08:00', tz_offset_minutes),
         transport_mode: 'carpool',
         transport_label: 'Carpool',
       })

@@ -474,6 +474,17 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       return;
     }
 
+    // M2: reject degenerate/past trips before they hit the DB.
+    const previewKm = calculateDistance(originCoords.lat, originCoords.lng, destCoords.lat, destCoords.lng);
+    if (previewKm < 0.1) {
+      showToast({ title: "Same start and destination", message: "Pick a destination different from your starting point.", type: "warning" });
+      return;
+    }
+    if (scheduledDate.getTime() < Date.now() - 60_000) {
+      showToast({ title: "That time has passed", message: "Choose a departure time in the future.", type: "warning" });
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     
     // Save to Supabase

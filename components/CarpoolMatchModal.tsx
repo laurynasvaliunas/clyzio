@@ -41,18 +41,22 @@ interface CarpoolMatchModalProps {
   visible: boolean;
   result: CarpoolAIResult | null;
   loading: boolean;
+  error?: string | null;       // M6: distinguish "server error" from "no matches"
   rideId: string | null;       // the user's own ride to attach request to
   onClose: () => void;
   onMatchAccepted: (matchRideId: string) => void;
+  onRetry?: () => void;
 }
 
 export default function CarpoolMatchModal({
   visible,
   result,
   loading,
+  error,
   rideId,
   onClose,
   onMatchAccepted,
+  onRetry,
 }: CarpoolMatchModalProps) {
   const { sendCarpoolSuggestion } = useAIStore();
   const { showToast } = useToast();
@@ -139,7 +143,20 @@ export default function CarpoolMatchModal({
           </View>
         )}
 
-        {!loading && result && result.ranked_matches.length === 0 && (
+        {!loading && !!error && (
+          <View style={styles.emptyBox}>
+            <Users size={40} color={COLORS.gray} />
+            <Text style={styles.emptyTitle}>Couldn't load matches</Text>
+            <Text style={styles.emptyText}>Something went wrong finding carpools. Check your connection and try again.</Text>
+            {onRetry && (
+              <TouchableOpacity style={styles.retryBtn} onPress={onRetry}>
+                <Text style={styles.retryBtnText}>Try again</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {!loading && !error && result && result.ranked_matches.length === 0 && (
           <View style={styles.emptyBox}>
             <Users size={40} color={COLORS.gray} />
             <Text style={styles.emptyTitle}>No matches found</Text>
@@ -147,7 +164,7 @@ export default function CarpoolMatchModal({
           </View>
         )}
 
-        {!loading && result && result.ranked_matches.length > 0 && (
+        {!loading && !error && result && result.ranked_matches.length > 0 && (
           <>
             {/* Summary banner */}
             <LinearGradient
@@ -196,6 +213,14 @@ const styles = StyleSheet.create({
 
   loadingBox: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
   loadingText: { fontSize: 15, color: COLORS.gray },
+  retryBtn: {
+    marginTop: 16,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  retryBtnText: { color: COLORS.white, fontSize: 15, fontWeight: "700" },
 
   emptyBox: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingHorizontal: 32 },
   emptyTitle: { fontSize: 17, fontWeight: "bold", color: COLORS.dark },

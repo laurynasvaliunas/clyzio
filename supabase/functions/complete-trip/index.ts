@@ -86,33 +86,42 @@ Deno.serve(async (req) => {
     if (ride.rider_id !== userId && ride.driver_id !== userId) {
       return respondError(403, 'forbidden', 'not_a_participant');
     }
-    // Idempotency: if the ride is already completed and the caller wants to
-    // end it, that's a no-op — but we still won't double-credit XP. Use the
-    // status check + a per-(user, ride) idempotency guard via the participant
-    // having already been credited (we can't easily detect this without an
-    // extra table; for v1.0 we accept that a participant who hits "complete"
-    // twice in the same second on different devices may get credited twice.
-    // This is bounded by the network round-trip and unlikely in practice).
-    if (ride.status === 'completed' && end_trip) {
-      // Don't re-write status, but also don't re-credit. Return zeros so the
-      // UI can show a neutral "already complete" message.
-      return respondJSON({
-        already_completed: true,
-        xp_earned: 0,
-        co2_saved: 0,
-        distance_km: 0,
-        leveled_up: false,
-      });
+    // (1.5) Per-participant idempotency (migration 036): credit each participant
+    // exactly once per ride, in any order. Claim a ride_completions row BEFORE
+    // crediting so a double-tap / retry is a no-op. This replaces the old
+    // status-based guard, which (a) let passengers — who pass end_trip=false —
+    // farm credit by tapping repeatedly, and (b) blocked the 2nd participant.
+    const { error: claimErr } = await supabase
+      .from('ride_completions')
+      .insert({ ride_id, user_id: userId });
+    if (claimErr) {
+      if ((claimErr as { code?: string }).code === '23505') {
+        // Already credited this user for this ride → neutral no-op.
+        return respondJSON({
+          already_completed: true,
+          xp_earned: 0,
+          co2_saved: 0,
+          distance_km: 0,
+          leveled_up: false,
+        });
+      }
+      return respondInternalError('complete-trip', claimErr, 'completion_claim_failed');
     }
 
-    // (2) Mark the ride completed if the caller is ending the trip.
+    // (2) Mark the ride completed when the caller ends the trip (driver/solo).
+    // Passengers pass end_trip=false and just collect their own credit while the
+    // driver keeps control of the ride lifecycle.
     const completedAt = new Date().toISOString();
-    if (end_trip) {
+    if (end_trip && ride.status !== 'completed') {
       const { error: updErr } = await supabase
         .from('rides')
         .update({ status: 'completed', completed_at: completedAt })
         .eq('id', ride_id);
-      if (updErr) return respondInternalError('complete-trip', updErr, 'ride_update_failed');
+      if (updErr) {
+        // Roll back the claim so the completion stays retryable.
+        await supabase.from('ride_completions').delete().eq('ride_id', ride_id).eq('user_id', userId);
+        return respondInternalError('complete-trip', updErr, 'ride_update_failed');
+      }
     }
 
     // (3) Compute the deltas server-side.
@@ -183,6 +192,8 @@ Deno.serve(async (req) => {
       })
       .eq('id', userId);
     if (writeErr) {
+      // Roll back the completion claim so the user can retry.
+      await supabase.from('ride_completions').delete().eq('ride_id', ride_id).eq('user_id', userId);
       return respondInternalError('complete-trip', writeErr, 'profile_update_failed');
     }
 

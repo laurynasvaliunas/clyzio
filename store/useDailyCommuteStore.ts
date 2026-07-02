@@ -240,6 +240,9 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
             accepted: true,
             detour_preference: params.detour_preference,
             custom_pickup: cp ? { lat: cp.lat, lng: cp.lng } : undefined,
+            // M1: send the approver's UTC offset so the created ride's
+            // scheduled_at reflects the local wall-clock time, not UTC.
+            tz_offset_minutes: new Date().getTimezoneOffset(),
           },
         });
         if (error) throw error;
@@ -262,7 +265,11 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const { error } = await supabase.functions.invoke("respond-to-match", {
-        body: { match_id: params.match_id, accepted: params.accepted },
+        body: {
+          match_id: params.match_id,
+          accepted: params.accepted,
+          tz_offset_minutes: new Date().getTimezoneOffset(),
+        },
       });
       if (error) throw error;
       await get().checkExistingIntent();

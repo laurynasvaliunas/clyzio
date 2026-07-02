@@ -129,6 +129,10 @@ export const RespondToMatchSchema = z.object({
   // Driver-only optional pickup preference when approving.
   detour_preference: z.enum(['flexible', 'fixed']).optional(),
   custom_pickup: z.object({ lat, lng: lon }).optional(),
+  // Approver's local UTC offset in minutes (Date.getTimezoneOffset()) so the
+  // created ride's scheduled_at reflects local wall-clock time. Optional for
+  // backward compatibility (absent → interpreted as UTC, the old behaviour).
+  tz_offset_minutes: z.number().int().optional(),
 });
 
 // Map-radar → mutual-approval bridge.

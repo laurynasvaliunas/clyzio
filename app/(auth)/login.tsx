@@ -48,6 +48,9 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  // Shown after a fresh signup or an "email not confirmed" sign-in → lets the
+  // user re-request the confirmation link (H3).
+  const [needsConfirm, setNeedsConfirm] = useState(false);
   // Corporate domain → real verified company lookup (drives a truthful banner).
   const [companyMatch, setCompanyMatch] = useState<string | null>(null);
   const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "done">("idle");
@@ -113,6 +116,17 @@ export default function LoginScreen() {
     };
   }, [email]);
 
+  const handleResendConfirmation = async () => {
+    if (!email.trim()) { showToast({ title: 'Enter your email', message: 'Type your email above, then resend.', type: 'warning' }); return; }
+    try {
+      const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim() });
+      if (error) { showToast({ title: 'Could not resend', message: error.message, type: 'error' }); return; }
+      showToast({ title: 'Confirmation sent', message: `We re-sent the link to ${email.trim()}. Check your inbox and spam.`, type: 'success' });
+    } catch (e: any) {
+      showToast({ title: 'Error', message: e?.message ?? 'Something went wrong', type: 'error' });
+    }
+  };
+
   const handleAuth = async () => {
     if (!email.trim()) { showToast({ title: 'Error', message: 'Please enter your email address', type: 'error' }); return; }
     if (!password.trim()) { showToast({ title: 'Error', message: 'Please enter your password', type: 'error' }); return; }
@@ -142,6 +156,7 @@ export default function LoginScreen() {
           setIsSignUp(false);
           setPassword("");
           setTermsAccepted(false);
+          setNeedsConfirm(true);
           showToast({
             title: 'Confirm your email',
             message: `We sent a confirmation link to ${email.trim()}. Tap it, then sign in.`,
@@ -167,7 +182,18 @@ export default function LoginScreen() {
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-        if (error) { showToast({ title: 'Sign In Failed', message: error.message, type: 'error' }); return; }
+        if (error) {
+          // H3: unconfirmed email → don't dead-end; surface a resend path.
+          const notConfirmed =
+            (error as any)?.code === 'email_not_confirmed' || /not confirmed/i.test(error.message ?? '');
+          if (notConfirmed) {
+            setNeedsConfirm(true);
+            showToast({ title: 'Confirm your email first', message: 'Check your inbox (and spam) for the link, or resend it below.', type: 'warning' });
+          } else {
+            showToast({ title: 'Sign In Failed', message: error.message, type: 'error' });
+          }
+          return;
+        }
         if (data.session && data.user) {
           // Redeem a company invite if we arrived from an invite link and the
           // account already existed (the signup trigger won't have fired).
@@ -386,6 +412,13 @@ export default function LoginScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
+        {/* Resend confirmation — appears after signup or an unconfirmed sign-in */}
+        {needsConfirm && !isSignUp && (
+          <TouchableOpacity onPress={handleResendConfirmation} activeOpacity={0.7} style={styles.resendWrap}>
+            <Text style={styles.resendText}>Didn't get the email? Resend confirmation</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Toggle */}
         <Text style={styles.toggleRow}>
           {isSignUp ? "Already have an account? " : "Don't have an account? "}
@@ -543,6 +576,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   forgotPasswordText: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  resendWrap: {
+    alignSelf: "center",
+    marginBottom: 16,
+    paddingVertical: 4,
+  },
+  resendText: {
     color: COLORS.primary,
     fontSize: 13,
     fontWeight: "600",

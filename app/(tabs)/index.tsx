@@ -373,7 +373,7 @@ export default function MapScreen() {
   // ✅ AI STATE
   const [chipDismissed, setChipDismissed] = useState(false);
   const [showCarpoolModal, setShowCarpoolModal] = useState(false);
-  const { commuteResult, isLoadingCommute, fetchCommuteSuggestions, carpoolResult, isLoadingCarpool, fetchCarpoolMatches } = useAIStore();
+  const { commuteResult, isLoadingCommute, fetchCommuteSuggestions, carpoolResult, isLoadingCarpool, carpoolError, fetchCarpoolMatches } = useAIStore();
 
   // ✅ DAILY COMMUTE INTENT STATE
   const { intent, matches, checkExistingIntent, requestCarpool } = useDailyCommuteStore();
@@ -1507,11 +1507,24 @@ export default function MapScreen() {
         visible={showCarpoolModal}
         result={carpoolResult}
         loading={isLoadingCarpool}
+        error={carpoolError}
         rideId={activeTrip?.rideId ?? null}
         onClose={() => setShowCarpoolModal(false)}
         onMatchAccepted={(matchRideId) => {
           setShowCarpoolModal(false);
           handleGoToUpcoming();
+        }}
+        onRetry={() => {
+          if (activeTrip?.origin && activeTrip?.destination) {
+            fetchCarpoolMatches({
+              origin_lat: activeTrip.origin.lat,
+              origin_long: activeTrip.origin.lng,
+              dest_lat: activeTrip.destination.lat,
+              dest_long: activeTrip.destination.lng,
+              departure_time: activeTrip.scheduledAt ?? new Date().toISOString(),
+              role: searchMode ?? 'rider',
+            }).catch(() => {});
+          }
         }}
       />
 

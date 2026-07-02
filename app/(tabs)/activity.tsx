@@ -29,6 +29,7 @@ import { supabase } from "../../lib/supabase";
 import TripCompletionModal from "../../components/TripCompletionModal";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
+import { formatCO2 } from "../../lib/format";
 // Gamification math now lives server-side in the `complete-trip` edge fn.
 // Profile counters (xp_points / total_co2_saved / trips_completed / badges)
 // are protected against direct client writes by migration 018.
@@ -155,7 +156,7 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel, completing 
         {!!item.co2_saved && item.co2_saved > 0 && (
           <View style={styles.co2Chip}>
             <Leaf size={14} color={COLORS.green} />
-            <Text style={styles.co2ChipText}>–{item.co2_saved.toFixed(2)} kg</Text>
+            <Text style={styles.co2ChipText}>–{formatCO2(item.co2_saved)} kg</Text>
           </View>
         )}
         <View style={{ flex: 1 }} />
@@ -262,7 +263,7 @@ function HistoryCard({ item, onPress, TC }: HistoryCardProps) {
           {item.co2_saved && item.co2_saved > 0 && !isCancelled ? (
             <View style={styles.co2Badge}>
               <Leaf size={13} color={COLORS.green} />
-              <Text style={styles.co2Text}>–{item.co2_saved.toFixed(1)}kg</Text>
+              <Text style={styles.co2Text}>–{formatCO2(item.co2_saved)} kg</Text>
             </View>
           ) : (
             <ChevronRight size={20} color={TC.textSecondary} />

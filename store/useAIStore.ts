@@ -91,6 +91,7 @@ interface AIState {
   unsubscribeFromSuggestions: () => void;
   clearCarpoolResult: () => void;
   clearCommuteResult: () => void;
+  reset: () => void;
 }
 
 const CACHE_STALE_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -259,4 +260,23 @@ export const useAIStore = create<AIState>((set, get) => ({
 
   clearCommuteResult: () =>
     set({ commuteResult: null, commuteLastFetchedAt: null }),
+
+  // Full teardown on sign-out / account switch: drop realtime subscription and
+  // clear every field so the next signed-in user starts with a blank slate
+  // (no stale suggestions/matches from the previous account).
+  reset: () => {
+    const channel = get()._suggestionChannel;
+    if (channel) supabase.removeChannel(channel);
+    set({
+      commuteResult: null,
+      isLoadingCommute: false,
+      commuteError: null,
+      commuteLastFetchedAt: null,
+      carpoolResult: null,
+      isLoadingCarpool: false,
+      carpoolError: null,
+      incomingSuggestions: [],
+      _suggestionChannel: null,
+    });
+  },
 }));

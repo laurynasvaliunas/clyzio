@@ -25,6 +25,8 @@ import { supabase } from "../lib/supabase";
 import { checkAndSendAINotifications } from "../lib/aiNotifications";
 import { useAIStore } from "../store/useAIStore";
 import { useTripStore } from "../store/useTripStore";
+import { useDailyCommuteStore } from "../store/useDailyCommuteStore";
+import { useManagerStore } from "../store/useManagerStore";
 import { useNotificationToastStore } from "../store/useNotificationToastStore";
 import IncomingSuggestionBanner from "../components/IncomingSuggestionBanner";
 import InAppNotificationToast from "../components/InAppNotificationToast";
@@ -290,6 +292,18 @@ function RootLayoutContent() {
       } else {
         clearSentryUser();
       }
+      // H2: on sign-out / account switch, wipe per-user zustand state (carpool
+      // intent + matches, AI suggestions, trip draft, manager dashboard) and
+      // drop realtime subscriptions, so the next account on this device never
+      // sees the previous user's data.
+      if (_event === "SIGNED_OUT") {
+        try {
+          useDailyCommuteStore.getState().reset();
+          useAIStore.getState().reset();
+          useTripStore.getState().reset();
+          useManagerStore.getState().reset();
+        } catch { /* best-effort — never block auth transition */ }
+      }
       // Password-recovery deep link: route to the set-new-password screen.
       if (_event === "PASSWORD_RECOVERY") {
         try { router.push("/reset-password"); } catch { /* router not ready; deep-link queue handles it */ }
@@ -307,6 +321,10 @@ function RootLayoutContent() {
   // silently if the router wasn't mounted yet (e.g. cold-start from a push
   // notification or universal link).
   const pendingDeepLinkRef = useRef<string | null>(null);
+  // Set true the instant a deep link is routed so the auth-routing effect below
+  // skips exactly one pass — otherwise a cold-start clyzio://join/<token> gets
+  // clobbered by a bare /login redirect in the same commit, losing the invite. H4.
+  const deepLinkNavRef = useRef(false);
 
   useEffect(() => {
     const enqueue = (url: string | null) => {
@@ -327,7 +345,10 @@ function RootLayoutContent() {
     try {
       const target = parseLink(url);
       const path = toRoutePath(target);
-      if (path) router.push(path as any);
+      if (path) {
+        deepLinkNavRef.current = true;
+        router.push(path as any);
+      }
     } catch (err) {
       captureError(err, { feature: 'deep-link', url });
     }
@@ -400,6 +421,10 @@ function RootLayoutContent() {
     if (isAuthenticated === null) return;      // Still loading auth
     if (welcomeSeen === null) return;          // Still loading welcome flag
 
+    // H4: a deep link was just routed this commit — skip one pass so we don't
+    // replace it (e.g. an invite /join) with a bare /login before it can run.
+    if (deepLinkNavRef.current) { deepLinkNavRef.current = false; return; }
+
     const inAuthGroup = segments[0] === '(auth)';
     // Public (no auth required) screens — Terms / Privacy / Licenses pages
     // must be reachable without login for App Store / Play Store review.
@@ -409,13 +434,16 @@ function RootLayoutContent() {
     // outside (auth) so the "kick auth'd users out of (auth)" rule below
     // doesn't fire. Setup is reached only via nextRouteAfterAuth.
     const inSetup = segments[0] === 'setup';
+    // Company-invite landing is reachable unauthenticated: it looks up the token
+    // then routes to /login prefilled with the invited email. H4.
+    const inJoin = segments[0] === 'join';
 
     // Unauthed + never seen Welcome → land on Welcome first.
-    if (!isAuthenticated && !welcomeSeen && !inWelcome && !inAuthGroup && !inPublicGroup) {
+    if (!isAuthenticated && !welcomeSeen && !inWelcome && !inAuthGroup && !inPublicGroup && !inJoin) {
       router.replace('/welcome' as any);
       return;
     }
-    if (!isAuthenticated && !inAuthGroup && !inPublicGroup && !inWelcome && !inSetup) {
+    if (!isAuthenticated && !inAuthGroup && !inPublicGroup && !inWelcome && !inSetup && !inJoin) {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && (inAuthGroup || inWelcome)) {
       router.replace('/(tabs)');
