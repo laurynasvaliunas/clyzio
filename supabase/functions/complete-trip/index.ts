@@ -126,7 +126,12 @@ Deno.serve(async (req) => {
 
     // (3) Compute the deltas server-side.
     const xpEarned = XP_PER_TRIP;
-    const co2Saved = Number(ride.co2_saved) || 0;
+    // Carpool CO₂ is a SHARED saving — split it 50/50 between driver and rider so
+    // the pair's combined credit equals the trip's saving (no double-count). Solo
+    // trips credit the full amount to the one participant.
+    const isCarpool = !!(ride.driver_id && ride.rider_id);
+    const fullCo2 = Number(ride.co2_saved) || 0;
+    const co2Saved = isCarpool ? Math.round((fullCo2 / 2) * 1000) / 1000 : fullCo2;
     const distanceKm =
       ride.origin_lat != null && ride.origin_long != null &&
       ride.dest_lat != null && ride.dest_long != null

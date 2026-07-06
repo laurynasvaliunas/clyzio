@@ -425,6 +425,7 @@ function PassengerWaitingStep({ matches }: { matches: TripIntentMatch[] }) {
 // ─── Step: Driver Confirmed ───────────────────────────────────────────────────
 
 function DriverConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
+  const router = useRouter();
   const confirmed = matches.filter(m => m.status === "confirmed");
   return (
     <ScrollView contentContainerStyle={styles.centeredStep} showsVerticalScrollIndicator={false}>
@@ -434,14 +435,25 @@ function DriverConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
       <Text style={styles.stepTitle}>Ride Confirmed!</Text>
       <Text style={styles.stepDescription}>You have {confirmed.length} confirmed passenger{confirmed.length !== 1 ? "s" : ""}.</Text>
       {confirmed.map(match => (
-        <View key={match.id} style={styles.confirmedCard}>
-          <Users size={18} color={COLORS.primary} />
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={styles.confirmedName}>{match.passenger_profile?.first_name ?? "Passenger"}</Text>
-            <Text style={styles.confirmedDetail}>
-              Pickup: {match.pickup_address?.split(",")[0] ?? "TBD"} · {match.proposed_pickup_time ?? "—"}
-            </Text>
+        <View key={match.id} style={{ width: "100%" }}>
+          <View style={styles.confirmedCard}>
+            <Users size={18} color={COLORS.primary} />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={styles.confirmedName}>{match.passenger_profile?.first_name ?? "Passenger"}</Text>
+              <Text style={styles.confirmedDetail}>
+                Pickup: {match.pickup_address?.split(",")[0] ?? "TBD"} · {match.proposed_pickup_time ?? "—"}
+              </Text>
+            </View>
           </View>
+          {match.ride_id && (
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => router.push(`/trip/${match.ride_id}` as any)}
+              accessibilityRole="button"
+            >
+              <Text style={styles.primaryBtnText}>View pickup & start trip</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ))}
     </ScrollView>
@@ -597,6 +609,7 @@ function PassengerReviewStep({
 // ─── Step: Passenger Confirmed ────────────────────────────────────────────────
 
 function PassengerConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
+  const router = useRouter();
   const confirmed = matches.find(m => m.status === "confirmed");
   return (
     <View style={styles.centeredStep}>
@@ -615,6 +628,15 @@ function PassengerConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
               </Text>
             </View>
           </View>
+          {confirmed.ride_id && (
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => router.push(`/trip/${confirmed.ride_id}` as any)}
+              accessibilityRole="button"
+            >
+              <Text style={styles.primaryBtnText}>View ride & pickup</Text>
+            </TouchableOpacity>
+          )}
           <Text style={styles.stepHint}>
             Your driver will contact you if plans change.
           </Text>

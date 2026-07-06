@@ -149,13 +149,12 @@ export default function TripScreen() {
           : rideData.driver_id;
 
         if (partnerId) {
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", partnerId)
-            .single();
-
-          if (!cancelled) setPartner(profileData);
+          // The peer's profile row is RLS-blocked for non-same-company users, so
+          // resolve safe display fields (name/avatar) via the is_peer_visible-
+          // gated get_public_profiles RPC instead of a direct select.
+          const { data: pub } = await supabase.rpc("get_public_profiles", { p_ids: [partnerId] });
+          const peer = Array.isArray(pub) ? pub[0] : null;
+          if (!cancelled && peer) setPartner(peer as any);
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -269,11 +268,12 @@ export default function TripScreen() {
   //
   // Returns the XP delta the server reports (matches the legacy contract
   // — callers only ever used this to display "+N XP" in the toast).
-  const awardCurrentUserStats = async (endTripStatus: boolean): Promise<number> => {
-    if (!ride || !currentUserId) return 0;
+  const awardCurrentUserStats = async (endTripStatus: boolean): Promise<{ xp: number; co2: number }> => {
+    if (!ride || !currentUserId) return { xp: 0, co2: 0 };
 
     const { data, error } = await supabase.functions.invoke<{
       xp_earned: number;
+      co2_saved?: number;
       already_completed?: boolean;
     }>("complete-trip", {
       body: { ride_id: id, end_trip: endTripStatus },
@@ -281,9 +281,10 @@ export default function TripScreen() {
 
     if (error) {
       showToast({ title: "Could not complete trip", message: error.message ?? "Please try again.", type: "error" });
-      return 0;
+      return { xp: 0, co2: 0 };
     }
-    return data?.xp_earned ?? 0;
+    // co2_saved is the amount actually credited to THIS user (carpool = half).
+    return { xp: data?.xp_earned ?? 0, co2: data?.co2_saved ?? 0 };
   };
 
   // Driver / solo path — ends the ride and awards the current user's stats.
@@ -294,8 +295,7 @@ export default function TripScreen() {
     setShowArrivalModal(false);
     setIsNavigating(false);
 
-    const co2Saved = ride.co2_saved || 0;
-    const xpEarned = await awardCurrentUserStats(true);
+    const { xp: xpEarned, co2: co2Saved } = await awardCurrentUserStats(true);
 
     showToast({ title: 'Trip Complete!', message: `You earned ${xpEarned} XP and saved ${co2Saved.toFixed(2)} kg CO₂!`, type: 'success' });
 
@@ -318,8 +318,7 @@ export default function TripScreen() {
     setShowArrivalModal(false);
     setIsNavigating(false);
 
-    const co2Saved = ride.co2_saved || 0;
-    const xpEarned = await awardCurrentUserStats(false);
+    const { xp: xpEarned, co2: co2Saved } = await awardCurrentUserStats(false);
 
     showToast({
       title: "You've arrived!",
@@ -434,8 +433,10 @@ export default function TripScreen() {
   const originLat = hideOrigin ? coarsen(ride.origin_lat) : ride.origin_lat;
   const originLng = hideOrigin ? coarsen(ride.origin_long) : ride.origin_long;
 
-  // Determine if this is a solo trip (both driver_id and rider_id point to the same user, or one is null for solo)
-  const isSoloTrip = !ride.driver_id || !partner;
+  // A carpool has BOTH a driver and a rider; a solo trip has only one. Decide
+  // this from the ride itself — NOT from `partner`, whose profile can be
+  // RLS-limited for cross-company peers (that mislabeled carpools as solo).
+  const isSoloTrip = !ride.driver_id || !ride.rider_id;
   
   // Get transport mode icon
   const getTransportIcon = () => {
@@ -624,13 +625,30 @@ export default function TripScreen() {
               </View>
             </View>
 
-            {/* CO2 Savings Badge */}
+            {/* CO2 Savings Badge — carpool splits the saving 50/50, so show each
+                person's share here (matches what completion credits). */}
             <View style={styles.co2Badge}>
               <Text style={styles.co2BadgeText}>
-                🌱 Saving {ride.co2_saved.toFixed(2)} kg CO₂
+                🌱 Saving {(isSoloTrip ? ride.co2_saved : ride.co2_saved / 2).toFixed(2)} kg CO₂{isSoloTrip ? "" : " (your share)"}
               </Text>
             </View>
           </View>
+
+          {/* Manual completion — the arrival modal is GPS-gated (fires within
+              200 m); this lets either party end the trip when needed. The modal
+              routes to the correct action by role (driver/solo complete, rider rate). */}
+          {ride.status !== "completed" && ride.status !== "cancelled" && (
+            <TouchableOpacity
+              style={styles.endTripBtn}
+              onPress={() => setShowArrivalModal(true)}
+              accessibilityRole="button"
+              accessibilityLabel="End trip now"
+            >
+              <Text style={styles.endTripBtnText}>
+                {isSoloTrip || isDriver ? "End trip & save CO₂" : "I've arrived"}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* 3. CONDITIONAL: Partner Info (Only for Driver/Rider) */}
           {!isSoloTrip && partner && (
@@ -1040,6 +1058,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: COLORS.primary,
+  },
+  endTripBtn: {
+    marginTop: 16,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 15,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  endTripBtnText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: "700",
   },
 
   // 3. Partner Card (Conditional)

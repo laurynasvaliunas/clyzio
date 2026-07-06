@@ -63,9 +63,10 @@ export interface TripIntentMatch {
   ride_id: string | null;
   created_at: string;
   updated_at: string;
-  // Joined
-  passenger_profile?: { first_name: string | null; home_lat: number; home_long: number } | null;
-  driver_profile?: { first_name: string | null } | null;
+  // Joined / resolved peer display fields (via get_public_profiles — the direct
+  // profiles embed is RLS-blocked for non-same-company peers).
+  passenger_profile?: { first_name: string | null; last_name?: string | null; avatar_url?: string | null; home_lat?: number; home_long?: number } | null;
+  driver_profile?: { first_name: string | null; last_name?: string | null; avatar_url?: string | null } | null;
 }
 
 // ─── Store interface ──────────────────────────────────────────────────────────
@@ -175,9 +176,31 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
         m => !["cancelled_by_driver", "cancelled_by_passenger", "expired"].includes(m.status)
       );
 
+      const isDriver = intent.role === "driver";
+
+      // Resolve the OTHER person's display name/avatar via the is_peer_visible-
+      // gated get_public_profiles RPC. The direct profiles FK embed above returns
+      // null for non-same-company peers (RLS), which is why cards showed
+      // "Passenger"/"Driver". Pickup coords come from the match itself, not here.
+      const peerIds = Array.from(new Set(
+        activeMatches
+          .map(m => (isDriver ? m.passenger_user_id : m.driver_user_id))
+          .filter(Boolean) as string[]
+      ));
+      if (peerIds.length > 0) {
+        const { data: pubs } = await supabase.rpc("get_public_profiles", { p_ids: peerIds });
+        const byId = new Map<string, any>((pubs ?? []).map((p: any) => [p.id, p]));
+        for (const m of activeMatches) {
+          const peer = byId.get(isDriver ? m.passenger_user_id : m.driver_user_id);
+          if (!peer) continue;
+          const display = { first_name: peer.first_name, last_name: peer.last_name, avatar_url: peer.avatar_url };
+          if (isDriver) m.passenger_profile = { ...(m.passenger_profile ?? {}), ...display };
+          else m.driver_profile = { ...(m.driver_profile ?? {}), ...display };
+        }
+      }
+
       // Determine step from intent/match state
       let step: FlowStep = "role_select";
-      const isDriver = intent.role === "driver";
 
       if (intent.status === "pending") {
         step = isDriver ? "driver_submitted" : "passenger_submitted";
