@@ -47,6 +47,16 @@ Deno.serve(async (req) => {
     return respondError(400, 'bad_request', 'cannot_match_self');
   }
 
+  // Server-side visibility gate — mirror the map's client-side filter. Without
+  // this, any authenticated user could target an arbitrary UUID, creating
+  // intent/match rows for the victim and pushing them a notification.
+  const { data: visible, error: visErr } = await supabase.rpc('is_peer_visible', {
+    p_caller: userId,
+    p_target: target_user_id,
+  });
+  if (visErr) return respondInternalError('request-carpool', visErr, 'visibility_check_failed');
+  if (!visible) return respondError(403, 'forbidden', 'peer_not_visible');
+
   const tripDate = trip_date ?? tomorrowISO();
   // Caller 'rider' → caller is the passenger, target is the driver.
   const callerIsDriver = requester_role === 'driver';

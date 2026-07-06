@@ -8,7 +8,7 @@ import {
   Animated,
   Share,
 } from "react-native";
-import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserLocation } from "@rnmapbox/maps";
+import Mapbox, { MapView, Camera, PointAnnotation, MarkerView, ShapeSource, LineLayer, UserLocation } from "@rnmapbox/maps";
 import { Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
@@ -53,6 +53,33 @@ const COLORS = {
 
 type SearchStatus = 'idle' | 'searching' | 'waiting' | 'matched';
 
+/** A visible peer with an active carpool intent (get_peer_trip_intents RPC). */
+interface IntentPeer {
+  user_id: string;
+  role: 'driver' | 'passenger';
+  trip_date: string;
+  departure_time: string | null;   // "HH:MM:SS"
+  approx_home_lat: number;
+  approx_home_long: number;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+}
+
+/** Tomorrow as YYYY-MM-DD — mirrors useDailyCommuteStore.getTomorrowDate. */
+function tomorrowISODate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().split("T")[0];
+}
+
+/** "HH:MM:SS" → "HH:MM" for display. */
+function formatIntentTime(t: string | null): string | null {
+  if (!t) return null;
+  const m = /^(\d{2}:\d{2})/.exec(t);
+  return m ? m[1] : null;
+}
+
 /**
  * CommuterMarker - Displays a nearby driver or rider on the map
  * Shows custom icon (car for drivers, users for riders) with color coding
@@ -84,6 +111,54 @@ function CommuterMarker({ commuter, searchMode, onPress }: CommuterMarkerProps) 
         )}
       </View>
     </PointAnnotation>
+  );
+}
+
+/**
+ * IntentPeerMarker — a visible peer with an active carpool intent for
+ * tomorrow, rendered as a tappable avatar disc at their APPROXIMATE home
+ * area (server snaps coords to ~±300 m — never the exact address).
+ *
+ * MarkerView (not PointAnnotation) because remote avatar Images don't
+ * snapshot reliably inside PointAnnotation on Android; MarkerView renders
+ * live React views. Role badge: teal Car = offers to drive, amber Users =
+ * needs a ride.
+ */
+function IntentPeerMarker({ peer, onPress }: { peer: IntentPeer; onPress: () => void }) {
+  const isDriver = peer.role === 'driver';
+  const badgeColor = isDriver ? COLORS.primary : COLORS.accent;
+  const initial = (peer.first_name ?? '?').trim().charAt(0).toUpperCase() || '?';
+
+  return (
+    <MarkerView
+      id={`intent-peer-${peer.user_id}`}
+      coordinate={[peer.approx_home_long, peer.approx_home_lat]}
+      allowOverlap
+    >
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={`${peer.first_name ?? 'A commuter'} ${isDriver ? 'offers to drive' : 'needs a ride'} tomorrow`}
+      >
+        <View style={styles.intentPeerMarker}>
+          {peer.avatar_url ? (
+            <Image source={{ uri: peer.avatar_url }} style={styles.intentPeerAvatar} />
+          ) : (
+            <View style={[styles.intentPeerAvatar, styles.intentPeerInitialWrap]}>
+              <Text style={styles.intentPeerInitial}>{initial}</Text>
+            </View>
+          )}
+          <View style={[styles.intentPeerBadge, { backgroundColor: badgeColor }]}>
+            {isDriver ? (
+              <Car size={11} color={COLORS.white} />
+            ) : (
+              <Users size={11} color={COLORS.white} />
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+    </MarkerView>
   );
 }
 
@@ -293,6 +368,92 @@ function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = fal
 }
 
 /**
+ * IntentPeerCard — bottom sheet shown when an intent-peer avatar marker is
+ * tapped. Mirrors MatchCard's layout; "Ask to carpool" fires the
+ * request-carpool bridge with the OPPOSITE role (they drive → you ride).
+ */
+function IntentPeerCard({
+  peer,
+  onClose,
+  onRequest,
+  isLoading = false,
+}: {
+  peer: IntentPeer;
+  onClose: () => void;
+  onRequest: () => void;
+  isLoading?: boolean;
+}) {
+  const router = useRouter();
+  const isDriver = peer.role === 'driver';
+  const time = formatIntentTime(peer.departure_time);
+  const initial = (peer.first_name ?? '?').trim().charAt(0).toUpperCase() || '?';
+
+  return (
+    <View style={styles.matchCard}>
+      <View style={styles.matchHandle} />
+      <View style={styles.matchHeader}>
+        <View style={styles.matchAvatarContainer}>
+          {peer.avatar_url ? (
+            <Image source={{ uri: peer.avatar_url }} style={styles.intentCardAvatar} />
+          ) : (
+            <View style={styles.matchAvatar}>
+              <Text style={styles.intentCardInitial}>{initial}</Text>
+            </View>
+          )}
+          <View style={[styles.matchStatusDot, { backgroundColor: COLORS.green }]} />
+        </View>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={styles.matchName}>
+            {peer.first_name} {peer.last_name ?? ''}
+          </Text>
+          <View style={styles.matchRoleBadge}>
+            <Text style={styles.matchRoleText}>
+              {isDriver ? '🚗 Offers to drive tomorrow' : '🙋 Needs a ride tomorrow'}
+              {time ? ` · ~${time}` : ''}
+            </Text>
+          </View>
+          <Text style={styles.intentApproxNote}>Shown near their home area (approximate)</Text>
+        </View>
+        <TouchableOpacity
+          onPress={onClose}
+          style={styles.matchCloseBtn}
+          disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel="Close commuter details"
+        >
+          <Text style={styles.matchClose} accessibilityElementsHidden importantForAccessibility="no">✕</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.matchActions}>
+        <TouchableOpacity
+          style={[styles.requestBtn, isLoading && styles.requestBtnDisabled]}
+          onPress={onRequest}
+          disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel={isDriver ? 'Ask for a seat in their car' : 'Offer them a seat in your car'}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={COLORS.white} />
+          ) : (
+            <Text style={styles.requestBtnText}>
+              {isDriver ? '🚗 Ask to ride along' : '🙋 Offer a pickup'}
+            </Text>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.viewProfileBtn, isLoading && styles.viewProfileBtnDisabled]}
+          onPress={() => router.push(`/profile/${peer.user_id}` as any)}
+          disabled={isLoading}
+        >
+          <Text style={styles.viewProfileBtnText}>View Profile</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+/**
  * MapScreen - Main component for map view
  * Handles trip planning, driver/rider matching, and route display
  */
@@ -360,6 +521,13 @@ export default function MapScreen() {
   const [searchMode, setSearchMode] = useState<'driver' | 'rider' | null>(null);
   const [nearbyCommuters, setNearbyCommuters] = useState<any[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
+
+  // ✅ INTENT-PEER RADAR — visible peers with an active carpool intent for
+  // tomorrow, shown as avatar markers (approximate home area) so matching is
+  // a visible, choosable map experience instead of a black box.
+  const [intentPeers, setIntentPeers] = useState<IntentPeer[]>([]);
+  const [selectedIntentPeer, setSelectedIntentPeer] = useState<IntentPeer | null>(null);
+  const [intentRequestBusy, setIntentRequestBusy] = useState(false);
   // Origin of the active search, captured so a realtime refresh can re-query.
   const searchOriginRef = useRef<any>(null);
 
@@ -699,6 +867,74 @@ export default function MapScreen() {
       checkExistingIntent().catch(() => {});
     }, [])
   );
+
+  // ✅ INTENT-PEER RADAR — load visible peers' active intents for tomorrow.
+  // Realtime can't push these (trip_intents RLS is owner-only; the RPC is the
+  // only window), so refresh on focus + a 60 s interval while focused.
+  const fetchIntentPeers = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc("get_peer_trip_intents", {
+        p_trip_date: tomorrowISODate(),
+      });
+      if (error) {
+        logger.warn("get_peer_trip_intents failed", error.message);
+        return;
+      }
+      setIntentPeers((data ?? []) as IntentPeer[]);
+    } catch {
+      /* non-fatal — markers just don't render */
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchIntentPeers();
+      const t = setInterval(fetchIntentPeers, 60_000);
+      return () => clearInterval(t);
+    }, [fetchIntentPeers])
+  );
+
+  // Peers already in an open match with me — hide their markers (the
+  // daily-commute screen owns that relationship from here on).
+  const matchedPeerIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const m of matches ?? []) {
+      if (m.driver_user_id) ids.add(m.driver_user_id);
+      if (m.passenger_user_id) ids.add(m.passenger_user_id);
+    }
+    return ids;
+  }, [matches]);
+
+  // ✅ Ask a peer to carpool (opposite role: they drive → I ride).
+  const handleRequestIntentPeer = useCallback(async (peer: IntentPeer) => {
+    setIntentRequestBusy(true);
+    try {
+      await requestCarpool(
+        peer.user_id,
+        peer.role === "driver" ? "rider" : "driver",
+        peer.trip_date,
+      );
+      showToast({
+        title: "Request sent",
+        message: `${peer.first_name ?? "They"} will get a notification to approve.`,
+        type: "success",
+      });
+      setSelectedIntentPeer(null);
+      fetchIntentPeers();
+    } catch (err: any) {
+      const code = String(err?.message ?? err ?? "");
+      const missingPlaces = /missing_home_or_work/i.test(code);
+      showToast({
+        title: "Couldn't send request",
+        message: missingPlaces
+          ? "Set your home and work in Profile first — we need them to plan the pickup."
+          : "Please try again.",
+        type: "error",
+      });
+    } finally {
+      setIntentRequestBusy(false);
+    }
+  }, [requestCarpool, showToast, fetchIntentPeers]);
 
   // ✅ Auto-open TripPlannerModal with pre-selected mode + locations when navigated from AI Planner
   useEffect(() => {
@@ -1252,6 +1488,20 @@ export default function MapScreen() {
             onPress={() => setSelectedMatch(commuter)}
           />
         ))}
+
+        {/* INTENT-PEER RADAR: peers with an active carpool intent for tomorrow,
+            tappable to request a match. Hidden while the rides-radar search is
+            running (those markers own the map) and for peers already matched
+            with me. */}
+        {!searchMode && intentPeers
+          .filter((p) => !matchedPeerIds.has(p.user_id))
+          .map((peer) => (
+            <IntentPeerMarker
+              key={peer.user_id}
+              peer={peer}
+              onPress={() => setSelectedIntentPeer(peer)}
+            />
+          ))}
       </MapView>
 
       {/* Brand mask — covers the empty Mapbox tile grid + UserLocation pulse
@@ -1475,6 +1725,16 @@ export default function MapScreen() {
           onClose={() => setSelectedMatch(null)}
           onRequestMatch={() => handleRequestMatch(selectedMatch.id)}
           isLoading={requestStatus === 'loading'}
+        />
+      )}
+
+      {/* ✅ INTENT-PEER CARD: shows when an intent avatar marker is tapped */}
+      {selectedIntentPeer && !selectedMatch && (
+        <IntentPeerCard
+          peer={selectedIntentPeer}
+          onClose={() => setSelectedIntentPeer(null)}
+          onRequest={() => handleRequestIntentPeer(selectedIntentPeer)}
+          isLoading={intentRequestBusy}
         />
       )}
 
@@ -1757,7 +2017,63 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  
+
+  // ===== INTENT-PEER MARKER (avatar disc + role badge) =====
+  intentPeerMarker: {
+    width: 44,
+    height: 44,
+  },
+  intentPeerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2.5,
+    borderColor: COLORS.white,
+    backgroundColor: "#E6F1F2",
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  intentPeerInitialWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  intentPeerInitial: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: COLORS.dark,
+  },
+  intentPeerBadge: {
+    position: "absolute",
+    right: -3,
+    bottom: -3,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  intentCardAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#E6F1F2",
+  },
+  intentCardInitial: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: COLORS.primary,
+  },
+  intentApproxNote: {
+    fontSize: 11,
+    color: COLORS.gray,
+    marginTop: 6,
+  },
+
   // ===== MATCH CARD STYLES (Bottom sheet) =====
   matchCard: {
     position: "absolute",
