@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -27,6 +28,7 @@ import {
   Scale,
   MapPin,
   Car,
+  Users,
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 
@@ -49,20 +51,55 @@ export default function SettingsScreen() {
   const TC = getThemeColors(isDark);
   const { showToast } = useToast();
   const [isManager, setIsManager] = useState(false);
+  // Community sharing (solo users only): profiles.is_public is the DB-side
+  // opt-in that is_peer_visible() already honors — two no-company users are
+  // mutually visible (radar + matcher) iff BOTH have it on.
+  const [isSolo, setIsSolo] = useState(false);
+  const [sharePublic, setSharePublic] = useState(false);
+  const [shareSaving, setShareSaving] = useState(false);
 
   useEffect(() => {
-    checkManagerRole();
+    loadProfileFlags();
   }, []);
 
-  const checkManagerRole = async () => {
+  const loadProfileFlags = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { data } = await supabase
       .from("profiles")
-      .select("is_manager")
+      .select("is_manager, company_id, is_public")
       .eq("id", user.id)
       .single();
     setIsManager(!!data?.is_manager);
+    setIsSolo(!data?.company_id);
+    setSharePublic(!!data?.is_public);
+  };
+
+  const handleToggleSharePublic = async (value: boolean) => {
+    // Optimistic flip; revert on failure.
+    setSharePublic(value);
+    setShareSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_public: value })
+        .eq("id", user.id);
+      if (error) throw error;
+      showToast({
+        title: value ? "You're visible to the community" : "You're hidden from the community",
+        message: value
+          ? "Other independent Clyzio users can now see and match with your rides."
+          : "Your rides are no longer shared with other independent users.",
+        type: "success",
+      });
+    } catch (e: any) {
+      setSharePublic(!value);
+      showToast({ title: "Could not save", message: e?.message ?? "Please try again.", type: "error" });
+    } finally {
+      setShareSaving(false);
+    }
   };
 
   const handleEditProfile = () => {
@@ -316,6 +353,35 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Community Section — solo (no-company) users only */}
+        {isSolo && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Community</Text>
+
+            <View style={[styles.settingItem, { backgroundColor: TC.surface }]}>
+              <View style={[styles.iconBox, { backgroundColor: COLORS.primary + "20" }]}>
+                <Users size={20} color={COLORS.primary} />
+              </View>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={[styles.settingLabel, { color: TC.text, flex: 0 }]}>
+                  Share rides with the community
+                </Text>
+                <Text style={[styles.settingSub, { color: TC.textSecondary }]}>
+                  Let other independent Clyzio users see and match with your planned rides. You can turn this off anytime.
+                </Text>
+              </View>
+              <Switch
+                value={sharePublic}
+                onValueChange={handleToggleSharePublic}
+                disabled={shareSaving}
+                trackColor={{ false: COLORS.grayLight, true: COLORS.primary }}
+                thumbColor={COLORS.white}
+                accessibilityLabel="Share rides with the community"
+              />
+            </View>
+          </View>
+        )}
+
         {/* Legal Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Legal</Text>
@@ -444,6 +510,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: COLORS.dark,
+  },
+  settingSub: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 3,
+    color: COLORS.gray,
   },
   dangerItem: {
     borderWidth: 1,

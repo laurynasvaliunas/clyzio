@@ -437,13 +437,17 @@ function RootLayoutContent() {
     // Company-invite landing is reachable unauthenticated: it looks up the token
     // then routes to /login prefilled with the invited email. H4.
     const inJoin = segments[0] === 'join';
+    // Password-recovery landing must also be reachable unauthenticated — the
+    // user arrives from the email deep link with no session while the screen's
+    // verifyOtp is still in flight; bouncing them to /login broke reset.
+    const inReset = segments[0] === 'reset-password';
 
     // Unauthed + never seen Welcome → land on Welcome first.
-    if (!isAuthenticated && !welcomeSeen && !inWelcome && !inAuthGroup && !inPublicGroup && !inJoin) {
+    if (!isAuthenticated && !welcomeSeen && !inWelcome && !inAuthGroup && !inPublicGroup && !inJoin && !inReset) {
       router.replace('/welcome' as any);
       return;
     }
-    if (!isAuthenticated && !inAuthGroup && !inPublicGroup && !inWelcome && !inSetup && !inJoin) {
+    if (!isAuthenticated && !inAuthGroup && !inPublicGroup && !inWelcome && !inSetup && !inJoin && !inReset) {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && (inAuthGroup || inWelcome)) {
       router.replace('/(tabs)');
