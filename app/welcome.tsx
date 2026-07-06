@@ -39,12 +39,12 @@ import { Bike, Cloud, Smile, ArrowRight } from "lucide-react-native";
  */
 
 const COLORS = {
-  bgTop: "#26C6DA",        // brand cyan
-  bgBottom: "#003D40",     // teal
-  ink: "#FAF7EF",          // ivory
-  cloudStart: "#C4623F",   // clay — represents pollution
-  cloudEnd: "#5B8F5B",     // leaf — represents savings
-  cta: "#FAF7EF",          // ivory button bg on the gradient
+  bgTop: "#00565A",        // brand deep teal
+  bgBottom: "#003D40",     // darker teal
+  ink: "#FFFFFF",          // white type on the gradient
+  cloudStart: "#DC2626",   // red — represents pollution
+  cloudEnd: "#059669",     // emerald — represents savings
+  cta: "#FFFFFF",          // white button bg on the gradient
   ctaInk: "#0B1A1F",       // ink on the cta
 };
 
@@ -217,7 +217,7 @@ export default function WelcomeScreen() {
               },
             ]}
           >
-            <View style={[styles.iconBubble, { backgroundColor: "#F2C744" }]}>
+            <View style={[styles.iconBubble, { backgroundColor: "#F59E0B" }]}>
               <Smile size={48} color={COLORS.bgBottom} />
             </View>
           </Animated.View>

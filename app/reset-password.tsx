@@ -12,15 +12,15 @@ import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
 
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#006064",
-  accent: "#FDD835",
-  dark: "#006064",
-  gray: "#90A4AE",
-  textSecondary: "#546E7A",
+  primary: "#00565A",
+  primaryDark: "#003D40",
+  accent: "#F59E0B",
+  dark: "#003D40",
+  gray: "#8B989C",
+  textSecondary: "#5A6A6F",
   white: "#FFFFFF",
   border: "#E5E7EB",
-  red: "#C4623F",
+  red: "#DC2626",
 };
 
 /** Parse both query (?a=b) and fragment (#a=b) params from a URL. */
@@ -176,7 +176,7 @@ export default function ResetPasswordScreen() {
                   onChangeText={setConfirm}
                   autoCapitalize="none"
                 />
-                {confirm.length > 0 && password === confirm && <Check size={20} color="#4CAF50" />}
+                {confirm.length > 0 && password === confirm && <Check size={20} color="#059669" />}
               </View>
 
               <TouchableOpacity
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 },
   iconWrap: {
     width: 72, height: 72, borderRadius: 20, alignSelf: "center",
-    backgroundColor: "#E0F7FA", alignItems: "center", justifyContent: "center", marginBottom: 20,
+    backgroundColor: "#E6F1F2", alignItems: "center", justifyContent: "center", marginBottom: 20,
   },
   heading: { fontSize: 26, fontWeight: "700", color: COLORS.dark, textAlign: "center" },
   sub: { fontSize: 15, color: COLORS.textSecondary, textAlign: "center", lineHeight: 22, marginTop: 8, marginBottom: 8 },

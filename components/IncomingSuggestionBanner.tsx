@@ -15,18 +15,18 @@ import { Avatar, toneFromKey } from "./ui/editorial";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",   // cyan
+  primary: "#00565A",   // cyan
   dark: "#0B1A1F",      // ink
-  green: "#5B8F5B",     // leaf
+  green: "#059669",     // leaf
   greenBg: "rgba(91,143,91,0.12)",
-  white: "#FAF7EF",     // ivory
+  white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
   textSecondary: "#5A6A6F", // ink-3
-  light: "#EAF6F8",     // cyan-fog
-  error: "#C4623F",     // clay
+  light: "#E6F1F2",     // cyan-fog
+  error: "#DC2626",     // clay
   declineBg: "rgba(11,26,31,0.04)",
   accentPurple: "#003D40",   // teal accent bar/icon
-  accentPurpleBg: "#EAF6F8", // cyan-fog icon wrap
+  accentPurpleBg: "#E6F1F2", // cyan-fog icon wrap
 };
 
 interface Props {
@@ -288,6 +288,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",
-    color: "#FAF7EF",
+    color: "#FFFFFF",
   },
 });

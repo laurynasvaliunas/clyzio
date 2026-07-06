@@ -21,16 +21,16 @@ import { useToast } from "../../contexts/ToastContext";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",   // cyan
+  primary: "#00565A",   // cyan
   primaryDark: "#00565A",// teal-2
-  accent: "#F2C744",    // sun
+  accent: "#F59E0B",    // sun
   dark: "#003D40",      // teal
-  light: "#EAF6F8",     // cyan-fog
-  background: "#F1EDE4",// paper
-  white: "#FAF7EF",     // ivory
+  light: "#E6F1F2",     // cyan-fog
+  background: "#F7F9FA",// paper
+  white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
   black: "#0B1A1F",     // ink
-  red: "#C4623F",       // clay
+  red: "#DC2626",       // clay
   redLight: "rgba(196,98,63,0.12)",
   transparent: "transparent",
 };

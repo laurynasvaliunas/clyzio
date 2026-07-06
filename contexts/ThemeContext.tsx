@@ -4,6 +4,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Theme = 'light' | 'dark' | 'system';
 
+/**
+ * Light-only launch (2026-07 "pro white" re-theme): the app ships one polished
+ * white theme. All dark-mode plumbing (context API, stored preference, night
+ * palette in tokens.ts) is kept intact so dark mode can return by flipping
+ * this flag — the Settings appearance selector is hidden behind it too.
+ */
+export const LIGHT_ONLY = true;
+
 interface ThemeContextType {
   theme: Theme;
   isDark: boolean;
@@ -17,9 +25,11 @@ const THEME_STORAGE_KEY = '@clyzio_theme_preference';
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemColorScheme = useColorScheme();
   const [theme, setThemeState] = useState<Theme>('system');
-  
+
   // Calculate if dark mode should be active
-  const isDark = theme === 'dark' || (theme === 'system' && systemColorScheme === 'dark');
+  const isDark =
+    !LIGHT_ONLY &&
+    (theme === 'dark' || (theme === 'system' && systemColorScheme === 'dark'));
 
   // Load theme preference on mount
   useEffect(() => {

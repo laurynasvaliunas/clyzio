@@ -13,11 +13,11 @@ import * as Haptics from "expo-haptics";
 
 // Editorial reskin — brand + paper-ink palette.
 const COLORS = {
-  primary: "#26C6DA",   // cyan
-  accent: "#F2C744",    // sun
+  primary: "#00565A",   // cyan
+  accent: "#F59E0B",    // sun
   dark: "#003D40",      // teal
-  white: "#FAF7EF",     // ivory
-  green: "#5B8F5B",     // leaf
+  white: "#FFFFFF",     // ivory
+  green: "#059669",     // leaf
   black: "#0B1A1F",     // ink
   whiteTransparent15: "rgba(255, 255, 255, 0.15)",
   whiteTransparent20: "rgba(255, 255, 255, 0.2)",

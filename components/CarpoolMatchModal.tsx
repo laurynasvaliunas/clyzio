@@ -16,16 +16,16 @@ import { Avatar, toneFromKey } from "./ui/editorial";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",   // cyan
+  primary: "#00565A",   // cyan
   primaryDark: "#00565A",// teal-2
-  accent: "#F2C744",    // sun
+  accent: "#F59E0B",    // sun
   dark: "#003D40",      // teal
-  light: "#EAF6F8",     // cyan-fog
-  background: "#F1EDE4",// paper
-  white: "#FAF7EF",     // ivory
+  light: "#E6F1F2",     // cyan-fog
+  background: "#F7F9FA",// paper
+  white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
-  grayLight: "#E8E3D7", // paper-2
-  green: "#5B8F5B",     // leaf
+  grayLight: "#EDF1F2", // paper-2
+  green: "#059669",     // leaf
 };
 
 function CompatibilityBar({ score }: { score: number }) {
@@ -168,7 +168,7 @@ export default function CarpoolMatchModal({
           <>
             {/* Summary banner */}
             <LinearGradient
-              colors={["#E0F7FA", "#B2EBF2"]}
+              colors={["#E6F1F2", "#CFE5E7"]}
               style={styles.summaryBanner}
             >
               <Text style={styles.summaryText}>{result.best_match_summary}</Text>
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   requestBtnText: {
-    color: "#FAF7EF",
+    color: "#FFFFFF",
     fontWeight: "600",
     fontSize: 12,
     letterSpacing: 0.6,

@@ -17,7 +17,7 @@ import { View, StyleSheet } from "react-native";
 
 const COLORS = {
   filled: "#003D40",     // teal — completed/current
-  empty: "#E8E3D7",      // paper-2 — pending
+  empty: "#EDF1F2",      // paper-2 — pending
 };
 
 interface Props {

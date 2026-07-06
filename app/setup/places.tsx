@@ -41,16 +41,16 @@ if (IS_MAPBOX_TOKEN_VALID) {
  */
 
 const COLORS = {
-  bg: "#F1EDE4",         // paper
-  surface: "#FAF7EF",    // ivory
+  bg: "#F7F9FA",         // paper
+  surface: "#FFFFFF",    // ivory
   ink: "#0B1A1F",
   inkSoft: "#5A6A6F",
-  primary: "#26C6DA",
+  primary: "#00565A",
   primaryDark: "#003D40",
-  accent: "#F2C744",
-  border: "#E8E3D7",
-  homePin: "#26C6DA",    // cyan
-  workPin: "#5B8F5B",    // leaf
+  accent: "#F59E0B",
+  border: "#EDF1F2",
+  homePin: "#00565A",    // cyan
+  workPin: "#059669",    // leaf
   promptBg: "#003D40",
 };
 

@@ -21,18 +21,18 @@ import {
 import { useManagerStore, TimePeriod } from "../../store/useManagerStore";
 
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#00ACC1",
-  accent: "#FDD835",
-  dark: "#006064",
-  light: "#E0F7FA",
-  background: "#F5FAFA",
+  primary: "#00565A",
+  primaryDark: "#00565A",
+  accent: "#F59E0B",
+  dark: "#003D40",
+  light: "#E6F1F2",
+  background: "#F7F9FA",
   white: "#FFFFFF",
-  gray: "#90A4AE",
+  gray: "#8B989C",
   grayLight: "#F1F5F9",
-  green: "#4CAF50",
-  orange: "#FF9800",
-  red: "#EF4444",
+  green: "#059669",
+  orange: "#D97706",
+  red: "#DC2626",
 };
 
 const PERIODS: Array<{ label: string; value: TimePeriod }> = [
@@ -115,7 +115,7 @@ export default function InsightsScreen() {
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
 
           {/* CO2 Equivalents */}
-          <LinearGradient colors={["#E0F7FA", "#B2EBF2"]} style={styles.equivCard}>
+          <LinearGradient colors={["#E6F1F2", "#CFE5E7"]} style={styles.equivCard}>
             <Text style={styles.equivTitle}>Impact Equivalents</Text>
             <View style={styles.equivRow}>
               <View style={styles.equivItem}>

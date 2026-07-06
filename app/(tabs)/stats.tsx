@@ -42,16 +42,16 @@ import { getLevelInfo, XP_PER_TRIP, TRIPS_PER_LEVEL, MAX_LEVEL, LEVEL_TITLES } f
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",   // cyan
+  primary: "#00565A",   // cyan
   primaryDark: "#00565A",// teal-2
-  accent: "#F2C744",    // sun
-  accentDark: "#C4623F",// clay
+  accent: "#F59E0B",    // sun
+  accentDark: "#DC2626",// clay
   dark: "#003D40",      // teal
-  light: "#EAF6F8",     // cyan-fog
-  background: "#F1EDE4",// paper
-  white: "#FAF7EF",     // ivory
+  light: "#E6F1F2",     // cyan-fog
+  background: "#F7F9FA",// paper
+  white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
-  green: "#5B8F5B",     // leaf
+  green: "#059669",     // leaf
   black: "#0B1A1F",     // ink
   blackOverlay: "rgba(11, 26, 31, 0.5)",
   whiteTransparent10: "rgba(255, 255, 255, 0.1)",
@@ -61,12 +61,12 @@ const COLORS = {
 
 // Badge definitions
 const BADGES = [
-  { id: "first_trip", name: "First Steps", desc: "Complete your first trip", icon: Star, color: "#FDD835" },
+  { id: "first_trip", name: "First Steps", desc: "Complete your first trip", icon: Star, color: "#F59E0B" },
   { id: "first_carpool", name: "Carpool King", desc: "Share your first ride", icon: Car, color: COLORS.primary },
-  { id: "walker_5", name: "Walking Warrior", desc: "Walk 5 trips", icon: Footprints, color: "#4CAF50" },
-  { id: "trips_10", name: "Road Regular", desc: "Complete 10 trips", icon: Zap, color: "#FF9800" },
-  { id: "co2_50", name: "CO2 Crusher", desc: "Save 50kg CO2", icon: Leaf, color: "#8BC34A" },
-  { id: "co2_100", name: "Planet Protector", desc: "Save 100kg CO2", icon: TreeDeciduous, color: "#009688" },
+  { id: "walker_5", name: "Walking Warrior", desc: "Walk 5 trips", icon: Footprints, color: "#059669" },
+  { id: "trips_10", name: "Road Regular", desc: "Complete 10 trips", icon: Zap, color: "#D97706" },
+  { id: "co2_50", name: "CO2 Crusher", desc: "Save 50kg CO2", icon: Leaf, color: "#059669" },
+  { id: "co2_100", name: "Planet Protector", desc: "Save 100kg CO2", icon: TreeDeciduous, color: "#059669" },
 ];
 
 const CO2_PER_TREE = 20;
@@ -464,7 +464,7 @@ export default function StatsScreen() {
   );
   
   // Color array for department breakdown bars
-  const departmentColors = useMemo(() => [COLORS.primary, COLORS.accent, "#8BC34A", "#FF9800", "#9C27B0"], []);
+  const departmentColors = useMemo(() => [COLORS.primary, COLORS.accent, "#059669", "#D97706", "#7C3AED"], []);
 
   if (loading) {
     return (

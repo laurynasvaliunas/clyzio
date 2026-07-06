@@ -17,15 +17,15 @@ import { useManagerStore, NewChallenge } from "../../store/useManagerStore";
 import { useToast } from "../../contexts/ToastContext";
 
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#00ACC1",
-  accent: "#FDD835",
-  dark: "#006064",
-  background: "#F5FAFA",
+  primary: "#00565A",
+  primaryDark: "#00565A",
+  accent: "#F59E0B",
+  dark: "#003D40",
+  background: "#F7F9FA",
   white: "#FFFFFF",
-  gray: "#90A4AE",
+  gray: "#8B989C",
   grayLight: "#F1F5F9",
-  green: "#4CAF50",
+  green: "#059669",
 };
 
 const CHALLENGE_TYPES = [

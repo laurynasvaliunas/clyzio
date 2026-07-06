@@ -16,14 +16,14 @@ import { nextRouteAfterAuth } from "../../lib/permissionsPriming";
 
 // Brand Colors
 const COLORS = {
-  primary: "#26C6DA",  // Unified Cyan (Phase 27)
-  primaryDark: "#00ACC1",
-  accent: "#FDD835",
-  dark: "#006064",
-  light: "#E0F7FA",
-  background: "#F5FAFA",
+  primary: "#00565A",  // Unified Cyan (Phase 27)
+  primaryDark: "#00565A",
+  accent: "#F59E0B",
+  dark: "#003D40",
+  light: "#E6F1F2",
+  background: "#F7F9FA",
   white: "#FFFFFF",
-  gray: "#90A4AE",
+  gray: "#8B989C",
 };
 
 interface Company {

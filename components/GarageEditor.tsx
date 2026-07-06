@@ -17,11 +17,11 @@ import {
 } from "../lib/vehicles";
 
 const COLORS = {
-  primary: "#26C6DA",
+  primary: "#00565A",
   dark: "#003D40",
   gray: "#8B989C",
-  grayLight: "#E8E3D7",
-  white: "#FAF7EF",
+  grayLight: "#EDF1F2",
+  white: "#FFFFFF",
   ink: "#0B1A1F",
 };
 

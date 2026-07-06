@@ -26,9 +26,9 @@ interface ToastContextType {
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 const COLORS = {
-  success: { bg: "#F0FDF4", border: "#22C55E", icon: "#16A34A", text: "#15803D" },
+  success: { bg: "#F0FDF4", border: "#059669", icon: "#059669", text: "#047857" },
   error:   { bg: "#FFF1F2", border: "#F43F5E", icon: "#E11D48", text: "#BE123C" },
-  info:    { bg: "#F0FDFF", border: "#26C6DA", icon: "#0891B2", text: "#006064" },
+  info:    { bg: "#F0FDFF", border: "#00565A", icon: "#00565A", text: "#003D40" },
   warning: { bg: "#FFFBEB", border: "#F59E0B", icon: "#D97706", text: "#92400E" },
 };
 

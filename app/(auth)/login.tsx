@@ -27,15 +27,15 @@ const FREE_MAIL_DOMAINS = [
 ];
 
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#006064",
-  accent: "#FDD835",
-  dark: "#006064",
-  light: "#E0F7FA",
+  primary: "#00565A",
+  primaryDark: "#003D40",
+  accent: "#F59E0B",
+  dark: "#003D40",
+  light: "#E6F1F2",
   white: "#FFFFFF",
-  gray: "#90A4AE",
-  textSecondary: "#546E7A",
-  green: "#4CAF50",
+  gray: "#8B989C",
+  textSecondary: "#5A6A6F",
+  green: "#059669",
   border: "#E5E7EB",
 };
 
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 20,
-    shadowColor: "#09E0E8",
+    shadowColor: "#00565A",
     shadowOpacity: 0.35,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },

@@ -26,7 +26,7 @@ export function Badge({ label, tone = 'neutral', style }: BadgeProps) {
 function toneMap(t: BadgeTone) {
   switch (t) {
     case 'brand': return { bg: brand.primary + '22', fg: brand.primaryDarker };
-    case 'success': return { bg: semantic.success + '22', fg: '#137333' };
+    case 'success': return { bg: semantic.success + '22', fg: '#047857' };
     case 'warning': return { bg: semantic.warning + '22', fg: '#92400E' };
     case 'danger': return { bg: semantic.danger + '22', fg: '#B91C1C' };
     default: return { bg: 'rgba(0,0,0,0.06)', fg: '#334155' };

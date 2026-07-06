@@ -43,16 +43,16 @@ async function routeOnward(): Promise<string> {
  */
 
 const COLORS = {
-  primary: '#26C6DA',
-  primaryDark: '#00ACC1',
-  accent: '#FDD835',
-  dark: '#006064',
-  light: '#E0F7FA',
-  background: '#F5FAFA',
+  primary: '#00565A',
+  primaryDark: '#00565A',
+  accent: '#F59E0B',
+  dark: '#003D40',
+  light: '#E6F1F2',
+  background: '#F7F9FA',
   white: '#FFFFFF',
-  gray: '#90A4AE',
-  grayDark: '#546E7A',
-  green: '#4CAF50',
+  gray: '#8B989C',
+  grayDark: '#5A6A6F',
+  green: '#059669',
 };
 
 type Status = 'idle' | 'granted' | 'denied';
@@ -133,7 +133,7 @@ export default function PermissionsScreen() {
             name: 'default',
             importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#26C6DA',
+            lightColor: '#00565A',
           });
         }
       } else if (step === 'camera') {

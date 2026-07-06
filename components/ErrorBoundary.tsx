@@ -58,7 +58,7 @@ class ErrorBoundary extends Component<Props, State> {
         <View style={styles.container}>
           <View style={styles.content}>
             <View style={styles.iconContainer}>
-              <Ionicons name="warning-outline" size={64} color="#26C6DA" />
+              <Ionicons name="warning-outline" size={64} color="#00565A" />
             </View>
             <Text style={styles.title}>Something went wrong</Text>
             <Text style={styles.message}>
@@ -91,7 +91,7 @@ class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#006064",
+    backgroundColor: "#003D40",
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   button: {
-    backgroundColor: "#26C6DA",
+    backgroundColor: "#00565A",
     paddingVertical: 14,
     paddingHorizontal: 40,
     borderRadius: 12,
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#006064",
+    color: "#003D40",
   },
 });
 

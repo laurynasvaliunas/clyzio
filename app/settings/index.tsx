@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useTheme } from "../../contexts/ThemeContext";
+import { useTheme, LIGHT_ONLY } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
 import { useToast } from "../../contexts/ToastContext";
 import {
@@ -33,16 +33,16 @@ import {
 import { supabase } from "../../lib/supabase";
 
 const COLORS = {
-  primary: "#26C6DA",  // Unified Cyan (Phase 27)
-  primaryDark: "#00ACC1",
-  accent: "#FDD835",
-  dark: "#006064",
-  background: "#F5FAFA",
+  primary: "#00565A",  // Unified Cyan (Phase 27)
+  primaryDark: "#00565A",
+  accent: "#F59E0B",
+  dark: "#003D40",
+  background: "#F7F9FA",
   white: "#FFFFFF",
-  gray: "#90A4AE",
+  gray: "#8B989C",
   grayLight: "#F1F5F9",
-  red: "#EF4444",
-  green: "#4CAF50",
+  red: "#DC2626",
+  green: "#059669",
 };
 
 export default function SettingsScreen() {
@@ -305,6 +305,9 @@ export default function SettingsScreen() {
             <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
 
+          {/* Appearance selector hidden for the light-only launch (LIGHT_ONLY
+              in ThemeContext) — remove the guard to bring dark mode back. */}
+          {!LIGHT_ONLY && (
           <View style={[styles.settingItem, { backgroundColor: TC.surface }]}>
             <View style={[styles.iconBox, { backgroundColor: COLORS.dark + "20" }]}>
               <Moon size={20} color={COLORS.dark} />
@@ -351,6 +354,7 @@ export default function SettingsScreen() {
               })}
             </View>
           </View>
+          )}
         </View>
 
         {/* Community Section — solo (no-company) users only */}

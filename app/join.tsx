@@ -9,15 +9,15 @@ import { Building2, CheckCircle2, AlertCircle } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
 
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#006064",
-  dark: "#006064",
-  gray: "#90A4AE",
-  textSecondary: "#546E7A",
+  primary: "#00565A",
+  primaryDark: "#003D40",
+  dark: "#003D40",
+  gray: "#8B989C",
+  textSecondary: "#5A6A6F",
   white: "#FFFFFF",
   border: "#E5E7EB",
-  green: "#4CAF50",
-  red: "#C4623F",
+  green: "#059669",
+  red: "#DC2626",
 };
 
 type Phase = "loading" | "joined" | "mismatch" | "invalid";
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40, justifyContent: "center" },
   iconWrap: {
     width: 72, height: 72, borderRadius: 20, alignSelf: "center",
-    backgroundColor: "#E0F7FA", alignItems: "center", justifyContent: "center", marginBottom: 20,
+    backgroundColor: "#E6F1F2", alignItems: "center", justifyContent: "center", marginBottom: 20,
   },
   heading: { fontSize: 26, fontWeight: "700", color: COLORS.dark, textAlign: "center" },
   sub: { fontSize: 15, color: COLORS.textSecondary, textAlign: "center", lineHeight: 22, marginTop: 10 },

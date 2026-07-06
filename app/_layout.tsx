@@ -39,11 +39,11 @@ initSentry();
 
 // Brand Colors (matching logo)
 const COLORS = {
-  primary: "#26C6DA",  // Unified Cyan (Phase 27)  // Cyan from logo
-  accent: "#FDD835",   // Yellow sun
-  dark: "#006064",
+  primary: "#00565A",  // Unified Cyan (Phase 27)  // Cyan from logo
+  accent: "#F59E0B",   // Yellow sun
+  dark: "#003D40",
   white: "#FFFFFF",
-  background: "#F5FAFA",
+  background: "#F7F9FA",
 };
 
 // Configure notification handler — suppress system banner in-foreground;
@@ -67,7 +67,7 @@ async function registerForPushNotificationsAsync() {
       name: "default",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#4DD0E1",
+      lightColor: "#00565A",
     });
   }
 
@@ -211,10 +211,10 @@ function AnimatedSplash({
   return (
     <Animated.View style={[splashStyles.root, { opacity: containerOpacity }]}>
       <LinearGradient
-        colors={["#09E0E8", "#26C6DA"]}
+        colors={["#00676D", "#00565A"]}
         style={StyleSheet.absoluteFill}
       />
-      <StatusBar barStyle="light-content" backgroundColor="#09E0E8" />
+      <StatusBar barStyle="light-content" backgroundColor="#00565A" />
 
       <View style={splashStyles.logoWrap}>
         <Animated.View

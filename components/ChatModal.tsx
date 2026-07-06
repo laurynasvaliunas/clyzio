@@ -16,9 +16,9 @@ import { supabase } from "../lib/supabase";
 
 // Editorial reskin — paper/ink palette.
 const COLORS = {
-  primary: "#26C6DA",   // cyan
-  white: "#FAF7EF",     // ivory
-  gray50: "#F1EDE4",    // paper
+  primary: "#00565A",   // cyan
+  white: "#FFFFFF",     // ivory
+  gray50: "#F7F9FA",    // paper
   gray400: "#8B989C",   // ink-4
   gray700: "#5A6A6F",   // ink-3
   gray800: "#0B1A1F",   // ink

@@ -5,14 +5,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft } from "lucide-react-native";
 
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#006064",
-  dark: "#006064",
-  light: "#E0F7FA",
-  background: "#F5FAFA",
+  primary: "#00565A",
+  primaryDark: "#003D40",
+  dark: "#003D40",
+  light: "#E6F1F2",
+  background: "#F7F9FA",
   white: "#FFFFFF",
-  gray: "#90A4AE",
-  textSecondary: "#546E7A",
+  gray: "#8B989C",
+  textSecondary: "#5A6A6F",
   border: "#E5E7EB",
 };
 

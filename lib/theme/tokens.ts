@@ -4,31 +4,34 @@
  * Everything the app renders (StyleSheet, NativeWind, Tailwind themes) is
  * derived from this file. Do NOT redefine hex values in components.
  *
- * Brand identity is Cyan (#26C6DA) with Deep Teal (#006064) accents — this was
- * drifted across screens before the overhaul (some places used Emerald
- * #10B981). If anything references another brand hex, migrate it here.
+ * Brand identity is Deep Teal (#00565A) on white — the "pro app" re-theme
+ * (2026-07). One brand hue + sharp semantic colors; the earlier warm-paper /
+ * cyan editorial palette was consolidated into this set. If anything
+ * references another brand hex, migrate it here.
  */
 
 export const brand = {
-  primary: '#26C6DA',
-  primaryDark: '#00565A',
-  primaryDarker: '#003D40',
-  accent: '#F2C744',
+  primary: '#00565A',
+  primaryDark: '#003D40',
+  primaryDarker: '#002B2E',
+  accent: '#F59E0B',
 } as const;
 
 export const semantic = {
-  success: '#5B8F5B',
-  warning: '#C4623F',
-  danger: '#C4623F',
-  info: '#0EA5E9',
+  success: '#059669',
+  warning: '#D97706',
+  danger: '#DC2626',
+  info: '#00565A',
 } as const;
 
 /**
- * Editorial design system ("magazine-grade" reskin, Edition 02 / 2026).
- * Warm paper surfaces, ink type, muted accents + JetBrains Mono / Instrument
- * Serif families. Screens reference these directly for the editorial look;
- * the light/dark palettes below are re-pointed onto this system so the base
- * theme propagates to every existing `useThemeColors` consumer.
+ * Editorial design system — re-themed to "pro white" (2026-07).
+ * White/near-white surfaces, ink type, one deep-teal brand hue + sharp
+ * semantic accents. Key names are kept from the earlier warm-paper edition
+ * (paper/ivory/cyan/sun/leaf/clay) so the ~40 screens referencing them keep
+ * compiling; only the VALUES changed. The light/dark palettes below are
+ * re-pointed onto this system so the base theme propagates to every existing
+ * `useThemeColors` consumer.
  */
 // App-wide typography uses the platform system font (SF Pro / Roboto) — no
 // custom family is set; weight carries the hierarchy.
@@ -41,11 +44,11 @@ export const weights = {
 } as const;
 
 export const editorial = {
-  // Surfaces
-  paper: '#F1EDE4',
-  paper2: '#E8E3D7',
-  paper3: '#DCD6C7',
-  ivory: '#FAF7EF',
+  // Surfaces — screen bg reads white; cards are true white on top of it.
+  paper: '#F7F9FA',
+  paper2: '#EDF1F2',
+  paper3: '#E2E8EA',
+  ivory: '#FFFFFF',
   white: '#FFFFFF',
   // Ink
   ink: '#0B1A1F',
@@ -54,17 +57,17 @@ export const editorial = {
   ink4: '#8B989C',
   hairline: 'rgba(11,26,31,0.10)',
   hairline2: 'rgba(11,26,31,0.05)',
-  // Brand
-  cyan: '#26C6DA',
-  cyan2: '#2DD4E4',
+  // Brand — one deep-teal hue (keys kept from the cyan era for compat)
+  cyan: '#00565A',
+  cyan2: '#00676D',
   teal: '#003D40',
   teal2: '#00565A',
-  cyanMist: '#DCF1F4',
-  cyanFog: '#EAF6F8',
-  // Accents
-  sun: '#F2C744',
-  leaf: '#5B8F5B',
-  clay: '#C4623F',
+  cyanMist: '#E6F1F2',
+  cyanFog: '#E6F1F2',
+  // Accents — sharp semantic set
+  sun: '#F59E0B',
+  leaf: '#059669',
+  clay: '#DC2626',
   // Night (active-ride scene)
   night: '#0E1F23',
   night2: '#15282C',

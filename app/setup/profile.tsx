@@ -38,14 +38,14 @@ import SetupProgress from "../../components/SetupProgress";
  */
 
 const COLORS = {
-  bg: "#F1EDE4",         // paper
-  surface: "#FAF7EF",    // ivory
+  bg: "#F7F9FA",         // paper
+  surface: "#FFFFFF",    // ivory
   ink: "#0B1A1F",
   inkSoft: "#5A6A6F",
-  primary: "#26C6DA",
+  primary: "#00565A",
   primaryDark: "#003D40",
-  border: "#E8E3D7",
-  avatarBg: "#EAF6F8",
+  border: "#EDF1F2",
+  avatarBg: "#E6F1F2",
 };
 
 export default function ProfileSetupScreen() {

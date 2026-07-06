@@ -30,7 +30,7 @@ export default function TabsLayout() {
           paddingTop: 12,
         },
         tabBarBackground: () => (
-          <View style={{ flex: 1, backgroundColor: isDark ? "rgba(14,31,35,0.92)" : "rgba(241,237,228,0.92)" }}>
+          <View style={{ flex: 1, backgroundColor: isDark ? "rgba(14,31,35,0.92)" : "rgba(255,255,255,0.92)" }}>
             <BlurView
               intensity={60}
               tint={isDark ? "dark" : "light"}

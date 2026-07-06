@@ -24,16 +24,16 @@ interface Props {
 }
 
 const COLORS = {
-  surface: "#FAF7EF",
+  surface: "#FFFFFF",
   surfaceDark: "#0E1F23",
   ink: "#0B1A1F",
-  inkDark: "#FAF7EF",
+  inkDark: "#FFFFFF",
   inkSoft: "#5A6A6F",
   inkSoftDark: "#8B989C",
-  green: "#5B8F5B",
-  yellow: "#F2C744",
-  orange: "#C4623F",
-  emptyCell: "#E8E3D7",
+  green: "#059669",
+  yellow: "#F59E0B",
+  orange: "#DC2626",
+  emptyCell: "#EDF1F2",
   emptyCellDark: "#1B2E33",
 };
 
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   },
   cellToday: {
     borderWidth: 2,
-    borderColor: "#26C6DA",
+    borderColor: "#00565A",
   },
   cellText: { fontSize: 11, fontWeight: "600" },
   legend: {

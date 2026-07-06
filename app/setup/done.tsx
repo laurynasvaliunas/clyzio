@@ -29,15 +29,15 @@ import SetupProgress from "../../components/SetupProgress";
  */
 
 const COLORS = {
-  bg: "#F1EDE4",
-  surface: "#FAF7EF",
+  bg: "#F7F9FA",
+  surface: "#FFFFFF",
   ink: "#0B1A1F",
   inkSoft: "#5A6A6F",
-  primary: "#26C6DA",
+  primary: "#00565A",
   primaryDark: "#003D40",
-  homePin: "#26C6DA",
-  workPin: "#5B8F5B",
-  divider: "#E8E3D7",
+  homePin: "#00565A",
+  workPin: "#059669",
+  divider: "#EDF1F2",
 };
 
 const VEHICLE_EMOJI: Record<string, string> = {
@@ -144,7 +144,7 @@ export default function DoneScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={["#EAF6F8", COLORS.bg]}
+        colors={["#E6F1F2", COLORS.bg]}
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>

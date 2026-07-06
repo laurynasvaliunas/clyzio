@@ -14,9 +14,9 @@ const TONES: Record<PillTone, { bg: string; fg: string; bd: string }> = {
   paper: { bg: "rgba(11,26,31,0.04)", fg: editorial.ink2, bd: "rgba(11,26,31,0.06)" },
   cyan: { bg: editorial.cyanFog, fg: editorial.teal2, bd: "rgba(0,61,64,0.08)" },
   dark: { bg: editorial.ink, fg: "#FFFFFF", bd: "transparent" },
-  leaf: { bg: "rgba(91,143,91,0.12)", fg: "#2C5532", bd: "rgba(91,143,91,0.15)" },
-  sun: { bg: "rgba(242,199,68,0.18)", fg: "#7A5A0E", bd: "rgba(242,199,68,0.30)" },
-  rust: { bg: "rgba(196,98,63,0.12)", fg: "#7A2E10", bd: "rgba(196,98,63,0.22)" },
+  leaf: { bg: "rgba(5,150,105,0.10)", fg: "#047857", bd: "rgba(5,150,105,0.18)" },
+  sun: { bg: "rgba(245,158,11,0.12)", fg: "#92400E", bd: "rgba(245,158,11,0.28)" },
+  rust: { bg: "rgba(220,38,38,0.08)", fg: "#B91C1C", bd: "rgba(220,38,38,0.18)" },
   ghost: { bg: "transparent", fg: editorial.ink3, bd: "rgba(11,26,31,0.10)" },
 };
 

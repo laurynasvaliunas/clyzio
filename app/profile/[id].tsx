@@ -7,12 +7,12 @@ import { supabase } from "../../lib/supabase";
 import { logger } from "../../lib/logger";
 
 const COLORS = {
-  primary: "#26C6DA",
-  dark: "#006064",
-  gray: "#90A4AE",
-  textSecondary: "#546E7A",
+  primary: "#00565A",
+  dark: "#003D40",
+  gray: "#8B989C",
+  textSecondary: "#5A6A6F",
   white: "#FFFFFF",
-  bg: "#F5FAFA",
+  bg: "#F7F9FA",
   border: "#E0F2F3",
 };
 
@@ -89,7 +89,7 @@ export default function PublicProfileScreen() {
 
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <Leaf size={20} color="#4CAF50" />
+              <Leaf size={20} color="#059669" />
               <Text style={styles.statValue}>{(profile.total_co2_saved ?? 0).toFixed(1)} kg</Text>
               <Text style={styles.statLabel}>CO₂ saved</Text>
             </View>
@@ -99,7 +99,7 @@ export default function PublicProfileScreen() {
               <Text style={styles.statLabel}>Trips</Text>
             </View>
             <View style={styles.statCard}>
-              <Award size={20} color="#F2C744" />
+              <Award size={20} color="#F59E0B" />
               <Text style={styles.statValue}>Lvl {profile.level ?? 1}</Text>
               <Text style={styles.statLabel}>Level</Text>
             </View>

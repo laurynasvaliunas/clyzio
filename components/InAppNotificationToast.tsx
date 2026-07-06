@@ -27,12 +27,12 @@ const TYPE_CONFIG: Record<
   ToastItem["type"],
   { icon: React.ElementType; iconColor: string; accentColor: string; bg: string }
 > = {
-  co2:      { icon: Leaf,    iconColor: "#4CAF50", accentColor: "#4CAF50", bg: "#E8F5E9" },
-  trip:     { icon: MapPin,  iconColor: "#26C6DA", accentColor: "#26C6DA", bg: "#E0F7FA" },
-  carpool:  { icon: Users,   iconColor: "#7C3AED", accentColor: "#7C3AED", bg: "#EDE9FE" },
-  badge:    { icon: Trophy,  iconColor: "#FDD835", accentColor: "#F59E0B", bg: "#FFFDE7" },
-  reminder: { icon: Bell,    iconColor: "#FF9800", accentColor: "#FF9800", bg: "#FFF3E0" },
-  info:     { icon: Car,     iconColor: "#26C6DA", accentColor: "#26C6DA", bg: "#E0F7FA" },
+  co2:      { icon: Leaf,    iconColor: "#059669", accentColor: "#059669", bg: "#ECFDF5" },
+  trip:     { icon: MapPin,  iconColor: "#00565A", accentColor: "#00565A", bg: "#E6F1F2" },
+  carpool:  { icon: Users,   iconColor: "#00676D", accentColor: "#00676D", bg: "#EDE9FE" },
+  badge:    { icon: Trophy,  iconColor: "#F59E0B", accentColor: "#F59E0B", bg: "#FFFBEB" },
+  reminder: { icon: Bell,    iconColor: "#D97706", accentColor: "#D97706", bg: "#FFFBEB" },
+  info:     { icon: Car,     iconColor: "#00565A", accentColor: "#00565A", bg: "#E6F1F2" },
 };
 
 function ToastCard({ item }: { item: ToastItem }) {
@@ -125,7 +125,7 @@ function ToastCard({ item }: { item: ToastItem }) {
           onPress={animateOut}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <X size={14} color="#90A4AE" />
+          <X size={14} color="#8B989C" />
         </TouchableOpacity>
       </TouchableOpacity>
 
@@ -209,12 +209,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#006064",
+    color: "#003D40",
     letterSpacing: 0.1,
   },
   body: {
     fontSize: 12,
-    color: "#546E7A",
+    color: "#5A6A6F",
     lineHeight: 17,
   },
   closeBtn: {

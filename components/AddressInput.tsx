@@ -14,17 +14,17 @@ import * as Haptics from "expo-haptics";
 import { MAPBOX_TOKEN } from "../lib/config";
 
 const COLORS = {
-  primary: "#26C6DA",
-  accent: "#FDD835",
+  primary: "#00565A",
+  accent: "#F59E0B",
   accentDark: "#F9A825",
-  dark: "#006064",
+  dark: "#003D40",
   white: "#FFFFFF",
-  gray: "#90A4AE",
+  gray: "#8B989C",
   grayLight: "#F1F5F9",
   grayDark: "#334155",
   slate800: "#1E293B",
   slate700: "#334155",
-  red: "#EF4444",
+  red: "#DC2626",
 };
 
 interface Suggestion {

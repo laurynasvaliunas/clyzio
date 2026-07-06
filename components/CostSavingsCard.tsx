@@ -4,13 +4,13 @@ import { TrendingDown, Fuel, ParkingCircle, Leaf } from "lucide-react-native";
 
 // Editorial reskin — brand + paper-ink palette.
 const COLORS = {
-  primary: "#26C6DA",   // cyan
+  primary: "#00565A",   // cyan
   primaryDark: "#00565A",// teal-2
   dark: "#003D40",      // teal
-  white: "#FAF7EF",     // ivory
+  white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
-  green: "#5B8F5B",     // leaf
-  accent: "#F2C744",    // sun
+  green: "#059669",     // leaf
+  accent: "#F59E0B",    // sun
 };
 
 interface CostSavingsCardProps {
@@ -59,7 +59,7 @@ export default function CostSavingsCard({
 
   return (
     <LinearGradient
-      colors={["#E8F5E9", "#C8E6C9"]}
+      colors={["#ECFDF5", "#D1FAE5"]}
       style={styles.card}
     >
       <View style={styles.header}>

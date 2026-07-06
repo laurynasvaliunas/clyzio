@@ -42,17 +42,17 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",   // cyan
+  primary: "#00565A",   // cyan
   primaryDark: "#003D40",// teal
-  accent: "#F2C744",    // sun
+  accent: "#F59E0B",    // sun
   dark: "#003D40",      // teal
-  light: "#EAF6F8",     // cyan-fog
-  background: "#F1EDE4",// paper
-  white: "#FAF7EF",     // ivory
+  light: "#E6F1F2",     // cyan-fog
+  background: "#F7F9FA",// paper
+  white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
   textSecondary: "#5A6A6F", // ink-3
-  red: "#C4623F",       // clay
-  green: "#5B8F5B",     // leaf
+  red: "#DC2626",       // clay
+  green: "#059669",     // leaf
   black: "#0B1A1F",     // ink
 };
 

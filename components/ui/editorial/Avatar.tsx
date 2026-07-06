@@ -9,12 +9,13 @@ export type AvatarTone =
   | "ink"
   | "paper";
 
+// Harmonized to the deep-teal brand family (tone KEYS kept for compat).
 const TONES: Record<AvatarTone, { bg: string; fg: string }> = {
-  cyan: { bg: "#0B4A52", fg: "#DCF1F4" },
-  sand: { bg: "#E8DCC2", fg: "#5A4B26" },
-  rust: { bg: "#9F4B2C", fg: "#FCEFE4" },
-  olive: { bg: "#4A5733", fg: "#EBEFD9" },
-  ink: { bg: "#162226", fg: "#E5E1D5" },
+  cyan: { bg: "#00565A", fg: "#E6F1F2" },
+  sand: { bg: "#E6F1F2", fg: "#003D40" },
+  rust: { bg: "#003D40", fg: "#E6F1F2" },
+  olive: { bg: "#059669", fg: "#ECFDF5" },
+  ink: { bg: "#0B1A1F", fg: "#EDF1F2" },
   paper: { bg: editorial.paper2, fg: editorial.ink3 },
 };
 

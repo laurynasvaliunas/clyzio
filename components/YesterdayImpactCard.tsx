@@ -13,15 +13,15 @@ import { Leaf, X, ArrowRight } from "lucide-react-native";
  */
 
 const COLORS = {
-  surface: "#FAF7EF",
+  surface: "#FFFFFF",
   surfaceDark: "#0E1F23",
   ink: "#0B1A1F",
-  inkDark: "#FAF7EF",
+  inkDark: "#FFFFFF",
   inkSoft: "#5A6A6F",
   inkSoftDark: "#8B989C",
-  leaf: "#5B8F5B",
-  clay: "#C4623F",
-  track: "#E8E3D7",
+  leaf: "#059669",
+  clay: "#DC2626",
+  track: "#EDF1F2",
   trackDark: "#1B2E33",
 };
 
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   barSaved: {
-    backgroundColor: "#5B8F5B",
+    backgroundColor: "#059669",
   },
   barUsed: {
     backgroundColor: "transparent",
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   ctaText: {
-    color: "#5B8F5B",
+    color: "#059669",
     fontSize: 14,
     fontWeight: "700",
   },

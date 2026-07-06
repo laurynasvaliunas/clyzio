@@ -63,16 +63,16 @@ if (IS_MAPBOX_TOKEN_VALID) {
 // Editorial reskin — active ride uses the brand + paper-ink system.
 // `white` kept true-white so glass overlays stay legible over the night map.
 const COLORS = {
-  primary: "#26C6DA",   // cyan
-  accent: "#F2C744",    // sun
+  primary: "#00565A",   // cyan
+  accent: "#F59E0B",    // sun
   dark: "#0B1A1F",      // ink
   white: "#FFFFFF",
-  gray50: "#F1EDE4",    // paper
-  gray200: "#E8E3D7",   // paper-2
+  gray50: "#F7F9FA",    // paper
+  gray200: "#EDF1F2",   // paper-2
   gray400: "#8B989C",   // ink-4
   gray700: "#5A6A6F",   // ink-3
-  red: "#C4623F",       // clay
-  blue: "#3B82F6",
+  red: "#DC2626",       // clay
+  blue: "#00565A",
 };
 
 export default function TripScreen() {
@@ -523,7 +523,7 @@ export default function TripScreen() {
 
           {/* Origin Marker */}
           <PointAnnotation id="origin" coordinate={[originLng, originLat]}>
-            <View style={[styles.markerDot, { backgroundColor: "#10B981" }]} />
+            <View style={[styles.markerDot, { backgroundColor: "#059669" }]} />
           </PointAnnotation>
 
           {/* Waypoint Markers */}

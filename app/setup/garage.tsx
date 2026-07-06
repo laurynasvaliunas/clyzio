@@ -41,14 +41,14 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
  */
 
 const COLORS = {
-  bg: "#F1EDE4",
-  surface: "#FAF7EF",
+  bg: "#F7F9FA",
+  surface: "#FFFFFF",
   ink: "#0B1A1F",
   inkSoft: "#5A6A6F",
-  border: "#E8E3D7",
+  border: "#EDF1F2",
   selected: "#003D40",   // teal — selected card border + check pill
-  selectedTint: "#EAF6F8",
-  fuelPill: "#EAF6F8",
+  selectedTint: "#E6F1F2",
+  fuelPill: "#E6F1F2",
   fuelPillActive: "#003D40",
 };
 

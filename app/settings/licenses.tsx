@@ -11,12 +11,12 @@ import { useRouter } from "expo-router";
 import { ChevronLeft, Scale } from "lucide-react-native";
 
 const COLORS = {
-  primary: "#26C6DA",
-  dark: "#006064",
-  background: "#F5FAFA",
+  primary: "#00565A",
+  dark: "#003D40",
+  background: "#F7F9FA",
   white: "#FFFFFF",
-  gray: "#90A4AE",
-  textSecondary: "#546E7A",
+  gray: "#8B989C",
+  textSecondary: "#5A6A6F",
   border: "#E5E7EB",
 };
 

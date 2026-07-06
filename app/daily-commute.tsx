@@ -29,16 +29,16 @@ import { useTheme } from "../contexts/ThemeContext";
 import { getThemeColors } from "../lib/theme";
 
 const COLORS = {
-  primary: "#26C6DA",
-  primaryDark: "#006064",
-  accent: "#FDD835",
-  green: "#4CAF50",
-  red: "#EF4444",
-  gray: "#90A4AE",
+  primary: "#00565A",
+  primaryDark: "#003D40",
+  accent: "#F59E0B",
+  green: "#059669",
+  red: "#DC2626",
+  gray: "#8B989C",
   white: "#FFFFFF",
-  light: "#E0F7FA",
-  background: "#F5FAFA",
-  textSecondary: "#546E7A",
+  light: "#E6F1F2",
+  background: "#F7F9FA",
+  textSecondary: "#5A6A6F",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ function RoleSelectStep({ onSelect }: { onSelect: (role: "driver" | "passenger")
         <ChevronLeft size={20} color={COLORS.gray} style={{ transform: [{ rotate: "180deg" }] }} />
       </TouchableOpacity>
       <TouchableOpacity style={styles.roleCard} onPress={() => onSelect("passenger")} activeOpacity={0.8}>
-        <View style={[styles.roleIconWrap, { backgroundColor: "#FFF8E1" }]}>
+        <View style={[styles.roleIconWrap, { backgroundColor: "#FFFBEB" }]}>
           <Users size={32} color={COLORS.accent} />
         </View>
         <View style={styles.roleCardText}>
@@ -1097,7 +1097,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     borderWidth: 1.5,
-    borderColor: "#B2EBF2",
+    borderColor: "#CFE5E7",
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowRadius: 10,

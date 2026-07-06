@@ -43,18 +43,18 @@ import CarpoolMatchModal from "../../components/CarpoolMatchModal";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",   // cyan
+  primary: "#00565A",   // cyan
   primaryDark: "#00565A",// teal-2
-  accent: "#F2C744",    // sun
+  accent: "#F59E0B",    // sun
   dark: "#003D40",      // teal
-  light: "#EAF6F8",     // cyan-fog
-  background: "#F1EDE4",// paper
-  white: "#FAF7EF",     // ivory
+  light: "#E6F1F2",     // cyan-fog
+  background: "#F7F9FA",// paper
+  white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
-  grayLight: "#E8E3D7", // paper-2
-  green: "#5B8F5B",     // leaf
-  orange: "#C4623F",    // clay
-  red: "#C4623F",       // clay
+  grayLight: "#EDF1F2", // paper-2
+  green: "#059669",     // leaf
+  orange: "#DC2626",    // clay
+  red: "#DC2626",       // clay
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -349,7 +349,7 @@ function LocalInsightsPanel({
       ))}
 
       {/* Fun eco fact */}
-      <View style={[styles.ecoFactCard, { backgroundColor: "#E8F5E9" }]}>
+      <View style={[styles.ecoFactCard, { backgroundColor: "#ECFDF5" }]}>
         <Leaf size={18} color={COLORS.green} />
         <Text style={styles.ecoFactText}>
           If every commuter in your city switched to green transport one day per week,
@@ -939,12 +939,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#FFF8E1",
+    backgroundColor: "#FFFBEB",
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderLeftWidth: 4,
-    borderLeftColor: "#FDD835",
+    borderLeftColor: "#F59E0B",
   },
   completionText: { flex: 1 },
   completionTitle: { fontSize: 14, fontWeight: "600", color: COLORS.dark },
@@ -1086,7 +1086,7 @@ const styles = StyleSheet.create({
   ctaButtonTop: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#26C6DA",
+    backgroundColor: "#00565A",
     borderRadius: 999,
     paddingVertical: 15,
     marginTop: 12,
@@ -1112,7 +1112,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 0.6,
     textTransform: "uppercase",
-    color: "#FAF7EF",
+    color: "#FFFFFF",
   },
 
   // Local mode cards
@@ -1183,7 +1183,7 @@ const styles = StyleSheet.create({
   ecoFactText: {
     flex: 1,
     fontSize: 13,
-    color: "#2E7D32",
+    color: "#047857",
     lineHeight: 20,
   },
 
@@ -1277,7 +1277,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: "#E0F7FA",
+    backgroundColor: "#E6F1F2",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1292,7 +1292,7 @@ const styles = StyleSheet.create({
   viewMatchesBtn: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#26C6DA",
+    color: "#00565A",
     marginTop: 4,
   },
 

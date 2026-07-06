@@ -40,14 +40,14 @@ if (IS_MAPBOX_TOKEN_VALID) {
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 // Keys preserved so every COLORS.* reference in this screen restyles in place.
 const COLORS = {
-  primary: "#26C6DA",   // cyan
-  accent: "#F2C744",    // sun (dialed-down ochre)
-  white: "#FAF7EF",     // ivory card surface
+  primary: "#00565A",   // cyan
+  accent: "#F59E0B",    // sun (dialed-down ochre)
+  white: "#FFFFFF",     // ivory card surface
   gray: "#8B989C",      // ink-4
   dark: "#003D40",      // teal
-  green: "#5B8F5B",     // leaf
+  green: "#059669",     // leaf
   black: "#0B1A1F",     // ink
-  background: "#F1EDE4",// paper
+  background: "#F7F9FA",// paper
   overlay: "rgba(11,26,31,0.32)",
 };
 
@@ -1166,7 +1166,7 @@ export default function MapScreen() {
             id="waypoint"
             coordinate={[activeTrip.waypoint.lng, activeTrip.waypoint.lat]}
           >
-            <View style={[styles.markerDot, { backgroundColor: "#FF9800" }]} />
+            <View style={[styles.markerDot, { backgroundColor: "#D97706" }]} />
           </PointAnnotation>
         )}
 
@@ -1176,7 +1176,7 @@ export default function MapScreen() {
             id="destination"
             coordinate={[activeTrip.destination.lng, activeTrip.destination.lat]}
           >
-            <View style={[styles.markerDot, { backgroundColor: "#EF4444" }]} />
+            <View style={[styles.markerDot, { backgroundColor: "#DC2626" }]} />
           </PointAnnotation>
         )}
 
@@ -1234,7 +1234,7 @@ export default function MapScreen() {
           >
             <LineLayer
               id="routeLineCasing"
-              style={{ lineColor: "#FAF7EF", lineWidth: 8, lineJoin: "round", lineCap: "round", lineOpacity: 0.55 }}
+              style={{ lineColor: "#FFFFFF", lineWidth: 8, lineJoin: "round", lineCap: "round", lineOpacity: 0.55 }}
             />
             <LineLayer
               id="routeLine"
@@ -1262,7 +1262,7 @@ export default function MapScreen() {
         style={[styles.mapMask, { opacity: mapMaskOpacity }]}
       >
         <LinearGradient
-          colors={["#26C6DA", "#003D40"]}
+          colors={["#00565A", "#003D40"]}
           style={StyleSheet.absoluteFill}
         />
         <Image
@@ -1315,7 +1315,7 @@ export default function MapScreen() {
 
           if (confirmedMatches.length > 0) {
             // Ride confirmed — both approved.
-            pillColor = "#4CAF50";
+            pillColor = "#059669";
             if (isDriver) {
               const names = confirmedMatches.map(m => m.passenger_profile?.first_name ?? "Passenger").join(", ");
               label = `Carpool confirmed`;
@@ -1328,16 +1328,16 @@ export default function MapScreen() {
             icon = <Users size={14} color="#fff" />;
           } else if (needsMyApproval.length > 0) {
             // A match is waiting for THIS user to approve.
-            pillColor = "#FDD835";
+            pillColor = "#F59E0B";
             const otherName = isDriver
               ? (needsMyApproval[0].passenger_profile?.first_name ?? "a passenger")
               : (needsMyApproval[0].driver_profile?.first_name ?? "a driver");
             label = `Matched with ${otherName}`;
             sublabel = "Tap to approve & ride together";
-            icon = <Car size={14} color="#006064" />;
+            icon = <Car size={14} color="#003D40" />;
           } else if (awaitingOther.length > 0) {
             // This user approved; waiting on the other side.
-            pillColor = "#26C6DA";
+            pillColor = "#00565A";
             const otherName = isDriver
               ? (awaitingOther[0].passenger_profile?.first_name ?? "passenger")
               : (awaitingOther[0].driver_profile?.first_name ?? "driver");
@@ -1346,7 +1346,7 @@ export default function MapScreen() {
             icon = <Users size={14} color="#fff" />;
           } else if (intent.status === "pending") {
             // Submitted, matching runs instantly — no fixed wait time.
-            pillColor = "#26C6DA";
+            pillColor = "#00565A";
             label = isDriver ? "Driver intent submitted" : "Passenger intent submitted";
             sublabel = "Matching now…";
             icon = isDriver ? <Car size={14} color="#fff" /> : <Users size={14} color="#fff" />;
@@ -1354,7 +1354,7 @@ export default function MapScreen() {
             return null;
           }
 
-          const textColor = pillColor === "#FDD835" ? "#006064" : "#fff";
+          const textColor = pillColor === "#F59E0B" ? "#003D40" : "#fff";
           const seatsLabel = isDriver && intent.passenger_capacity != null
             ? ` · ${confirmedMatches.length}/${intent.passenger_capacity} seats`
             : "";
@@ -1586,7 +1586,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
-    borderColor: "#FAF7EF",
+    borderColor: "#FFFFFF",
     shadowColor: "#0B1A1F",
     shadowOpacity: 0.25,
     shadowRadius: 6,
@@ -1633,7 +1633,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   changeBtnText: {
-    color: "#FAF7EF",
+    color: "#FFFFFF",
     fontWeight: "600",
     fontSize: 11,
     letterSpacing: 0.6,

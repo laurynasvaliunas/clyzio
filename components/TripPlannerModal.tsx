@@ -53,29 +53,29 @@ const SHEET_HEIGHT = height * 0.85;
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  primary: "#26C6DA",   // cyan
-  white: "#FAF7EF",     // ivory
+  primary: "#00565A",   // cyan
+  white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
-  lightGray: "#E8E3D7", // paper-2
+  lightGray: "#EDF1F2", // paper-2
   dark: "#003D40",      // teal
-  accent: "#F2C744",    // sun
-  green: "#5B8F5B",     // leaf
-  red: "#C4623F",       // clay
+  accent: "#F59E0B",    // sun
+  green: "#059669",     // leaf
+  red: "#DC2626",       // clay
 };
 
 // Base transport modes — "my_car" co2 is patched at runtime from user's fuel type
 const BASE_TRANSPORT_MODES = [
-  { id: "walking", label: "Walking",           icon: Footprints, co2: 0,     color: "#4CAF50" },
-  { id: "bike",    label: "Bike / Scooter",    icon: Bike,       co2: 0,     color: "#FF9800" },
-  { id: "ebike",   label: "E-Bike / E-Scooter",icon: Zap,        co2: 0.023, color: "#E91E63" },
-  { id: "moto",    label: "Motorbike",          icon: NavIcon,    co2: 0.090, color: "#9C27B0" },
-  { id: "public",  label: "Public Transport",   icon: Bus,        co2: 0.040, color: "#7C3AED" },
+  { id: "walking", label: "Walking",           icon: Footprints, co2: 0,     color: "#059669" },
+  { id: "bike",    label: "Bike / Scooter",    icon: Bike,       co2: 0,     color: "#D97706" },
+  { id: "ebike",   label: "E-Bike / E-Scooter",icon: Zap,        co2: 0.023, color: "#7C3AED" },
+  { id: "moto",    label: "Motorbike",          icon: NavIcon,    co2: 0.090, color: "#5A6A6F" },
+  { id: "public",  label: "Public Transport",   icon: Bus,        co2: 0.040, color: "#00676D" },
   // Taxi — CO₂ estimated as an average hybrid car (Prius is the most common
   // EU taxi). A disclaimer is shown when this mode is selected. (PDF Branch C)
-  { id: "taxi",    label: "Taxi",               icon: TaxiIcon,   co2: 0.120, color: "#F2C744" },
+  { id: "taxi",    label: "Taxi",               icon: TaxiIcon,   co2: 0.120, color: "#F59E0B" },
   { id: "my_car",  label: "My Car",             icon: Car,        co2: 0.192, color: COLORS.primary },
   // Working from home — a zero-commute day. No route required. (PDF Stage 3)
-  { id: "wfh",     label: "Working from home",  icon: HomeIcon,   co2: 0,     color: "#5B8F5B" },
+  { id: "wfh",     label: "Working from home",  icon: HomeIcon,   co2: 0,     color: "#059669" },
 ];
 
 /**
@@ -84,10 +84,10 @@ const BASE_TRANSPORT_MODES = [
  * transport with impact before choosing"). Thresholds in kg/km.
  */
 function co2DotColor(co2PerKm: number): string {
-  if (co2PerKm <= 0.001) return "#5B8F5B";   // leaf — zero/near-zero
-  if (co2PerKm < 0.05) return "#7FB069";      // soft green — low (e-bike, transit)
-  if (co2PerKm < 0.13) return "#F2C744";      // sun — medium (hybrid/taxi)
-  return "#C4623F";                            // clay — high (car/moto)
+  if (co2PerKm <= 0.001) return "#059669";   // leaf — zero/near-zero
+  if (co2PerKm < 0.05) return "#34D399";      // soft green — low (e-bike, transit)
+  if (co2PerKm < 0.13) return "#F59E0B";      // sun — medium (hybrid/taxi)
+  return "#DC2626";                            // clay — high (car/moto)
 }
 
 // --- ISOLATED INPUT COMPONENT ---
@@ -1549,7 +1549,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#E0F7FA",
+    backgroundColor: "#E6F1F2",
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -1558,7 +1558,7 @@ const styles = StyleSheet.create({
   tripInsightText: {
     flex: 1,
     fontSize: 13,
-    color: "#006064",
+    color: "#003D40",
     lineHeight: 18,
   },
 });

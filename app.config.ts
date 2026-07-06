@@ -27,7 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   splash: {
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
-    backgroundColor: '#09E0E8',
+    backgroundColor: '#00565A',
   },
   ios: {
     supportsTablet: false,
@@ -56,7 +56,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#006064',
+      backgroundColor: '#003D40',
     },
     edgeToEdgeEnabled: true,
     package: 'com.clyzio.app',
@@ -119,7 +119,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-notifications',
       {
         icon: './assets/icon.png',
-        color: '#26C6DA',
+        color: '#00565A',
       },
     ],
   ],

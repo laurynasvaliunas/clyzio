@@ -35,7 +35,7 @@ export default function ManagerLayout() {
   if (checking) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" color="#26C6DA" />
+        <ActivityIndicator size="large" color="#00565A" />
       </View>
     );
   }

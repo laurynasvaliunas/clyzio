@@ -40,16 +40,16 @@ interface Props {
 }
 
 const COLORS = {
-  surface: "#FAF7EF",
+  surface: "#FFFFFF",
   surfaceDark: "#0E1F23",
   ink: "#0B1A1F",
-  inkDark: "#FAF7EF",
+  inkDark: "#FFFFFF",
   inkSoft: "#5A6A6F",
   inkSoftDark: "#8B989C",
-  cyan: "#26C6DA",
+  cyan: "#00565A",
   teal: "#003D40",
-  leaf: "#5B8F5B",
-  track: "#E8E3D7",
+  leaf: "#059669",
+  track: "#EDF1F2",
   trackDark: "#1B2E33",
 };
 
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     height: 56,
   },
   planBtnText: {
-    color: "#FAF7EF",
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
     letterSpacing: 0.2,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#26C6DA",
+    backgroundColor: "#00565A",
     alignItems: "center",
     justifyContent: "center",
   },
