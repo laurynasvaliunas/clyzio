@@ -1,9 +1,9 @@
 import { Stack } from "expo-router";
 
 /**
- * First-run setup stack — Stages 1.1 / 1.2 / 1.3 of the customer-journey PDF.
+ * First-run setup stack — Stage 1 of the customer-journey PDF.
  *
- * Sequence: places → garage → done → Map.
+ * Sequence: profile (name/photo) → places → garage → done → Map.
  *
  * Lives at root (not under `(auth)`) so the root layout's redirect rule
  * "authenticated users in (auth) → kick to (tabs)" doesn't fight the setup

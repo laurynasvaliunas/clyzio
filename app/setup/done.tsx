@@ -148,7 +148,7 @@ export default function DoneScreen() {
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <SetupProgress current={2} total={3} />
+        <SetupProgress current={3} total={4} />
 
         <View style={styles.header}>
           <Text style={styles.heading} accessibilityRole="header">

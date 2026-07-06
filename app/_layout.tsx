@@ -17,7 +17,7 @@ import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
 import { parseLink, toRoutePath, notificationToRoute } from "../lib/deepLinks";
-import { hasCompletedCommuteSetup, COMMUTE_SETUP_ROUTE } from "../lib/permissionsPriming";
+import { nextRouteAfterAuth } from "../lib/permissionsPriming";
 import { WELCOME_SEEN_KEY } from "./welcome";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 import { ToastProvider } from "../contexts/ToastContext";
@@ -426,6 +426,14 @@ function RootLayoutContent() {
     if (deepLinkNavRef.current) { deepLinkNavRef.current = false; return; }
 
     const inAuthGroup = segments[0] === '(auth)';
+    // Post-auth flow screens live INSIDE (auth) but must be reachable while
+    // authenticated — dept onboarding and permission priming run right after
+    // first sign-in. Without this exemption the "kick auth'd users out of
+    // (auth)" rule below bounced brand-new users straight to the Map, so the
+    // guided first-login flow never showed.
+    const authChild = (segments as string[])[1];
+    const inPostAuthFlow =
+      inAuthGroup && (authChild === 'onboarding' || authChild === 'permissions');
     // Public (no auth required) screens — Terms / Privacy / Licenses pages
     // must be reachable without login for App Store / Play Store review.
     const inPublicGroup = segments[0] === 'legal';
@@ -449,18 +457,18 @@ function RootLayoutContent() {
     }
     if (!isAuthenticated && !inAuthGroup && !inPublicGroup && !inWelcome && !inSetup && !inJoin && !inReset) {
       router.replace('/(auth)/login');
-    } else if (isAuthenticated && (inAuthGroup || inWelcome)) {
+    } else if (isAuthenticated && ((inAuthGroup && !inPostAuthFlow) || inWelcome)) {
       router.replace('/(tabs)');
     }
   }, [isAuthenticated, welcomeSeen, segments]);
 
-  // First-run resilience: if an authenticated user hasn't finished commute setup
-  // (e.g. they quit mid-flow), resume them on this launch. Runs once per launch
-  // and only outside the auth/legal/welcome groups so it doesn't fight other
-  // routing. Tolerates the flag column being absent (treated as done).
-  // The destination is the canonical first-run route from permissionsPriming
-  // (changed in Phase 1.2 of the customer-journey rebuild — was profile?setup=1,
-  // now edit-profile?setup=1; Phase 2 will move it to /setup/places).
+  // First-run resilience: if an authenticated user hasn't finished the guided
+  // first-login flow (dept onboarding → permission priming → commute setup),
+  // resume them at the FIRST unsatisfied step on this launch (e.g. they quit
+  // mid-flow, or a session arrived via email-confirm deep link and bypassed
+  // login.tsx's routing). Runs once per launch and only outside the
+  // auth/legal/welcome/setup groups so it doesn't fight other routing.
+  // Tolerates the setup flag column being absent (treated as done).
   const commuteGateChecked = useRef(false);
   useEffect(() => {
     if (isAuthenticated !== true || commuteGateChecked.current) return;
@@ -474,9 +482,8 @@ function RootLayoutContent() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-        if (!(await hasCompletedCommuteSetup(user.id))) {
-          router.replace(COMMUTE_SETUP_ROUTE as any);
-        }
+        const next = await nextRouteAfterAuth(user.id);
+        if (next !== '/(tabs)') router.replace(next as any);
       } catch { /* ignore — never block launch */ }
     })();
   }, [isAuthenticated, segments]);

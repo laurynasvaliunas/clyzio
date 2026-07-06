@@ -179,7 +179,7 @@ export default function GarageSetupScreen() {
         >
           <ArrowLeft size={22} color={COLORS.ink} />
         </TouchableOpacity>
-        <SetupProgress current={1} total={3} />
+        <SetupProgress current={2} total={4} />
         <View style={styles.backButton} />
       </View>
 
