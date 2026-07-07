@@ -43,6 +43,7 @@ yarn-error.*
 # Secrets — never commit
 .env
 google-service-account.json
+google-services.json
 sentry.properties
 
 # Generated implementation docs

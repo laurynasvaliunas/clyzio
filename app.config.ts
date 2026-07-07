@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import type { ExpoConfig, ConfigContext } from 'expo/config';
 
 /**
@@ -49,7 +50,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       // expo-secure-store can require biometric auth on the Keychain item.
       NSFaceIDUsageDescription:
         'Clyzio uses Face ID to keep your account securely signed in on this device.',
-      UIBackgroundModes: ['location', 'remote-notification'],
+      // 'location' background mode removed (2026-07): the app never requests
+      // Always authorization and only watches position in the foreground —
+      // an unused background-location mode invites App Store rejection.
+      UIBackgroundModes: ['remote-notification'],
       ITSAppUsesNonExemptEncryption: false,
     },
   },
@@ -61,17 +65,35 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     edgeToEdgeEnabled: true,
     package: 'com.clyzio.app',
     versionCode: 6,
+    // FCM wiring — REQUIRED for Android push (carpool requests, match
+    // approvals, nudges are all push-driven). The file comes from the
+    // Firebase console (project settings → Android app → google-services.json).
+    // Local builds: drop it at the repo root (gitignored). EAS builds: upload
+    // it as a file-type env var named GOOGLE_SERVICES_JSON
+    // (`eas env:create --scope project --name GOOGLE_SERVICES_JSON --type file`).
+    // Conditional so prebuild doesn't fail before the file exists.
+    ...(process.env.GOOGLE_SERVICES_JSON || existsSync('./google-services.json')
+      ? { googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json' }
+      : {}),
+    // Minimal, honest permission set (Play pre-launch audit 2026-07):
+    // location = map/route/matching, vibrate = haptics. The app has NO audio
+    // recording, NO in-app camera capture (avatar comes from the photo
+    // library), and NO background location (the only watchPositionAsync runs
+    // while the trip screen is foregrounded) — so CAMERA / RECORD_AUDIO /
+    // ACCESS_BACKGROUND_LOCATION are stripped below, which also removes the
+    // Play Console background-location declaration + demo-video requirement.
     permissions: [
       'android.permission.ACCESS_FINE_LOCATION',
       'android.permission.ACCESS_COARSE_LOCATION',
-      'android.permission.ACCESS_BACKGROUND_LOCATION',
-      'android.permission.CAMERA',
-      'android.permission.READ_EXTERNAL_STORAGE',
       'android.permission.VIBRATE',
-      'android.permission.RECEIVE_BOOT_COMPLETED',
-      'android.permission.FOREGROUND_SERVICE',
-      'android.permission.FOREGROUND_SERVICE_LOCATION',
+    ],
+    // expo-image-picker's plugin injects CAMERA + RECORD_AUDIO into the
+    // manifest for video-capture support we don't use; expo-location can
+    // inject background location. Block all three explicitly.
+    blockedPermissions: [
       'android.permission.RECORD_AUDIO',
+      'android.permission.CAMERA',
+      'android.permission.ACCESS_BACKGROUND_LOCATION',
     ],
   },
   web: {
@@ -99,7 +121,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           'Clyzio uses your location to show your position on the map, plan routes, and match you with nearby commuters.',
         locationAlwaysAndWhenInUsePermission:
           'Clyzio uses your location in the background to track active trips and notify you of nearby carpool matches.',
-        isAndroidBackgroundLocationEnabled: true,
+        // The app only watches location while the trip screen is foregrounded
+        // (Location.watchPositionAsync) — no background tracking, so don't let
+        // the plugin inject ACCESS_BACKGROUND_LOCATION (Play-review-sensitive).
+        isAndroidBackgroundLocationEnabled: false,
       },
     ],
     [
