@@ -672,13 +672,15 @@ const splashStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Soft halo behind the mark — gives depth without competing with the logo.
+  // Soft halo behind the mark — a translucent lift of the teal gradient
+  // itself, so it reads as a lighter tone of the background rather than a
+  // gray disc (visual-QA pass 2026-07).
   glow: {
     position: "absolute",
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: "rgba(255,255,255,0.14)",
   },
   logo: {
     width: 140,

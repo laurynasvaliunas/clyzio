@@ -52,14 +52,8 @@ export default function TabsLayout() {
         options={{
           title: "Map",
           tabBarAccessibilityLabel: "Map tab",
-          tabBarIcon: ({ color, focused }) => (
-            <View
-              style={{
-                backgroundColor: focused ? COLORS.primary + "20" : "transparent",
-                borderRadius: 12,
-                padding: 8,
-              }}
-            >
+          tabBarIcon: ({ color }) => (
+            <View style={{ padding: 8 }}>
               <Map size={22} color={color} />
             </View>
           ),
@@ -70,14 +64,8 @@ export default function TabsLayout() {
         options={{
           title: "Activity",
           tabBarAccessibilityLabel: "Activity tab",
-          tabBarIcon: ({ color, focused }) => (
-            <View
-              style={{
-                backgroundColor: focused ? COLORS.primary + "20" : "transparent",
-                borderRadius: 12,
-                padding: 8,
-              }}
-            >
+          tabBarIcon: ({ color }) => (
+            <View style={{ padding: 8 }}>
               <Calendar size={22} color={color} />
             </View>
           ),
@@ -88,14 +76,8 @@ export default function TabsLayout() {
         options={{
           title: "Impact",
           tabBarAccessibilityLabel: "Impact tab",
-          tabBarIcon: ({ color, focused }) => (
-            <View
-              style={{
-                backgroundColor: focused ? COLORS.primary + "20" : "transparent",
-                borderRadius: 12,
-                padding: 8,
-              }}
-            >
+          tabBarIcon: ({ color }) => (
+            <View style={{ padding: 8 }}>
               <BarChart3 size={22} color={color} />
             </View>
           ),
@@ -122,14 +104,8 @@ export default function TabsLayout() {
         options={{
           title: "Profile",
           tabBarAccessibilityLabel: "Profile tab",
-          tabBarIcon: ({ color, focused }) => (
-            <View
-              style={{
-                backgroundColor: focused ? COLORS.primary + "20" : "transparent",
-                borderRadius: 12,
-                padding: 8,
-              }}
-            >
+          tabBarIcon: ({ color }) => (
+            <View style={{ padding: 8 }}>
               <User size={22} color={color} />
             </View>
           ),

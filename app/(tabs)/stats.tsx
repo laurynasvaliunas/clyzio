@@ -35,7 +35,6 @@ import {
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import CostSavingsCard from "../../components/CostSavingsCard";
-import CommuteCalendar, { type CalendarRide } from "../../components/CommuteCalendar";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
 import { getLevelInfo, XP_PER_TRIP, TRIPS_PER_LEVEL, MAX_LEVEL, LEVEL_TITLES } from "../../lib/gamification";
@@ -458,9 +457,16 @@ export default function StatsScreen() {
   }, [completedRides, period]);
 
   // Calendar rides cast (date + mode only).
-  const calendarRides: CalendarRide[] = useMemo(
-    () => completedRides.map((r) => ({ completed_at: r.completed_at, transport_mode: r.transport_mode })),
-    [completedRides],
+  // Company-impact derivations (personal view). Share of the company total +
+  // rank from the already-sorted company leaderboard.
+  const companySharePct = useMemo(() => {
+    const total = companyTotals?.total_co2_saved ?? 0;
+    if (total <= 0) return 0;
+    return (stats.total_co2_saved / total) * 100;
+  }, [companyTotals, stats.total_co2_saved]);
+  const myCompanyRank = useMemo(
+    () => leaderboard.findIndex((u) => u.is_current_user) + 1,
+    [leaderboard],
   );
   
   // Color array for department breakdown bars
@@ -482,7 +488,7 @@ export default function StatsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: TC.text }]}>Your Impact</Text>
-          <Text style={[styles.headerSubtitle, { color: TC.textSecondary }]}>Making the planet greener</Text>
+          <Text style={[styles.headerSubtitle, { color: TC.textSecondary }]}>Every trip counts — here's the proof</Text>
         </View>
 
         {/* Segmented Control */}
@@ -525,98 +531,13 @@ export default function StatsScreen() {
           </View>
         )}
 
-        {/* ============= PERSONAL VIEW ============= */}
+        {/* ============= PERSONAL VIEW =============
+            2026-07 redesign: the headline CO₂ number leads, followed by the
+            numbers that change week to week, then your part in the company's
+            success; gamification (level / trophies / how-XP-works) closes the
+            page. */}
         {activeView === "personal" && (
           <>
-        {/* Level Progress Card */}
-        <View style={[styles.levelCard, { backgroundColor: TC.surface }]}>
-          <View style={styles.levelHeader}>
-            <View style={styles.levelBadge}>
-              <Trophy size={20} color={COLORS.accent} />
-              <Text style={styles.levelNumber}>Level {levelInfo.level}</Text>
-            </View>
-            <Text style={[styles.levelTitle, { color: TC.text }]}>{levelInfo.title}</Text>
-          </View>
-
-          <Text style={[styles.levelHint, { color: TC.textSecondary }]}>
-            EVERY 3 TRIPS = A NEW LEVEL
-          </Text>
-
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressBarBg}>
-              <Animated.View
-                style={[
-                  styles.progressBarFill,
-                  {
-                    width: progressAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ["0%", "100%"],
-                    }),
-                  },
-                ]}
-              >
-                <LinearGradient
-                  colors={[COLORS.accent, COLORS.accentDark]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.progressGradient}
-                />
-              </Animated.View>
-            </View>
-          </View>
-          
-          <View style={styles.xpRow}>
-            <Text style={[styles.xpText, { color: TC.text }]}>{xpPoints} XP</Text>
-            <Text style={[styles.xpToNext, { color: TC.textSecondary }]}>
-              {levelInfo.atMax
-                ? "Max level reached"
-                : `${levelInfo.tripsToNext} more shared trip${levelInfo.tripsToNext === 1 ? "" : "s"} to Level ${levelInfo.level + 1}`}
-            </Text>
-          </View>
-        </View>
-
-        {/* How XP & badges work — guidance, right after the level card */}
-        <View style={[styles.guideCard, { backgroundColor: TC.surface }]}>
-          <Text style={[styles.guideTitle, { color: TC.text }]}>How you earn XP & badges</Text>
-          <View style={styles.guideRow}>
-            <Text style={styles.guideBullet}>🚊</Text>
-            <Text style={[styles.guideText, { color: TC.textSecondary }]}>
-              +{XP_PER_TRIP} XP for every completed trip.
-            </Text>
-          </View>
-          <View style={styles.guideRow}>
-            <Text style={styles.guideBullet}>📈</Text>
-            <Text style={[styles.guideText, { color: TC.textSecondary }]}>
-              Every {TRIPS_PER_LEVEL} trips is a new level — {MAX_LEVEL} levels from {LEVEL_TITLES[0]} to {LEVEL_TITLES[MAX_LEVEL - 1]}.
-            </Text>
-          </View>
-          <View style={styles.guideRow}>
-            <Text style={styles.guideBullet}>🏅</Text>
-            <Text style={[styles.guideText, { color: TC.textSecondary }]}>
-              Badges unlock at milestones: first trip, first carpool, 5 walks, 10 trips, 50 kg & 100 kg CO₂ saved. Tap a badge below to see its goal.
-            </Text>
-          </View>
-        </View>
-
-        {/* Badges Section */}
-        <View style={styles.badgesSection}>
-          <View style={styles.sectionHeader}>
-            <Award size={20} color={COLORS.primary} />
-            <Text style={[styles.sectionTitle, { color: TC.text }]}>Trophy Cabinet</Text>
-          </View>
-          
-          <View style={styles.badgesGrid}>
-            {BADGES.map((badge) => (
-              <BadgeItem
-                key={badge.id}
-                badge={badge}
-                isUnlocked={userBadges.includes(badge.id)}
-                onPress={() => setSelectedBadge(badge)}
-              />
-            ))}
-          </View>
-        </View>
-
         {/* Hero CO2 Card */}
         <View style={styles.heroContainer}>
           <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.heroCard}>
@@ -699,8 +620,53 @@ export default function StatsScreen() {
           </View>
         </View>
 
-        {/* Commute calendar (Stage 5) */}
-        <CommuteCalendar rides={calendarRides} isDark={isDark} />
+        {/* Your part in the company's success — motivation, not admin data.
+            Uses the already-fetched companyTotals + leaderboard; hidden for
+            solo users (no company). Tap → full Company view. */}
+        {hasCompany && companyTotals && (
+          <TouchableOpacity
+            style={[styles.companyImpactCard, { backgroundColor: TC.surface }]}
+            onPress={() => switchView("company")}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`Your contribution to ${companyTotals.company_name}. Tap for the full company view.`}
+          >
+            <View style={styles.sectionHeader}>
+              <Building2 size={20} color={COLORS.primary} />
+              <Text style={[styles.sectionTitle, { color: TC.text }]}>
+                Your part in {companyTotals.company_name}
+              </Text>
+            </View>
+            <Text style={[styles.companyImpactTotal, { color: TC.text }]}>
+              Together you've saved{" "}
+              <Text style={{ color: COLORS.green, fontWeight: "800" }}>
+                {companyTotals.total_co2_saved.toFixed(1)} kg CO₂
+              </Text>
+              {companyTotals.employee_count > 1
+                ? ` across ${companyTotals.employee_count} colleagues.`
+                : "."}
+            </Text>
+            <View style={styles.shareRow}>
+              <Text style={[styles.shareLabel, { color: TC.textSecondary }]}>Your share</Text>
+              <Text style={[styles.shareValue, { color: TC.text }]}>{companySharePct.toFixed(0)}%</Text>
+              {myCompanyRank > 0 && (
+                <View style={styles.rankChip}>
+                  <Text style={styles.rankChipText}>
+                    #{myCompanyRank} of {leaderboard.length}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <View style={[styles.shareBarBg, { backgroundColor: TC.background }]}>
+              <View style={[styles.shareBarFill, { width: `${Math.min(companySharePct, 100)}%` }]} />
+            </View>
+            <Text style={[styles.impactMotivation, { color: TC.textSecondary }]}>
+              {myCompanyRank > 0 && myCompanyRank <= 3
+                ? "You're leading the way 🏆 — keep it up!"
+                : `Every shared ride lifts ${companyTotals.company_name} higher. →`}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Weekly Chart */}
         <View style={[styles.chartCard, { backgroundColor: TC.surface }]}>
@@ -762,6 +728,104 @@ export default function StatsScreen() {
               />
             ))
           )}
+        </View>
+
+        {/* Cost Savings */}
+        <View style={{ paddingHorizontal: 16 }}>
+          <CostSavingsCard
+            totalCo2Saved={stats.total_co2_saved ?? 0}
+            tripsCompleted={stats.total_trips ?? 0}
+            baselineCo2={userBaselineCo2}
+          />
+        </View>
+
+        {/* Level Progress Card */}
+        <View style={[styles.levelCard, { backgroundColor: TC.surface }]}>
+          <View style={styles.levelHeader}>
+            <View style={styles.levelBadge}>
+              <Trophy size={20} color={COLORS.accent} />
+              <Text style={styles.levelNumber}>Level {levelInfo.level}</Text>
+            </View>
+            <Text style={[styles.levelTitle, { color: TC.text }]}>{levelInfo.title}</Text>
+          </View>
+
+          <Text style={[styles.levelHint, { color: TC.textSecondary }]}>
+            EVERY 3 TRIPS = A NEW LEVEL
+          </Text>
+
+          <View style={styles.progressBarContainer}>
+            <View style={styles.progressBarBg}>
+              <Animated.View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ["0%", "100%"],
+                    }),
+                  },
+                ]}
+              >
+                <LinearGradient
+                  colors={[COLORS.accent, COLORS.accentDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.progressGradient}
+                />
+              </Animated.View>
+            </View>
+          </View>
+
+          <View style={styles.xpRow}>
+            <Text style={[styles.xpText, { color: TC.text }]}>{xpPoints} XP</Text>
+            <Text style={[styles.xpToNext, { color: TC.textSecondary }]}>
+              {levelInfo.atMax
+                ? "Max level reached"
+                : `${levelInfo.tripsToNext} more shared trip${levelInfo.tripsToNext === 1 ? "" : "s"} to Level ${levelInfo.level + 1}`}
+            </Text>
+          </View>
+        </View>
+
+        {/* Badges Section */}
+        <View style={styles.badgesSection}>
+          <View style={styles.sectionHeader}>
+            <Award size={20} color={COLORS.primary} />
+            <Text style={[styles.sectionTitle, { color: TC.text }]}>Trophy Cabinet</Text>
+          </View>
+
+          <View style={styles.badgesGrid}>
+            {BADGES.map((badge) => (
+              <BadgeItem
+                key={badge.id}
+                badge={badge}
+                isUnlocked={userBadges.includes(badge.id)}
+                onPress={() => setSelectedBadge(badge)}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* How XP & badges work — reference material, so it closes the page */}
+        <View style={[styles.guideCard, { backgroundColor: TC.surface }]}>
+          <Text style={[styles.guideTitle, { color: TC.text }]}>How you earn XP & badges</Text>
+          <View style={styles.guideRow}>
+            <Text style={styles.guideBullet}>🚊</Text>
+            <Text style={[styles.guideText, { color: TC.textSecondary }]}>
+              +{XP_PER_TRIP} XP for every completed trip.
+            </Text>
+          </View>
+          <View style={styles.guideRow}>
+            <Text style={styles.guideBullet}>📈</Text>
+            <Text style={[styles.guideText, { color: TC.textSecondary }]}>
+              Every {TRIPS_PER_LEVEL} trips is a new level — {MAX_LEVEL} levels from {LEVEL_TITLES[0]} to {LEVEL_TITLES[MAX_LEVEL - 1]}.
+            </Text>
+          </View>
+          <View style={styles.guideRow}>
+            <Text style={styles.guideBullet}>🏅</Text>
+            <Text style={[styles.guideText, { color: TC.textSecondary }]}>
+              Badges unlock at milestones: first trip, first carpool, 5 walks, 10 trips, 50 kg & 100 kg CO₂ saved. Tap a badge above to see its goal.
+            </Text>
+          </View>
         </View>
           </>
         )}
@@ -861,17 +925,6 @@ export default function StatsScreen() {
               )}
             </View>
           </>
-        )}
-
-        {/* Cost Savings Card — shown in personal view */}
-        {activeView === "personal" && stats && (
-          <View style={{ paddingHorizontal: 16 }}>
-            <CostSavingsCard
-              totalCo2Saved={stats.total_co2_saved ?? 0}
-              tripsCompleted={stats.total_trips ?? 0}
-              baselineCo2={userBaselineCo2}
-            />
-          </View>
         )}
 
         <View style={{ height: 40 }} />
@@ -1131,6 +1184,65 @@ const styles = StyleSheet.create({
   
   // ===== LEADERBOARD =====
   leaderboardCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+
+  // ===== Company impact card (personal view) =====
+  companyImpactCard: {
+    borderRadius: 24,
+    padding: 20,
+    marginHorizontal: 16,
+    marginTop: 16,
+    shadowColor: COLORS.black,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  companyImpactTotal: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 4,
+  },
+  shareRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 14,
+  },
+  shareLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  shareValue: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  rankChip: {
+    marginLeft: "auto",
+    backgroundColor: "#E6F1F2",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  rankChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.dark,
+  },
+  shareBarBg: {
+    height: 8,
+    borderRadius: 4,
+    marginTop: 8,
+    overflow: "hidden",
+  },
+  shareBarFill: {
+    height: "100%",
+    borderRadius: 4,
+    backgroundColor: COLORS.green,
+  },
+  impactMotivation: {
+    fontSize: 13,
+    marginTop: 10,
+    fontWeight: "500",
+  },
   emptyText: { fontSize: 14, color: COLORS.gray, textAlign: "center", paddingVertical: 20 },
   leaderboardRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.light },
   leaderboardRowHighlight: { backgroundColor: COLORS.light, marginHorizontal: -12, paddingHorizontal: 12, borderRadius: 12 },

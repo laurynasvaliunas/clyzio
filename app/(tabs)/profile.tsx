@@ -18,6 +18,7 @@ import { supabase } from "../../lib/supabase";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
 import { useToast } from "../../contexts/ToastContext";
+import ProfileEditor from "../../components/ProfileEditor";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
@@ -548,7 +549,12 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         {/* Header with Settings */}
         <View style={styles.headerRow}>
           <Text style={[styles.pageTitle, { color: TC.text }]}>Profile</Text>
@@ -560,17 +566,12 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* User Card */}
-        <UserCard
-          userName={userName}
-          userEmail={userEmail}
-          userAvatar={userAvatar}
-          companyName={companyName}
-          uploading={uploading}
-          onPress={() => router.push("/settings/edit-profile")}
-          onPickImage={handlePickImage}
-          TC={TC}
-        />
+        {/* Profile editor — the primary Profile view (avatar, personal
+            details, garage, commute addresses, privacy, save). Replaces the
+            old UserCard that just linked out to /settings/edit-profile. */}
+        <View style={{ paddingHorizontal: 16 }}>
+          <ProfileEditor />
+        </View>
 
         {/* Score Card */}
         <ScoreCard

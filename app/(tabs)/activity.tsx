@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -27,6 +27,7 @@ import {
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import TripCompletionModal from "../../components/TripCompletionModal";
+import CommuteCalendar, { type CalendarRide } from "../../components/CommuteCalendar";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
 import { formatCO2 } from "../../lib/format";
@@ -71,6 +72,7 @@ interface Ride {
   transport_label?: string;
   co2_saved: number | null;
   scheduled_at: string;
+  completed_at?: string | null;
   created_at: string;
 }
 
@@ -327,6 +329,18 @@ export default function ActivityScreen() {
   });
   const [completingId, setCompletingId] = useState<string | null>(null);
 
+  // Commute calendar (moved here from the Impact tab — it's activity history,
+  // so it belongs with the trip list). Fed by the already-loaded history rides.
+  const calendarRides: CalendarRide[] = useMemo(
+    () =>
+      activeTab === "history"
+        ? rides
+            .filter((r) => r.status === "completed" && r.completed_at)
+            .map((r) => ({ completed_at: r.completed_at ?? null, transport_mode: r.transport_mode ?? null }))
+        : [],
+    [rides, activeTab],
+  );
+
   /**
    * Load rides based on active tab
    * Fetches upcoming or history rides from Supabase
@@ -568,6 +582,11 @@ export default function ActivityScreen() {
           renderItem={renderCard}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            activeTab === "history" ? (
+              <CommuteCalendar rides={calendarRides} isDark={isDark} />
+            ) : null
+          }
         />
       )}
 
