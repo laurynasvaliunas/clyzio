@@ -45,8 +45,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         'Clyzio uses your location in the background to track active trips and notify you of nearby carpool matches.',
       NSPhotoLibraryUsageDescription:
         'Clyzio needs access to your photo library to let you choose a profile picture.',
-      NSCameraUsageDescription:
-        'Clyzio needs camera access to let you take a profile picture.',
+      // No NSCameraUsageDescription: the app never opens the camera — avatars
+      // are chosen from the photo library only. Declaring a permission with no
+      // corresponding feature is an App Store 5.1.1 rejection risk.
       // expo-secure-store can require biometric auth on the Keychain item.
       NSFaceIDUsageDescription:
         'Clyzio uses Face ID to keep your account securely signed in on this device.',
@@ -56,6 +57,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       UIBackgroundModes: ['remote-notification'],
       ITSAppUsesNonExemptEncryption: false,
     },
+    // Universal links — shared ride/profile/invite links (built by
+    // lib/deepLinks.ts buildWebLink) open the app instead of Safari.
+    // REQUIRES the apple-app-site-association file to be served at
+    // https://clyzio.com/.well-known/apple-app-site-association
+    // (Content-Type: application/json, no redirect). Until that file is live,
+    // links fall back to opening the website — no crash.
+    associatedDomains: ['applinks:clyzio.com', 'applinks:www.clyzio.com'],
   },
   android: {
     adaptiveIcon: {
@@ -95,6 +103,23 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'android.permission.CAMERA',
       'android.permission.ACCESS_BACKGROUND_LOCATION',
     ],
+    // Android App Links — the counterpart to iOS associatedDomains above.
+    // REQUIRES https://clyzio.com/.well-known/assetlinks.json to be live with
+    // this app's package name + signing-cert SHA-256 fingerprint
+    // (`eas credentials` → Android → show the fingerprint).
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: [
+          { scheme: 'https', host: 'clyzio.com', pathPrefix: '/ride' },
+          { scheme: 'https', host: 'clyzio.com', pathPrefix: '/profile' },
+          { scheme: 'https', host: 'clyzio.com', pathPrefix: '/invite' },
+          { scheme: 'https', host: 'clyzio.com', pathPrefix: '/join' },
+        ],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
+    ],
   },
   web: {
     favicon: './assets/favicon.png',
@@ -132,11 +157,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         photosPermission:
           'Clyzio needs access to your photo library to let you choose a profile picture.',
-        cameraPermission:
-          'Clyzio needs camera access to let you take a profile picture.',
-        // Clyzio only picks/captures still images for the avatar — no audio.
-        // Suppress NSMicrophoneUsageDescription so Apple doesn't flag an
-        // unused permission string on review.
+        // Library-only: suppress the camera + microphone permission strings so
+        // Apple doesn't flag unused permissions on review (the app has no
+        // capture path, and CAMERA is blocked in the Android manifest).
+        cameraPermission: false,
         microphonePermission: false,
       },
     ],

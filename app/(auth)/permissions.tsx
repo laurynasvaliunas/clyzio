@@ -3,10 +3,9 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Bell, Camera, Check, ChevronRight } from 'lucide-react-native';
+import { MapPin, Bell, Check, ChevronRight } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { PERMISSIONS_PRIMED_KEY, nextRouteAfterAuth } from '../../lib/permissionsPriming';
@@ -57,9 +56,12 @@ const COLORS = {
 
 type Status = 'idle' | 'granted' | 'denied';
 
-type Step = 'location' | 'notifications' | 'camera';
+type Step = 'location' | 'notifications';
 
-const STEPS: Step[] = ['location', 'notifications', 'camera'];
+// Camera priming removed (2026-07 pre-launch audit): the app has no camera
+// capture path — avatars come from the photo library only — so prompting for
+// it is an App Store 5.1.1 risk, and CAMERA is blocked in the Android manifest.
+const STEPS: Step[] = ['location', 'notifications'];
 
 export default function PermissionsScreen() {
   const router = useRouter();
@@ -68,7 +70,6 @@ export default function PermissionsScreen() {
   const [statuses, setStatuses] = useState<Record<Step, Status>>({
     location: 'idle',
     notifications: 'idle',
-    camera: 'idle',
   });
 
   // If a user somehow lands here after already priming (deep link, hard
@@ -136,9 +137,6 @@ export default function PermissionsScreen() {
             lightColor: '#00565A',
           });
         }
-      } else if (step === 'camera') {
-        const res = await ImagePicker.requestCameraPermissionsAsync();
-        status = res.status === 'granted' ? 'granted' : 'denied';
       }
       advance(status);
     } catch {
@@ -264,12 +262,6 @@ const CARDS: Record<Step, { title: string; body: string; cta: string; icon: type
     body: 'Get a heads-up when a match is found, when your ride is confirmed, or when your driver is on the way. You can fine-tune these later.',
     cta: 'Enable notifications',
     icon: Bell,
-  },
-  camera: {
-    title: 'Camera',
-    body: 'Add a profile photo so your matches can recognise you at the pickup point. Optional. You can use a default avatar instead.',
-    cta: 'Enable camera',
-    icon: Camera,
   },
 };
 

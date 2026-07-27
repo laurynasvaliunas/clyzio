@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["Q8P66YD7GQ.com.clyzio.app"],
+        "components": [
+          { "/": "/ride/*",    "comment": "Ride detail" },
+          { "/": "/profile/*", "comment": "Public profile" },
+          { "/": "/invite/*",  "comment": "Referral invite" },
+          { "/": "/join*",     "comment": "Company invite" }
+        ]
+      }
+    ]
+  }
+}

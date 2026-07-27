@@ -23,7 +23,10 @@ export type DeepLinkTarget =
   | { type: 'unknown'; url: string };
 
 const APP_SCHEME = 'clyzio://';
-const WEB_HOST = 'clyzio.app';
+// Canonical web host for universal links. Must match `ios.associatedDomains`
+// and the Android intentFilters in app.config.ts, and the AASA /
+// assetlinks.json files hosted at the domain root.
+const WEB_HOST = 'clyzio.com';
 
 type ShareTarget = Extract<DeepLinkTarget, { type: 'ride' | 'profile' | 'invite' }>;
 
@@ -126,8 +129,21 @@ export function notificationToRoute(data: NotificationData): string | null {
       return rideId ? `/trip/${rideId}?openRating=1` : null;
     case 'invite':
       return code ? `/(auth)/onboarding?ref=${encodeURIComponent(code)}` : null;
+    // The nightly "plan tomorrow's commute" nudge (daily-commute-matcher)
+    // sends screen:'index'. Without this case it resolved to null and the
+    // notification opened wherever the user last was.
+    case 'index':
+    case 'map':
+      return '/(tabs)';
+    case 'activity':
+      return '/(tabs)/activity';
+    case 'impact':
+    case 'stats':
+      return '/(tabs)/stats';
+    // There is no top-level /notifications route — the screen lives under
+    // settings.
     case 'notifications':
-      return '/notifications';
+      return '/settings/notifications';
     default:
       return null;
   }
