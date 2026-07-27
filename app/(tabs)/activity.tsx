@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   FlatList,
+  ScrollView,
   StyleSheet,
   ActivityIndicator,
   Alert,
@@ -21,7 +22,6 @@ import {
   Leaf,
   X,
   ChevronRight,
-  Filter,
   CheckCircle2,
   Users,
 } from "lucide-react-native";
@@ -377,7 +377,12 @@ export default function ActivityScreen() {
       const { data, error } = await query.limit(50);
 
       if (error) {
-        console.error("❌ Error fetching rides:", error);
+        console.error("Error fetching rides:", error);
+      showToast({
+        title: "Couldn't load your trips",
+        message: "Check your connection and pull to refresh.",
+        type: "error",
+      });
       } else {
         if (__DEV__) { console.log(`✅ Fetched ${data?.length || 0} rides for ${activeTab}:`, data); }
         setRides(data || []);
@@ -531,9 +536,6 @@ export default function ActivityScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: TC.text }]}>Activity</Text>
-        <TouchableOpacity style={styles.filterBtn}>
-          <Filter size={22} color={TC.textSecondary} />
-        </TouchableOpacity>
       </View>
 
       {/* Tab Switcher */}
@@ -570,11 +572,19 @@ export default function ActivityScreen() {
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
       ) : rides.length === 0 ? (
-        <EmptyState
-          isUpcoming={activeTab === "upcoming"}
-          onPlanTrip={() => router.push("/(tabs)")}
-          TC={TC}
-        />
+        /* Zero-history users still get the calendar — it's the clearest
+           explanation of what this tab will fill up with (it used to be a
+           ListHeaderComponent, so it never rendered for them). */
+        <ScrollView contentContainerStyle={styles.listContent}>
+          {activeTab === "history" && (
+            <CommuteCalendar rides={calendarRides} isDark={isDark} />
+          )}
+          <EmptyState
+            isUpcoming={activeTab === "upcoming"}
+            onPlanTrip={() => router.push("/(tabs)")}
+            TC={TC}
+          />
+        </ScrollView>
       ) : (
         <FlatList
           data={rides}
@@ -628,10 +638,6 @@ const styles = StyleSheet.create({
     lineHeight: 48,
     letterSpacing: -0.8,
     color: COLORS.dark
-  },
-  filterBtn: {
-    padding: 8,
-    borderRadius: 10,
   },
 
   // ===== TAB SWITCHER =====

@@ -237,13 +237,9 @@ export default function ManagerDashboardScreen() {
                 <TrendIcon trend={dept.trend} />
               </View>
             ))}
-            <TouchableOpacity
-              style={styles.viewFullBtn}
-              onPress={() => router.push("/(manager)/departments")}
-            >
-              <Text style={styles.viewFullText}>View All Departments</Text>
-              <ChevronRight size={16} color={COLORS.primary} />
-            </TouchableOpacity>
+            {/* "View All Departments" removed — /(manager)/departments does
+                not exist, so this navigated to an unmatched route. Restore it
+                when the screen ships. */}
           </View>
         )}
 

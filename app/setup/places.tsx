@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
 import Mapbox, { MapView, Camera, PointAnnotation } from "@rnmapbox/maps";
-import { Home, Briefcase, X, Check, MapPin, ArrowRight } from "lucide-react-native";
+import { Home, Briefcase, X, Check, MapPin, ArrowRight, ArrowLeft } from "lucide-react-native";
 
 import { supabase } from "../../lib/supabase";
 import { MAPBOX_TOKEN, IS_MAPBOX_TOKEN_VALID } from "../../lib/config";
@@ -224,7 +224,19 @@ export default function PlacesScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
-      <SetupProgress current={1} total={5} />
+      <View style={styles.headerRow}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          style={styles.backButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <ArrowLeft size={22} color={COLORS.ink} />
+        </TouchableOpacity>
+        <SetupProgress current={1} total={5} />
+        <View style={styles.backButton} />
+      </View>
 
       <View style={styles.header}>
         <Text style={styles.heading} accessibilityRole="header">
@@ -376,6 +388,14 @@ export default function PlacesScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16 },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   root: { flex: 1, backgroundColor: COLORS.bg },
   header: {
     paddingHorizontal: 24,

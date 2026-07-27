@@ -163,7 +163,12 @@ export default function ChallengesScreen() {
       </ScrollView>
 
       {/* Create Challenge Modal */}
-      <Modal visible={showCreate} animationType="slide" presentationStyle="pageSheet">
+      <Modal
+        visible={showCreate}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowCreate(false)}
+      >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>New Challenge</Text>

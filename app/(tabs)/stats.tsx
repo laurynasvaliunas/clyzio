@@ -10,7 +10,7 @@ import {
   Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   TreeDeciduous,
@@ -262,9 +262,11 @@ function DepartmentBreakdownItem({ dept, maxCo2, barColor }: DepartmentBreakdown
  * Displays personal, department, and company-wide statistics
  */
 export default function StatsScreen() {
+  const router = useRouter();
   const { isDark } = useTheme();
   const TC = getThemeColors(isDark);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activeView, setActiveView] = useState<StatsView>("personal");
   const [stats, setStats] = useState<UserStats>({ total_co2_saved: 0, total_trips: 0, this_week_co2: 0, last_week_co2: 0 });
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
@@ -299,6 +301,7 @@ export default function StatsScreen() {
    */
   const loadStats = useCallback(async () => {
     try {
+      setLoadError(false);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
@@ -324,8 +327,11 @@ export default function StatsScreen() {
         }).start();
       }
 
-      // Get user impact stats
-      const { data: impactData } = await supabase.rpc("get_user_impact", { user_uuid: user.id });
+      // Get user impact stats. Errors used to be discarded, so a failed fetch
+      // was indistinguishable from "you have no data" — the whole tab rendered
+      // zeros.
+      const { data: impactData, error: impactError } = await supabase.rpc("get_user_impact", { user_uuid: user.id });
+      if (impactError) setLoadError(true);
       if (impactData) {
         setStats({
           total_co2_saved: impactData.total_co2_saved || 0,
@@ -538,6 +544,46 @@ export default function StatsScreen() {
             page. */}
         {activeView === "personal" && (
           <>
+        {/* Couldn't-load banner — previously a failed fetch just rendered as
+            a wall of zeros, indistinguishable from a brand-new account. */}
+        {loadError && (
+          <TouchableOpacity
+            style={styles.errorBanner}
+            onPress={() => { setLoading(true); loadStats(); }}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading your impact"
+          >
+            <Text style={styles.errorBannerText}>
+              Couldn&apos;t load your latest numbers. Tap to retry.
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* First-run state: no trips yet. A wall of zeros with six locked
+            badges is demotivating and gives no next action. */}
+        {!loadError && stats.total_trips === 0 && (
+          <View style={[styles.zeroCard, { backgroundColor: TC.surface }]}>
+            <View style={styles.zeroIconWrap}>
+              <Leaf size={28} color={COLORS.primary} />
+            </View>
+            <Text style={[styles.zeroTitle, { color: TC.text }]}>
+              Your impact starts with one trip
+            </Text>
+            <Text style={[styles.zeroBody, { color: TC.textSecondary }]}>
+              Plan a commute and complete it — you&apos;ll see your CO₂ saved,
+              your streak and your first badge right here.
+            </Text>
+            <TouchableOpacity
+              style={styles.zeroCta}
+              onPress={() => router.push("/(tabs)" as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Plan your first commute"
+            >
+              <Text style={styles.zeroCtaText}>Plan your first commute</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Hero CO2 Card */}
         <View style={styles.heroContainer}>
           <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.heroCard}>
@@ -931,7 +977,12 @@ export default function StatsScreen() {
       </ScrollView>
 
       {/* Badge Modal */}
-      <Modal visible={!!selectedBadge} transparent animationType="fade">
+      <Modal
+        visible={!!selectedBadge}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedBadge(null)}
+      >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: TC.surface }]}>
             <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedBadge(null)}>
@@ -1184,6 +1235,46 @@ const styles = StyleSheet.create({
   
   // ===== LEADERBOARD =====
   leaderboardCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+
+  errorBanner: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 16,
+    padding: 14,
+    backgroundColor: "#FEF2F2",
+  },
+  errorBannerText: { fontSize: 13, fontWeight: "600", color: "#B91C1C" },
+  zeroCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: "center",
+  },
+  zeroIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.light,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  zeroTitle: { fontSize: 18, fontWeight: "700", textAlign: "center" },
+  zeroBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 18,
+  },
+  zeroCta: {
+    backgroundColor: COLORS.dark,
+    borderRadius: 999,
+    paddingVertical: 14,
+    paddingHorizontal: 26,
+  },
+  zeroCtaText: { color: COLORS.white, fontSize: 15, fontWeight: "700" },
 
   // ===== Company impact card (personal view) =====
   companyImpactCard: {
