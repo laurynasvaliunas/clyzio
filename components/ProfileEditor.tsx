@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -54,6 +55,7 @@ const COLORS = {
   background: "#F7F9FA",
   white: "#FFFFFF",
   gray: "#8B989C",
+  inkSoft: "#5A6A6F",
   grayLight: "#F1F5F9",
 };
 
@@ -85,15 +87,40 @@ export interface ProfileEditorProps {
   setupMode?: boolean;
   /** Called after a successful save (host decides navigation). */
   onSaved?: () => void;
+  /**
+   * Extra host-owned sections rendered directly above the Save button, so the
+   * screen has exactly ONE save action. The Profile tab injects its weekly
+   * commute-mix / baseline UI here.
+   */
+  extraSections?: React.ReactNode;
+  /**
+   * Persisted as part of the same Save. Runs after the profile row update
+   * succeeds; throwing surfaces the error and keeps the toast honest.
+   */
+  onExtraSave?: () => Promise<void>;
+  /** Overrides the save button label. */
+  saveLabel?: string;
 }
 
-export default function ProfileEditor({ setupMode = false, onSaved }: ProfileEditorProps) {
+export default function ProfileEditor({
+  setupMode = false,
+  onSaved,
+  extraSections,
+  onExtraSave,
+  saveLabel,
+}: ProfileEditorProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  // DATA-LOSS GUARD: if the profile read fails (offline, RLS hiccup, schema
+  // drift) the form would otherwise render as empty strings and a Save would
+  // null out the user's real first_name / phone / department / car / home /
+  // work columns. We only ever allow a save after a confirmed successful load.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const loadedOnceRef = useRef(false);
   // True once we've confirmed the prod schema has the garage / address-privacy
   // columns (migration 20260520_014). Until then, save omits those keys so the
   // update doesn't fail against a pre-migration database.
@@ -121,10 +148,15 @@ export default function ProfileEditor({ setupMode = false, onSaved }: ProfileEdi
     primary_vehicle_id: null,
   });
 
-  useEffect(() => {
-    loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Reload whenever the host screen regains focus. The Profile tab never
+  // unmounts, so without this an edit made in /settings/edit-profile would be
+  // overwritten by this component's stale copy on the next Save.
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+  );
 
   const loadProfile = async () => {
     try {
@@ -148,17 +180,27 @@ export default function ProfileEditor({ setupMode = false, onSaved }: ProfileEdi
         .from("profiles")
         .select(FULL_COLUMNS)
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (resp.error) {
+      // Only retry on "column does not exist" (42703). Previously ANY error
+      // (offline, RLS, timeout) was treated as "schema is old", which silently
+      // downgraded the save path and dropped the garage columns.
+      if (resp.error?.code === "42703") {
         hasGarageColsRef.current = false;
         resp = await supabase
           .from("profiles")
           .select(LEGACY_COLUMNS)
           .eq("id", user.id)
-          .single();
-      } else {
+          .maybeSingle();
+      } else if (!resp.error) {
         hasGarageColsRef.current = true;
+      }
+
+      if (resp.error || !resp.data) {
+        // Real failure (or no row): do NOT show an empty form that a Save
+        // would flush to the database.
+        setLoadFailed(true);
+        return;
       }
 
       // Cast: select() with a dynamic column string can't be statically typed
@@ -208,12 +250,21 @@ export default function ProfileEditor({ setupMode = false, onSaved }: ProfileEdi
           vehicles,
           primary_vehicle_id: primaryId,
         });
+        loadedOnceRef.current = true;
+        setLoadFailed(false);
       }
     } catch (error) {
       console.error("Error loading profile:", error);
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
+  };
+
+  const retryLoad = () => {
+    setLoading(true);
+    setLoadFailed(false);
+    loadProfile();
   };
 
   const pickImage = async () => {
@@ -340,6 +391,16 @@ export default function ProfileEditor({ setupMode = false, onSaved }: ProfileEdi
 
   const saveProfile = async () => {
     if (!userId) return;
+    // DATA-LOSS GUARD: never write a form we never successfully populated —
+    // that would null out the user's real values.
+    if (!loadedOnceRef.current || loadFailed) {
+      showToast({
+        title: "Can't save yet",
+        message: "Your profile hasn't loaded. Pull to retry, then save.",
+        type: "warning",
+      });
+      return;
+    }
     setSaving(true);
 
     try {
@@ -395,6 +456,11 @@ export default function ProfileEditor({ setupMode = false, onSaved }: ProfileEdi
 
       if (error) throw error;
 
+      // Host-owned extras (e.g. the Profile tab's weekly commute mix +
+      // baseline) persist as part of the same Save, so the screen has one
+      // button and one success state.
+      await onExtraSave?.();
+
       showToast({ title: 'Saved!', message: 'Your profile has been updated.', type: 'success' });
       onSaved?.();
     } catch (error: any) {
@@ -412,6 +478,27 @@ export default function ProfileEditor({ setupMode = false, onSaved }: ProfileEdi
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  // Load failed → show a retry instead of an empty form (which a Save would
+  // have written over the user's real data).
+  if (loadFailed) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorTitle}>Couldn&apos;t load your profile</Text>
+        <Text style={styles.errorBody}>
+          Check your connection and try again. Your saved details are safe.
+        </Text>
+        <TouchableOpacity
+          style={styles.retryBtn}
+          onPress={retryLoad}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading your profile"
+        >
+          <Text style={styles.retryBtnText}>Try again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -613,8 +700,8 @@ export default function ProfileEditor({ setupMode = false, onSaved }: ProfileEdi
         <Text style={styles.sectionTitle}>Privacy</Text>
         <View style={styles.toggleRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.toggleLabel}>Visible on map</Text>
-            <Text style={styles.toggleSub}>Others can see your commute activity and offer carpools</Text>
+            <Text style={styles.toggleLabel}>Share rides with others</Text>
+            <Text style={styles.toggleSub}>Let colleagues and other Clyzio users see your planned rides on the map and offer carpools. You can turn this off anytime.</Text>
           </View>
           <Switch
             value={profile.is_public}
@@ -637,7 +724,12 @@ export default function ProfileEditor({ setupMode = false, onSaved }: ProfileEdi
         </View>
       </View>
 
-      {/* Save Button */}
+      {/* Host-injected sections (Profile tab: weekly commute mix + baseline).
+          Rendered here so everything on the screen is covered by the single
+          Save below. */}
+      {extraSections}
+
+      {/* Save Button — the ONLY save action on the screen */}
       <TouchableOpacity
         style={[styles.saveButton, saving && styles.saveButtonDisabled]}
         onPress={saveProfile}
@@ -649,7 +741,7 @@ export default function ProfileEditor({ setupMode = false, onSaved }: ProfileEdi
           ) : (
             <>
               <Save size={20} color={COLORS.white} />
-              <Text style={styles.saveText}>Save Changes</Text>
+              <Text style={styles.saveText}>{saveLabel ?? "Save Changes"}</Text>
             </>
           )}
         </LinearGradient>
@@ -660,6 +752,23 @@ export default function ProfileEditor({ setupMode = false, onSaved }: ProfileEdi
 
 const styles = StyleSheet.create({
   loadingContainer: { paddingVertical: 64, alignItems: "center", justifyContent: "center" },
+  errorContainer: { paddingVertical: 56, paddingHorizontal: 8, alignItems: "center" },
+  errorTitle: { fontSize: 17, fontWeight: "700", color: COLORS.dark, textAlign: "center" },
+  errorBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: COLORS.inkSoft,
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  retryBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 999,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+  },
+  retryBtnText: { color: COLORS.white, fontSize: 15, fontWeight: "700" },
   avatarSection: { alignItems: "center", paddingVertical: 24 },
   avatarWrapper: { position: "relative" },
   avatar: { width: 120, height: 120, borderRadius: 40 },

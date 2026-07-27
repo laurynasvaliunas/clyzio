@@ -71,14 +71,19 @@ export async function hasCompletedCommuteSetup(userId: string): Promise<boolean>
  */
 export async function nextRouteAfterAuth(userId: string): Promise<string> {
   // 1. Corporate onboarding — kept independent so a missing setup column can't
-  //    break department routing.
+  //    break department routing. `department_prompt_skipped` (migration 040) is
+  //    what makes the screen's "Skip for now" actually work: without it this
+  //    check returned /(auth)/onboarding for the very state the user was in,
+  //    so skipping replaced the route with itself and nothing happened.
   try {
     const { data } = await supabase
       .from('profiles')
-      .select('company_id, department_id, is_solo_user')
+      .select('company_id, department_id, is_solo_user, department_prompt_skipped')
       .eq('id', userId)
-      .single();
-    if (data?.company_id && !data?.department_id && !data?.is_solo_user) {
+      .maybeSingle();
+    const skipped = (data as { department_prompt_skipped?: boolean } | null)
+      ?.department_prompt_skipped === true;
+    if (data?.company_id && !data?.department_id && !data?.is_solo_user && !skipped) {
       return '/(auth)/onboarding';
     }
   } catch {

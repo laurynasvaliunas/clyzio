@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Building2, Users, Check, ChevronRight } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import { nextRouteAfterAuth } from "../../lib/permissionsPriming";
+import { useToast } from "../../contexts/ToastContext";
 
 // Brand Colors
 const COLORS = {
@@ -40,6 +41,7 @@ interface Department {
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   // Referral code arrives via clyzio://invite/<code> → /(auth)/onboarding?ref=<code>
   const { ref } = useLocalSearchParams<{ ref?: string }>();
   const [loading, setLoading] = useState(true);
@@ -157,15 +159,48 @@ export default function OnboardingScreen() {
       if (error) throw error;
 
       await goNext();
-    } catch (error) {
+    } catch (error: any) {
+      // Previously this only console.error'd, so the button just silently
+      // stopped working.
       console.error("Error saving department:", error);
+      showToast({
+        title: "Couldn't join that team",
+        message: error?.message ?? "Please try again.",
+        type: "error",
+      });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSkip = () => {
-    goNext();
+  /**
+   * Skip the department picker.
+   *
+   * Must persist the skip BEFORE routing: `nextRouteAfterAuth` returns this
+   * same screen while (company_id && !department_id && !is_solo_user), so
+   * without the flag `router.replace` swapped the route for itself and Skip
+   * appeared broken to every user who saw it. The user can pick a department
+   * later from Profile.
+   */
+  const handleSkip = async () => {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { error } = await supabase
+          .from("profiles")
+          .update({ department_prompt_skipped: true } as never)
+          .eq("id", user.id);
+        // Tolerate the column being absent (pre-migration): still move on so
+        // the user is never trapped here.
+        if (error && error.code !== "42703") throw error;
+      }
+    } catch (error) {
+      console.error("Error skipping department:", error);
+    } finally {
+      setSaving(false);
+    }
+    await goNext();
   };
 
   if (loading) {
@@ -204,6 +239,16 @@ export default function OnboardingScreen() {
             <Text style={styles.sectionTitle}>Select Your Team</Text>
           </View>
 
+          {departments.length === 0 ? (
+            /* A company with no departments yet used to render an empty list
+               with a disabled button and no way out — a hard dead-end. */
+            <View style={styles.emptyDepts}>
+              <Text style={styles.emptyDeptsText}>
+                Your company hasn&apos;t set up teams yet. You can skip this and
+                pick a team later from your profile.
+              </Text>
+            </View>
+          ) : (
           <View style={styles.departmentList}>
             {departments.map((dept) => {
               const isSelected = selectedDepartment === dept.id;
@@ -225,6 +270,7 @@ export default function OnboardingScreen() {
               );
             })}
           </View>
+          )}
         </View>
 
         {/* Info Card */}
@@ -293,6 +339,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: { fontSize: 18, fontWeight: "bold", color: COLORS.dark },
+  emptyDepts: {
+    backgroundColor: COLORS.light,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 12,
+  },
+  emptyDeptsText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#5A6A6F",
+  },
   departmentList: { gap: 10 },
   departmentCard: {
     flexDirection: "row",

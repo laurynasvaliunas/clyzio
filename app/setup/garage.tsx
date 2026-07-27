@@ -24,6 +24,7 @@ import {
   FUELED_VEHICLE_TYPES,
 } from "../../lib/vehicles";
 import SetupProgress from "../../components/SetupProgress";
+import { deriveProfileCarFields, getPrimaryVehicle } from "../../lib/commuteUtils";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -132,16 +133,28 @@ export default function GarageSetupScreen() {
         fuel_type: p.fuel_type,
       }));
       const primaryId = vehicles[0]?.id ?? null;
+      // Keep the legacy flat car_* columns in sync, exactly like
+      // ProfileEditor.persistGarage does. Without this the sign-in baseline
+      // seeder (app/_layout.tsx, keyed on car_fuel_type) never fired for
+      // users who set their vehicle during first-run setup.
+      const derived = deriveProfileCarFields(
+        getPrimaryVehicle(vehicles, primaryId),
+      );
       const { error } = await supabase
         .from("profiles")
         .update({
           vehicles,
           primary_vehicle_id: primaryId,
+          car_make: derived.car_make,
+          car_model: derived.car_model,
+          car_color: derived.car_color,
+          car_plate: derived.car_plate,
+          car_fuel_type: derived.car_fuel_type,
         })
         .eq("id", user.id);
       if (error) throw error;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
-      router.push("/setup/done" as any);
+      router.push("/setup/week" as any);
     } catch (err: any) {
       showToast({ title: "Couldn't save", message: err?.message ?? "Please try again.", type: "error" });
     } finally {
@@ -159,7 +172,7 @@ export default function GarageSetupScreen() {
         .from("profiles")
         .update({ vehicles: [], primary_vehicle_id: null })
         .eq("id", user.id);
-      router.push("/setup/done" as any);
+      router.push("/setup/week" as any);
     } catch (err: any) {
       showToast({ title: "Couldn't save", message: err?.message ?? "Please try again.", type: "error" });
     } finally {
@@ -179,7 +192,7 @@ export default function GarageSetupScreen() {
         >
           <ArrowLeft size={22} color={COLORS.ink} />
         </TouchableOpacity>
-        <SetupProgress current={2} total={4} />
+        <SetupProgress current={2} total={5} />
         <View style={styles.backButton} />
       </View>
 

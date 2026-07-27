@@ -15,6 +15,7 @@ import * as Haptics from "expo-haptics";
 import { Home, Briefcase, ArrowRight } from "lucide-react-native";
 
 import { supabase } from "../../lib/supabase";
+import { useToast } from "../../contexts/ToastContext";
 import { parseVehicles, type Vehicle } from "../../lib/vehicles";
 import SetupProgress from "../../components/SetupProgress";
 
@@ -62,6 +63,7 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 
 export default function DoneScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [finishing, setFinishing] = useState(false);
   const [homeAddress, setHomeAddress] = useState<string>("");
@@ -126,18 +128,34 @@ export default function DoneScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         // Flip the first-run gate so we don't re-enter setup on next launch.
-        // Tolerate the column being absent — the resolver also tolerates that.
-        await supabase
+        // This used to swallow the result (`.then(noop, noop)`), so a failed
+        // write was indistinguishable from success and the user was marched
+        // through all 5 steps again on the next cold start. Now we surface it
+        // and let them retry. `42703` = column absent (pre-migration) — that
+        // one is genuinely tolerable, the resolver handles it.
+        const { error } = await supabase
           .from("profiles")
           .update({ commute_setup_done: true } as never)
-          .eq("id", user.id)
-          .then(() => undefined, () => undefined);
+          .eq("id", user.id);
+        if (error && error.code !== "42703") {
+          setFinishing(false);
+          showToast({
+            title: "Couldn't finish setup",
+            message: "Check your connection and tap again — your answers are saved.",
+            type: "error",
+          });
+          return;
+        }
       }
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => undefined);
       router.replace("/(tabs)" as any);
     } catch {
-      // Even on error, send them to the Map — they can retry setup from Settings.
-      router.replace("/(tabs)" as any);
+      setFinishing(false);
+      showToast({
+        title: "Couldn't finish setup",
+        message: "Check your connection and tap again — your answers are saved.",
+        type: "error",
+      });
     }
   };
 
@@ -148,7 +166,7 @@ export default function DoneScreen() {
         style={StyleSheet.absoluteFill}
       />
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <SetupProgress current={3} total={4} />
+        <SetupProgress current={4} total={5} />
 
         <View style={styles.header}>
           <Text style={styles.heading} accessibilityRole="header">

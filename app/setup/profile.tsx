@@ -167,7 +167,7 @@ export default function ProfileSetupScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
-      <SetupProgress current={0} total={4} />
+      <SetupProgress current={0} total={5} />
 
       <KeyboardAvoidingView
         style={styles.flex}

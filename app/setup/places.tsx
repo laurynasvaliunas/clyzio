@@ -224,7 +224,7 @@ export default function PlacesScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
-      <SetupProgress current={1} total={4} />
+      <SetupProgress current={1} total={5} />
 
       <View style={styles.header}>
         <Text style={styles.heading} accessibilityRole="header">

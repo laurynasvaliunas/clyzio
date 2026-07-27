@@ -357,34 +357,10 @@ export default function SettingsScreen() {
           )}
         </View>
 
-        {/* Community Section — solo (no-company) users only */}
-        {isSolo && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Community</Text>
-
-            <View style={[styles.settingItem, { backgroundColor: TC.surface }]}>
-              <View style={[styles.iconBox, { backgroundColor: COLORS.primary + "20" }]}>
-                <Users size={20} color={COLORS.primary} />
-              </View>
-              <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={[styles.settingLabel, { color: TC.text, flex: 0 }]}>
-                  Share rides with the community
-                </Text>
-                <Text style={[styles.settingSub, { color: TC.textSecondary }]}>
-                  Let other independent Clyzio users see and match with your planned rides. You can turn this off anytime.
-                </Text>
-              </View>
-              <Switch
-                value={sharePublic}
-                onValueChange={handleToggleSharePublic}
-                disabled={shareSaving}
-                trackColor={{ false: COLORS.grayLight, true: COLORS.primary }}
-                thumbColor={COLORS.white}
-                accessibilityLabel="Share rides with the community"
-              />
-            </View>
-          </View>
-        )}
+        {/* The community/map-visibility toggle lives in the profile editor
+            (Profile tab → Privacy). It used to be duplicated here, and the two
+            controls overwrote each other: flipping it in Settings then saving
+            the profile silently reverted it. */}
 
         {/* Legal Section */}
         <View style={styles.section}>

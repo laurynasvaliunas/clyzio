@@ -26,5 +26,7 @@ export const getThemeColors = (isDark: boolean) => {
   };
 };
 
-export { brand, semantic, neutral, getPalette };
+// `export *` already re-exports brand/semantic/neutral/getPalette; the
+// explicit re-export alongside it was a duplicate (8 eslint import/export
+// errors).
 export * from './theme/tokens';
