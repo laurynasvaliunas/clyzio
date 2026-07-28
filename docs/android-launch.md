@@ -69,16 +69,30 @@ eas credentials --platform android
 ```
 It should now list an FCM V1 key.
 
-## Step 3 — Signing key + the fingerprint you need for deep links
+## Step 3 — Signing keys + the TWO fingerprints deep links need
 
-EAS generates and stores your upload keystore automatically on first build. To
-see it (and get the SHA-256 you need in Step 6):
+EAS generates and stores your upload keystore automatically **on first build**
+(so this step has nothing to show until Step 4 has run at least once).
 
+> **Important — you need two fingerprints, not one.** Google Play App Signing
+> is mandatory for new apps: you sign with your *upload key*, Google verifies
+> it, strips it, and **re-signs with their own app-signing key**. Phones that
+> installed from Play present *Google's* certificate. If `assetlinks.json` only
+> lists your upload key, App Links fail to verify for every real user — and it
+> looks identical to the file never having been hosted.
+
+**A — Upload key (EAS):**
 ```bash
 eas credentials --platform android
 ```
 → **production** → **Keystore: Manage everything needed to build your project**
 → copy the **SHA-256 Certificate Fingerprint** (format `AA:BB:CC:…`).
+
+**B — Play app signing key (Play Console):** available after your first upload —
+Play Console → **Test and release → Setup → App integrity** → *App signing key
+certificate* → copy its **SHA-256** fingerprint.
+
+List **both** in `assetlinks.json` (Step 6).
 
 > Keep this keystore. If you lose it you cannot ship updates to the same Play
 > listing. EAS stores it for you — don't opt into "local credentials" unless you
@@ -138,8 +152,8 @@ If push doesn't arrive, it's almost always Step 1 or 2.
 file is hosted at your domain root:
 
 1. Open `docs/well-known/assetlinks.json`.
-2. Replace `REPLACE_WITH_SHA256_FROM_eas_credentials` with the SHA-256 from
-   **Step 3**.
+2. Replace **both** placeholders with fingerprints A and B from **Step 3**
+   (upload key + Play app-signing key).
 3. Have it served at exactly:
    ```
    https://clyzio.com/.well-known/assetlinks.json

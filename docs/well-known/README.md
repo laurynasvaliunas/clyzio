@@ -21,14 +21,24 @@ Requirements:
 ## 2. `assetlinks.json`
 Serve at `https://clyzio.com/.well-known/assetlinks.json`, `Content-Type: application/json`.
 
-**Before hosting**, replace `REPLACE_WITH_SHA256_FROM_eas_credentials` with the
-release signing certificate's SHA-256 fingerprint:
+**Before hosting**, replace BOTH placeholders. You need **two** fingerprints —
+this is the single most common reason App Links silently fail to verify:
 
-```bash
-eas credentials --platform android
-# → select the production profile → "Keystore: Manage everything…"
-# → copy the SHA-256 Certificate Fingerprint (format AA:BB:CC:…)
-```
+Google Play App Signing is mandatory for new apps, so Google **re-signs** your
+app with their own key before distributing it. Phones that installed from Play
+therefore present *Google's* certificate, not your upload key. List both so
+links verify for internal installs AND Play installs.
+
+1. **Upload key** (only exists after your first Android build — EAS generates
+   the keystore then):
+   ```bash
+   eas credentials --platform android
+   # → production → "Keystore: Manage everything…"
+   # → copy the SHA-256 Certificate Fingerprint (format AA:BB:CC:…)
+   ```
+2. **Play app signing key** (available once a build has been uploaded):
+   Play Console → Test and release → Setup → **App integrity** →
+   *App signing key certificate* → copy the SHA-256 fingerprint.
 
 ## Verifying after deploy
 - iOS: `curl -sI https://clyzio.com/.well-known/apple-app-site-association` → 200 + `application/json`

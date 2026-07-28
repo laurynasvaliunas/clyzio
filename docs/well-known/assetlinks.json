@@ -4,7 +4,10 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.clyzio.app",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_SHA256_FROM_eas_credentials"]
+      "sha256_cert_fingerprints": [
+        "REPLACE_WITH_UPLOAD_KEY_SHA256_FROM_eas_credentials",
+        "REPLACE_WITH_PLAY_APP_SIGNING_SHA256_FROM_PLAY_CONSOLE"
+      ]
     }
   }
 ]
