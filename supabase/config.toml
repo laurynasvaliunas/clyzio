@@ -65,12 +65,6 @@ verify_jwt = true
 [functions.submit-trip-intent]
 verify_jwt = true
 
-[functions.driver-respond-to-matches]
-verify_jwt = true
-
-[functions.passenger-respond-to-match]
-verify_jwt = true
-
 [functions.ai-commute-planner]
 verify_jwt = true
 
@@ -79,3 +73,24 @@ verify_jwt = true
 
 [functions.ai-sustainability-report]
 verify_jwt = true
+
+# Declared explicitly — undeclared functions default to verify_jwt = true, which
+# would 401 the two public/server-to-server callers below (pre-launch audit S7).
+[functions.complete-trip]
+verify_jwt = true
+
+[functions.request-carpool]
+verify_jwt = true
+
+[functions.respond-to-match]
+verify_jwt = true
+
+[functions.transit-routes]
+verify_jwt = true
+
+[functions.welcome-self]
+verify_jwt = true
+
+# Public marketing form: gated by a honeypot + rate limiting, not a JWT.
+[functions.request-demo]
+verify_jwt = false

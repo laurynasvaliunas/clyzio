@@ -167,7 +167,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-notifications',
       {
-        icon: './assets/icon.png',
+        // Android renders the notification small-icon as a silhouette from the
+        // image's ALPHA channel. The 1024x1024 app icon is fully opaque, so it
+        // rendered as a solid white square in the status bar. This is a 96x96
+        // white-on-transparent version of the brand mark.
+        icon: './assets/notification-icon.png',
         color: '#00565A',
       },
     ],
