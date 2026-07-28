@@ -30,6 +30,8 @@ import {
   Navigation,
   MapPin,
   Pencil,
+  ArrowLeft,
+  X,
 } from "lucide-react-native";
 import { MAPBOX_TOKEN } from "../../lib/config";
 import { supabase } from "../../lib/supabase";
@@ -54,7 +56,7 @@ const COLORS = {
   gray: "#8B989C",      // ink-4
   grayLight: "#EDF1F2", // paper-2
   green: "#059669",     // leaf
-  orange: "#DC2626",    // clay
+  orange: "#D97706",    // amber
   red: "#DC2626",       // clay
 };
 
@@ -434,8 +436,13 @@ function PlannerAddressInput({ placeholder, value, onSelect, TC }: PlannerAddres
           autoCorrect={false}
         />
         {text.length > 0 && isFocused && (
-          <TouchableOpacity onPress={() => { setText(""); setResults([]); }}>
-            <Text style={{ color: COLORS.textMuted, fontSize: 16 }}>✕</Text>
+          <TouchableOpacity
+            onPress={() => { setText(""); setResults([]); }}
+            accessibilityRole="button"
+            accessibilityLabel="Clear address"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <X size={16} color={COLORS.textMuted} />
           </TouchableOpacity>
         )}
       </View>
@@ -642,16 +649,28 @@ export default function AIPlannerScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={[styles.backBtn, { backgroundColor: TC.surface }]}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <ArrowLeft size={20} color={TC.text} />
+        </TouchableOpacity>
         <View style={styles.headerLeft}>
-          <Text style={[styles.headerTitle, { color: TC.text }]}>My Personal Commute Coach</Text>
-          <Sparkles size={22} color={COLORS.primary} />
+          <Sparkles size={18} color={COLORS.primary} />
+          <Text style={[styles.headerTitle, { color: TC.text }]} numberOfLines={1}>
+            Commute coach
+          </Text>
         </View>
         <TouchableOpacity
           style={[styles.refreshBtn, { backgroundColor: TC.surface }]}
           onPress={handleRefresh}
           disabled={isLoadingCommute}
+          accessibilityRole="button"
+          accessibilityLabel="Refresh suggestions"
         >
-          <RefreshCw size={18} color={isLoadingCommute ? COLORS.gray : COLORS.primary} />
+          <RefreshCw size={18} color={isLoadingCommute ? COLORS.textMuted : COLORS.primary} />
         </TouchableOpacity>
       </View>
 
@@ -662,6 +681,8 @@ export default function AIPlannerScreen() {
           <TouchableOpacity
             style={styles.completionBanner}
             onPress={() => router.push("/settings/edit-profile")}
+            accessibilityRole="button"
+            accessibilityLabel="Set up your commute profile"
           >
             <AlertCircle size={20} color={COLORS.orange} />
             <View style={styles.completionText}>
@@ -699,9 +720,11 @@ export default function AIPlannerScreen() {
             <TouchableOpacity
               style={styles.planWithOtherBtn}
               onPress={handlePlanWithOther}
+              accessibilityRole="button"
+              accessibilityLabel="Plan with a custom transport mode"
             >
               <MapPin size={15} color={COLORS.primary} />
-              <Text style={styles.planWithOtherText}>Plan with custom mode →</Text>
+              <Text style={styles.planWithOtherText}>Plan with custom mode</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -839,8 +862,12 @@ export default function AIPlannerScreen() {
 
             {/* View all CTA */}
             {(carpoolResult?.ranked_matches?.length ?? 0) > 0 && (
-              <TouchableOpacity onPress={() => setShowCarpoolModal(true)}>
-                <Text style={styles.viewMatchesBtn}>View All Matches →</Text>
+              <TouchableOpacity
+                onPress={() => setShowCarpoolModal(true)}
+                accessibilityRole="button"
+                accessibilityLabel="View all carpool matches"
+              >
+                <Text style={styles.viewMatchesBtn}>View all matches</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -871,16 +898,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  headerLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 4 },
   headerTitle: {
     fontWeight: "700",
-    fontSize: 30,
-    lineHeight: 38,
-    letterSpacing: -0.4,
+    fontSize: 20,
     color: "#0B1A1F",
+    flexShrink: 1,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
   },
   refreshBtn: {
     width: 40,
@@ -896,7 +929,7 @@ const styles = StyleSheet.create({
 
   // Editable commute route card
   editableRouteCard: {
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
     marginBottom: 14,
     shadowColor: "#000",
@@ -991,14 +1024,14 @@ const styles = StyleSheet.create({
   skeletonLine: {
     height: 14,
     backgroundColor: COLORS.grayLight,
-    borderRadius: 7,
+    borderRadius: 8,
     width: "100%",
   },
 
   // Cards
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 26,
+    borderRadius: 24,
     padding: 20,
     marginBottom: 12,
     shadowColor: "#0B1A1F",
@@ -1037,7 +1070,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: 8,
     marginTop: 4,
   },
   difficultyText: { fontSize: 11, fontWeight: "600", textTransform: "capitalize" },
@@ -1159,7 +1192,7 @@ const styles = StyleSheet.create({
   routeDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: 8,
     backgroundColor: COLORS.primary,
   },
   routeSnapshotLine: {
@@ -1210,7 +1243,7 @@ const styles = StyleSheet.create({
 
   // Error
   errorCard: {
-    backgroundColor: "#FFF5F5",
+    backgroundColor: "#FEF2F2",
     borderRadius: 16,
     padding: 20,
     alignItems: "center",
@@ -1222,7 +1255,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
     backgroundColor: COLORS.primary,
-    borderRadius: 10,
+    borderRadius: 12,
   },
   retryText: { color: COLORS.white, fontWeight: "600" },
 
@@ -1282,7 +1315,7 @@ const styles = StyleSheet.create({
   matchPreviewAvatar: {
     width: 34,
     height: 34,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: "#E6F1F2",
     alignItems: "center",
     justifyContent: "center",
