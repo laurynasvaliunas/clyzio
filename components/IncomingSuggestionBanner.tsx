@@ -15,10 +15,11 @@ import { Avatar, toneFromKey } from "./ui/editorial";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",   // cyan
   dark: "#0B1A1F",      // ink
   green: "#059669",     // leaf
-  greenBg: "rgba(91,143,91,0.12)",
+  greenBg: "rgba(5,150,105,0.12)",
   white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
   textSecondary: "#5A6A6F", // ink-3
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",
-    color: COLORS.gray,
+    color: COLORS.textMuted,
   },
   acceptText: {
     fontWeight: "600",

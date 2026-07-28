@@ -17,8 +17,9 @@ import { useToast } from "../../contexts/ToastContext";
 
 // Brand Colors
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",  // Unified Cyan (Phase 27)
-  primaryDark: "#00565A",
+  primaryDark: "#003D40",
   accent: "#F59E0B",
   dark: "#003D40",
   light: "#E6F1F2",
@@ -275,7 +276,7 @@ export default function OnboardingScreen() {
 
         {/* Info Card */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>🏢 Why does this matter?</Text>
+          <Text style={styles.infoTitle}>Why does this matter?</Text>
           <Text style={styles.infoText}>
             Joining a department helps you connect with colleagues who share similar commutes. 
             You'll also compete on the department leaderboard!
@@ -325,12 +326,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     shadowColor: COLORS.primary,
     shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 16,
     elevation: 8,
   },
-  welcomeText: { fontSize: 16, color: COLORS.gray, marginBottom: 4 },
-  companyName: { fontSize: 32, fontWeight: "bold", color: COLORS.dark, marginBottom: 12 },
-  subtitle: { fontSize: 15, color: COLORS.gray, textAlign: "center", lineHeight: 22 },
+  welcomeText: { fontSize: 16, color: COLORS.textMuted, marginBottom: 4 },
+  companyName: { fontSize: 32, fontWeight: "700", color: COLORS.dark, marginBottom: 12 },
+  subtitle: { fontSize: 15, color: COLORS.textMuted, textAlign: "center", lineHeight: 22 },
   section: { marginBottom: 24 },
   sectionHeader: {
     flexDirection: "row",
@@ -338,7 +340,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 16,
   },
-  sectionTitle: { fontSize: 18, fontWeight: "bold", color: COLORS.dark },
+  sectionTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
   emptyDepts: {
     backgroundColor: COLORS.light,
     borderRadius: 16,
@@ -361,6 +363,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
     shadowColor: "#000",
     shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 2,
   },
@@ -390,7 +393,7 @@ const styles = StyleSheet.create({
     padding: 18,
     marginBottom: 32,
   },
-  infoTitle: { fontSize: 15, fontWeight: "bold", color: COLORS.dark, marginBottom: 8 },
+  infoTitle: { fontSize: 15, fontWeight: "700", color: COLORS.dark, marginBottom: 8 },
   infoText: { fontSize: 13, color: COLORS.dark, lineHeight: 20 },
   actions: { gap: 12 },
   continueButton: { borderRadius: 16, overflow: "hidden" },
@@ -400,8 +403,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  continueText: { color: COLORS.white, fontSize: 18, fontWeight: "bold" },
+  continueText: { color: COLORS.white, fontSize: 18, fontWeight: "700" },
   skipButton: { alignItems: "center", paddingVertical: 14 },
-  skipText: { color: COLORS.gray, fontSize: 15, fontWeight: "500" },
+  skipText: { color: COLORS.textMuted, fontSize: 15, fontWeight: "500" },
 });
 

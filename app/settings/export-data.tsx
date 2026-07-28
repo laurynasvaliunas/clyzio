@@ -22,7 +22,7 @@ const COLORS = {
   white: "#FFFFFF",
   gray: "#8B989C",
   textSecondary: "#5A6A6F",
-  border: "#E5E7EB",
+  border: "#EDF1F2",
   light: "#E6F1F2",
 };
 
@@ -99,7 +99,7 @@ export default function ExportDataScreen() {
           </View>
           <View style={styles.bulletRow}>
             <View style={styles.bullet} />
-            <Text style={styles.bulletText}>CO2 savings and sustainability data</Text>
+            <Text style={styles.bulletText}>CO₂ savings and sustainability data</Text>
           </View>
           <View style={styles.bulletRow}>
             <View style={styles.bullet} />
@@ -153,8 +153,8 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },

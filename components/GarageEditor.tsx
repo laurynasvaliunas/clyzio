@@ -17,6 +17,7 @@ import {
 } from "../lib/vehicles";
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",
   dark: "#003D40",
   gray: "#8B989C",
@@ -366,7 +367,7 @@ export default function GarageEditor({ vehicles, primaryVehicleId, onChange, onS
 }
 
 const styles = StyleSheet.create({
-  empty: { fontSize: 13, color: COLORS.gray, marginBottom: 12, lineHeight: 18 },
+  empty: { fontSize: 13, color: COLORS.textMuted, marginBottom: 12, lineHeight: 18 },
   card: {
     borderWidth: 1,
     borderColor: COLORS.grayLight,
@@ -389,12 +390,12 @@ const styles = StyleSheet.create({
   summaryEmoji: { fontSize: 24 },
   summaryName: { fontSize: 15, fontWeight: "700", color: COLORS.ink },
   summaryMetaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
-  summaryMeta: { fontSize: 12, color: COLORS.gray },
+  summaryMeta: { fontSize: 12, color: COLORS.textMuted },
   primaryPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(38,198,218,0.12)",
+    backgroundColor: "rgba(0,86,90,0.12)",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
@@ -420,10 +421,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(11,26,31,0.04)",
   },
   typeChipActive: { backgroundColor: COLORS.primary },
-  typeChipText: { fontSize: 12, color: COLORS.gray, fontWeight: "600" },
+  typeChipText: { fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },
   typeChipTextActive: { color: COLORS.ink },
   inputRow: { flexDirection: "row", gap: 12 },
-  label: { fontSize: 12, color: COLORS.gray, marginBottom: 6 },
+  label: { fontSize: 12, color: COLORS.textMuted, marginBottom: 6 },
   input: {
     borderWidth: 1,
     borderColor: COLORS.grayLight,
@@ -467,7 +468,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   primaryBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  primaryBtnText: { fontSize: 12, color: COLORS.gray },
+  primaryBtnText: { fontSize: 12, color: COLORS.textMuted },
   addBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -484,7 +485,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 12,
     lineHeight: 16,
   },

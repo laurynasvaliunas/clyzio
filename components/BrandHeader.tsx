@@ -82,13 +82,15 @@ export default function BrandHeader({ userName = "", userAvatar, dateLabel }: Br
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    top: 56,
+    // `top` is set inline from useSafeAreaInsets — see the render.
     left: 0,
     right: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    // 16 matches every floating card on the Map (CommuteHomeCard, the
+    // AI chip stack); it was 20, so the logo/avatar sat 4pt outside them.
+    paddingHorizontal: 16,
     zIndex: 50,
   },
   leftCluster: {
@@ -109,7 +111,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   dateChip: {
-    backgroundColor: "rgba(250,247,239,0.92)",
+    backgroundColor: "rgba(255,255,255,0.92)",
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 6,

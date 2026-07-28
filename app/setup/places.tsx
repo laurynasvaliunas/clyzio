@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(250,247,239,0.12)",
+    backgroundColor: "rgba(255,255,255,0.12)",
   },
   promptDenyText: {
     color: COLORS.surface,

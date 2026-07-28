@@ -21,15 +21,16 @@ import {
 import { useManagerStore, TimePeriod } from "../../store/useManagerStore";
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",
-  primaryDark: "#00565A",
+  primaryDark: "#003D40",
   accent: "#F59E0B",
   dark: "#003D40",
   light: "#E6F1F2",
   background: "#F7F9FA",
   white: "#FFFFFF",
   gray: "#8B989C",
-  grayLight: "#F1F5F9",
+  grayLight: "#EDF1F2",
   green: "#059669",
   orange: "#D97706",
   red: "#DC2626",
@@ -114,7 +115,7 @@ export default function InsightsScreen() {
       {sustainabilityReport && !isLoadingReport && (
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
 
-          {/* CO2 Equivalents */}
+          {/* CO₂ Equivalents */}
           <LinearGradient colors={["#E6F1F2", "#CFE5E7"]} style={styles.equivCard}>
             <Text style={styles.equivTitle}>Impact Equivalents</Text>
             <View style={styles.equivRow}>
@@ -195,7 +196,7 @@ export default function InsightsScreen() {
                 <View style={styles.recMeta}>
                   <Leaf size={13} color={COLORS.green} />
                   <Text style={styles.recMetaText}>
-                    -{rec.expected_impact_kg_co2} kg CO2
+                    -{rec.expected_impact_kg_co2} kg CO₂
                   </Text>
                   <Clock size={13} color={COLORS.gray} />
                   <Text style={styles.recMetaText}>{rec.timeframe}</Text>
@@ -245,7 +246,7 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.white,
     alignItems: "center", justifyContent: "center",
   },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: COLORS.dark },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
 
   periodRow: {
     flexDirection: "row", paddingHorizontal: 16, gap: 8, marginBottom: 12,
@@ -256,32 +257,32 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "transparent",
   },
   periodBtnActive: { backgroundColor: COLORS.primary + "15", borderColor: COLORS.primary },
-  periodText: { fontSize: 13, color: COLORS.gray, fontWeight: "600" },
+  periodText: { fontSize: 13, color: COLORS.textMuted, fontWeight: "600" },
   periodTextActive: { color: COLORS.primary },
 
   loadingBox: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
-  loadingText: { fontSize: 14, color: COLORS.gray, textAlign: "center", paddingHorizontal: 32 },
+  loadingText: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", paddingHorizontal: 32 },
 
   emptyBox: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingHorizontal: 32 },
-  emptyText: { fontSize: 14, color: COLORS.gray, textAlign: "center" },
+  emptyText: { fontSize: 14, color: COLORS.textMuted, textAlign: "center" },
 
   scroll: { flex: 1, paddingHorizontal: 16 },
 
   equivCard: { borderRadius: 20, padding: 20, marginBottom: 14 },
-  equivTitle: { fontSize: 14, fontWeight: "bold", color: COLORS.dark, marginBottom: 14 },
+  equivTitle: { fontSize: 14, fontWeight: "700", color: COLORS.dark, marginBottom: 14 },
   equivRow: { flexDirection: "row", justifyContent: "space-around", marginBottom: 14 },
   equivItem: { alignItems: "center" },
   equivNum: { fontSize: 22, fontWeight: "900", color: COLORS.dark },
-  equivLabel: { fontSize: 11, color: COLORS.gray, marginTop: 2 },
+  equivLabel: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
   costRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   costText: { fontSize: 13, color: COLORS.dark },
-  costHighlight: { fontWeight: "bold", color: COLORS.green },
+  costHighlight: { fontWeight: "700", color: COLORS.green },
 
   section: {
     backgroundColor: COLORS.white, borderRadius: 18, padding: 18, marginBottom: 14,
-    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+    shadowColor: "#000", shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
   },
-  sectionTitle: { fontSize: 15, fontWeight: "bold", color: COLORS.dark, marginBottom: 12 },
+  sectionTitle: { fontSize: 15, fontWeight: "700", color: COLORS.dark, marginBottom: 12 },
   summaryText: { fontSize: 14, color: COLORS.dark, lineHeight: 22 },
   narrativeText: { fontSize: 13, color: COLORS.dark, lineHeight: 21 },
 
@@ -298,10 +299,10 @@ const styles = StyleSheet.create({
   effortText: { fontSize: 11, fontWeight: "600" },
   recAction: { fontSize: 14, fontWeight: "600", color: COLORS.dark, marginBottom: 8 },
   recMeta: { flexDirection: "row", alignItems: "center", gap: 6 },
-  recMetaText: { fontSize: 12, color: COLORS.gray },
+  recMetaText: { fontSize: 12, color: COLORS.textMuted },
 
   challengeSuggCard: { borderRadius: 18, padding: 18, marginBottom: 14 },
   challengeSuggLabel: { fontSize: 12, color: COLORS.orange, fontWeight: "600", marginBottom: 6 },
-  challengeSuggTitle: { fontSize: 16, fontWeight: "bold", color: COLORS.dark, marginBottom: 8 },
+  challengeSuggTitle: { fontSize: 16, fontWeight: "700", color: COLORS.dark, marginBottom: 8 },
   challengeSuggRationale: { fontSize: 13, color: COLORS.dark, lineHeight: 20 },
 });

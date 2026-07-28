@@ -67,13 +67,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     backgroundColor: COLORS.white,
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: COLORS.dark },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
   scroll: { flex: 1, paddingHorizontal: 16 },
 });

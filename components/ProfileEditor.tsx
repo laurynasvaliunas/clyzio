@@ -47,8 +47,9 @@ import GarageEditor from "./GarageEditor";
 
 // Brand Colors
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",
-  primaryDark: "#00565A",
+  primaryDark: "#003D40",
   accent: "#F59E0B",
   dark: "#003D40",
   light: "#E6F1F2",
@@ -56,7 +57,7 @@ const COLORS = {
   white: "#FFFFFF",
   gray: "#8B989C",
   inkSoft: "#5A6A6F",
-  grayLight: "#F1F5F9",
+  grayLight: "#EDF1F2",
 };
 
 interface ProfileData {
@@ -786,7 +787,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: COLORS.white,
   },
-  avatarHint: { fontSize: 13, color: COLORS.gray, marginTop: 12 },
+  avatarHint: { fontSize: 13, color: COLORS.textMuted, marginTop: 12 },
   section: {
     backgroundColor: COLORS.white,
     borderRadius: 24,
@@ -794,14 +795,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     shadowColor: "#000",
     shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 3,
   },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 },
-  sectionTitle: { fontSize: 16, fontWeight: "bold", color: COLORS.dark },
-  sectionSubtitle: { fontSize: 12, color: COLORS.gray, marginBottom: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.dark },
+  sectionSubtitle: { fontSize: 12, color: COLORS.textMuted, marginBottom: 16 },
   inputGroup: { marginBottom: 16 },
-  inputLabel: { fontSize: 12, color: COLORS.gray, marginBottom: 8, fontWeight: "500" },
+  inputLabel: { fontSize: 12, color: COLORS.textMuted, marginBottom: 8, fontWeight: "500" },
   input: {
     backgroundColor: COLORS.grayLight,
     borderRadius: 14,
@@ -834,7 +836,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     gap: 10,
   },
-  saveText: { color: COLORS.white, fontSize: 17, fontWeight: "bold" },
+  saveText: { color: COLORS.white, fontSize: 17, fontWeight: "700" },
   toggleRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -842,7 +844,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   toggleLabel: { fontSize: 15, fontWeight: "600", color: COLORS.dark, marginBottom: 2 },
-  toggleSub: { fontSize: 12, color: COLORS.gray, lineHeight: 16 },
+  toggleSub: { fontSize: 12, color: COLORS.textMuted, lineHeight: 16 },
   assuranceRow: {
     flexDirection: "row",
     alignItems: "center",

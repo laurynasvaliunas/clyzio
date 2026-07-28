@@ -7,6 +7,7 @@ import { supabase } from "../../lib/supabase";
 import { logger } from "../../lib/logger";
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",
   dark: "#003D40",
   gray: "#8B989C",
@@ -85,7 +86,7 @@ export default function PublicProfileScreen() {
               : <UserCircle size={96} color={COLORS.primary} />}
           </View>
           <Text style={styles.name}>{name}</Text>
-          {!!profile.department && <Text style={styles.dept}>📍 {profile.department}</Text>}
+          {!!profile.department && <Text style={styles.dept}>{profile.department}</Text>}
 
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
@@ -135,5 +136,5 @@ const styles = StyleSheet.create({
     alignItems: "center", gap: 6, borderWidth: 1, borderColor: COLORS.border,
   },
   statValue: { fontSize: 17, fontWeight: "700", color: COLORS.dark },
-  statLabel: { fontSize: 12, color: COLORS.gray },
+  statLabel: { fontSize: 12, color: COLORS.textMuted },
 });

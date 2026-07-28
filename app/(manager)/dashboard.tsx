@@ -26,15 +26,16 @@ import {
 import { useManagerStore } from "../../store/useManagerStore";
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",
-  primaryDark: "#00565A",
+  primaryDark: "#003D40",
   accent: "#F59E0B",
   dark: "#003D40",
   light: "#E6F1F2",
   background: "#F7F9FA",
   white: "#FFFFFF",
   gray: "#8B989C",
-  grayLight: "#F1F5F9",
+  grayLight: "#EDF1F2",
   green: "#059669",
   orange: "#D97706",
   red: "#DC2626",
@@ -132,7 +133,7 @@ export default function ManagerDashboardScreen() {
             <Text style={styles.statValue}>
               {companyStats ? `${companyStats.total_co2_saved.toFixed(0)} kg` : "—"}
             </Text>
-            <Text style={styles.statLabel}>CO2 Saved</Text>
+            <Text style={styles.statLabel}>CO₂ Saved</Text>
           </View>
           <View style={styles.statCard}>
             <Users size={20} color={COLORS.primary} />
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
   },
   headerCenter: { flexDirection: "row", alignItems: "center", gap: 8 },
-  headerTitle: { fontSize: 17, fontWeight: "bold", color: COLORS.dark },
+  headerTitle: { fontSize: 17, fontWeight: "700", color: COLORS.dark },
   scroll: { flex: 1, paddingHorizontal: 16 },
 
   // Hero
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
   gaugeLabel: { fontSize: 20, fontWeight: "600", marginTop: 24 },
   trendRow: {
     flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12,
-    backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 50,
+    backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 999,
     paddingHorizontal: 14, paddingVertical: 7,
   },
   trendText: { fontSize: 13, color: "rgba(255,255,255,0.9)", fontWeight: "600" },
@@ -356,26 +357,26 @@ const styles = StyleSheet.create({
     shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   statValue: { fontSize: 15, fontWeight: "800", color: COLORS.dark },
-  statLabel: { fontSize: 11, color: COLORS.gray, textAlign: "center" },
+  statLabel: { fontSize: 11, color: COLORS.textMuted, textAlign: "center" },
 
   // Section
   section: {
     backgroundColor: COLORS.white, borderRadius: 20, padding: 18,
     marginBottom: 14,
-    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+    shadowColor: "#000", shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
   },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 },
-  sectionTitle: { fontSize: 15, fontWeight: "bold", color: COLORS.dark },
+  sectionTitle: { fontSize: 15, fontWeight: "700", color: COLORS.dark },
 
   // AI report
   centeredRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
-  loadingText: { fontSize: 14, color: COLORS.gray },
+  loadingText: { fontSize: 14, color: COLORS.textMuted },
   generateBtn: { borderRadius: 28, overflow: "hidden" },
   generateGradient: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     paddingVertical: 14, gap: 8,
   },
-  generateText: { color: COLORS.white, fontWeight: "bold", fontSize: 14 },
+  generateText: { color: COLORS.white, fontWeight: "700", fontSize: 14 },
   executiveSummary: {
     fontSize: 14, color: COLORS.dark, lineHeight: 21,
     marginBottom: 14, fontStyle: "italic",
@@ -384,9 +385,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.grayLight, borderRadius: 14, padding: 14, marginBottom: 10,
     borderLeftWidth: 3, borderLeftColor: COLORS.gray,
   },
-  insightTitle: { fontSize: 13, fontWeight: "bold", color: COLORS.dark, marginBottom: 2 },
+  insightTitle: { fontSize: 13, fontWeight: "700", color: COLORS.dark, marginBottom: 2 },
   insightMetric: { fontSize: 13, color: COLORS.primary, fontWeight: "600", marginBottom: 4 },
-  insightDesc: { fontSize: 12, color: COLORS.gray, lineHeight: 17 },
+  insightDesc: { fontSize: 12, color: COLORS.textMuted, lineHeight: 17 },
   viewFullBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     paddingVertical: 10, gap: 4,
@@ -402,10 +403,10 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 8,
     backgroundColor: COLORS.light, alignItems: "center", justifyContent: "center",
   },
-  deptRankNum: { fontSize: 13, fontWeight: "bold", color: COLORS.primary },
+  deptRankNum: { fontSize: 13, fontWeight: "700", color: COLORS.primary },
   deptInfo: { flex: 1 },
   deptName: { fontSize: 14, fontWeight: "600", color: COLORS.dark },
-  deptStat: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  deptStat: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
 
   // Challenges
   manageText: { fontSize: 13, color: COLORS.primary, fontWeight: "600" },
@@ -413,7 +414,7 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 10,
     backgroundColor: COLORS.grayLight, borderRadius: 14, padding: 14,
   },
-  createChallengeText: { fontSize: 14, color: COLORS.gray },
+  createChallengeText: { fontSize: 14, color: COLORS.textMuted },
   challengeCard: {
     backgroundColor: COLORS.grayLight, borderRadius: 14, padding: 14, marginBottom: 10,
   },
@@ -421,8 +422,8 @@ const styles = StyleSheet.create({
   challengeProgress: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
   progressBg: { flex: 1, height: 6, backgroundColor: COLORS.white, borderRadius: 3, overflow: "hidden" },
   progressFill: { height: 6, backgroundColor: COLORS.primary, borderRadius: 3 },
-  progressPct: { fontSize: 12, fontWeight: "bold", color: COLORS.primary, width: 36 },
-  challengeReward: { fontSize: 12, color: COLORS.gray },
+  progressPct: { fontSize: 12, fontWeight: "700", color: COLORS.primary, width: 36 },
+  challengeReward: { fontSize: 12, color: COLORS.textMuted },
 
   // Export
   exportBtn: {

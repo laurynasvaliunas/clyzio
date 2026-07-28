@@ -40,6 +40,7 @@ if (IS_MAPBOX_TOKEN_VALID) {
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 // Keys preserved so every COLORS.* reference in this screen restyles in place.
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",   // cyan
   accent: "#F59E0B",    // sun (dialed-down ochre)
   white: "#FFFFFF",     // ivory card surface
@@ -300,11 +301,11 @@ function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = fal
             {match.profiles?.first_name} {match.profiles?.last_name}
           </Text>
           {!!match.profiles?.department && (
-            <Text style={styles.matchDept}>📍 {match.profiles?.department}</Text>
+            <Text style={styles.matchDept}>{match.profiles?.department}</Text>
           )}
           <View style={styles.matchRoleBadge}>
             <Text style={styles.matchRoleText}>
-              {searchMode === 'rider' ? '🚗 Driver' : '🙋 Looking for ride'}
+              {searchMode === 'rider' ? 'Driver' : 'Looking for a ride'}
             </Text>
           </View>
         </View>
@@ -348,7 +349,7 @@ function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = fal
             <ActivityIndicator size="small" color={COLORS.white} />
           ) : (
             <Text style={styles.requestBtnText}>
-              {searchMode === 'rider' ? '🚗 Request Ride' : '🙋 Offer Pickup'}
+              {searchMode === 'rider' ? 'Request ride' : 'Offer pickup'}
             </Text>
           )}
         </TouchableOpacity>
@@ -408,7 +409,7 @@ function IntentPeerCard({
           </Text>
           <View style={styles.matchRoleBadge}>
             <Text style={styles.matchRoleText}>
-              {isDriver ? '🚗 Offers to drive tomorrow' : '🙋 Needs a ride tomorrow'}
+              {isDriver ? 'Offers to drive tomorrow' : 'Needs a ride tomorrow'}
               {time ? ` · ~${time}` : ''}
             </Text>
           </View>
@@ -437,7 +438,7 @@ function IntentPeerCard({
             <ActivityIndicator size="small" color={COLORS.white} />
           ) : (
             <Text style={styles.requestBtnText}>
-              {isDriver ? '🚗 Ask to ride along' : '🙋 Offer a pickup'}
+              {isDriver ? 'Ask to ride along' : 'Offer a pickup'}
             </Text>
           )}
         </TouchableOpacity>
@@ -1358,7 +1359,7 @@ export default function MapScreen() {
         <Text style={{ fontSize: 16, fontWeight: '600', color: COLORS.dark, marginBottom: 8 }}>
           Map unavailable
         </Text>
-        <Text style={{ fontSize: 13, color: COLORS.gray, textAlign: 'center' }}>
+        <Text style={{ fontSize: 13, color: COLORS.textMuted, textAlign: 'center' }}>
           We couldn&apos;t load the map. Please reinstall the latest version of Clyzio or contact support at info@clyzio.com.
         </Text>
       </View>
@@ -1758,7 +1759,7 @@ export default function MapScreen() {
             setShowCarpoolModal(true);
           }}
         >
-          <Text style={styles.aiMatchBtnText}>✨ AI Match</Text>
+          <Text style={styles.aiMatchBtnText}>AI match</Text>
         </TouchableOpacity>
       )}
 
@@ -1832,7 +1833,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 28,
-    shadowColor: "#003040",
+    shadowColor: "#0B1A1F",
     shadowOpacity: 0.18,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
@@ -1882,7 +1883,7 @@ const styles = StyleSheet.create({
     color: COLORS.black,
   },
   activeTripSubtitle: {
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 4,
     fontSize: 13,
   },
@@ -1949,7 +1950,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(38,198,218,0.12)",
+    backgroundColor: "rgba(0,86,90,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1984,11 +1985,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     shadowColor: COLORS.black,
     shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
     elevation: 6,
   },
   myLocationBtnDark: {
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#0B1A1F",
   },
   myLocationBtnText: {
     fontSize: 22,
@@ -2012,8 +2014,8 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: COLORS.white,
     shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+   
+    shadowOpacity: 0.3, shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 5,
   },
@@ -2031,8 +2033,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white,
     backgroundColor: "#E6F1F2",
     shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+   
+    shadowOpacity: 0.3, shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 5,
   },
@@ -2070,7 +2072,7 @@ const styles = StyleSheet.create({
   },
   intentApproxNote: {
     fontSize: 11,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 6,
   },
 
@@ -2089,13 +2091,14 @@ const styles = StyleSheet.create({
     maxHeight: "72%",
     shadowColor: COLORS.black,
     shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 20,
     elevation: 15,
   },
   matchHandle: {
     width: 40,
     height: 5,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: "#EDF1F2",
     borderRadius: 3,
     alignSelf: "center",
     marginBottom: 16,
@@ -2128,12 +2131,12 @@ const styles = StyleSheet.create({
   },
   matchName: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: COLORS.dark,
   },
   matchDept: {
     fontSize: 13,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 4,
   },
   matchRoleBadge: {
@@ -2159,7 +2162,7 @@ const styles = StyleSheet.create({
   },
   matchClose: {
     fontSize: 20,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     fontWeight: "400",
   },
   matchRouteContainer: {
@@ -2170,7 +2173,7 @@ const styles = StyleSheet.create({
   },
   matchRouteLabel: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     fontWeight: "600",
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -2231,7 +2234,7 @@ const styles = StyleSheet.create({
   requestBtnText: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   viewProfileBtn: {
     backgroundColor: COLORS.white,
@@ -2270,6 +2273,7 @@ const styles = StyleSheet.create({
     width: "100%",
     shadowColor: COLORS.black,
     shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 20,
     elevation: 15,
   },
@@ -2284,14 +2288,14 @@ const styles = StyleSheet.create({
   },
   searchingTitle: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: COLORS.dark,
     marginBottom: 12,
     textAlign: "center",
   },
   searchingMessage: {
     fontSize: 15,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     textAlign: "center",
     lineHeight: 22,
     paddingHorizontal: 20,
@@ -2305,7 +2309,7 @@ const styles = StyleSheet.create({
   },
   matchCountText: {
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: COLORS.green,
   },
   searchingActions: {
@@ -2324,7 +2328,7 @@ const styles = StyleSheet.create({
   cancelSearchBtnText: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   viewMatchesBtn: {
     backgroundColor: COLORS.primary,
@@ -2340,7 +2344,7 @@ const styles = StyleSheet.create({
   viewMatchesBtnText: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
 
   // ===== AI MATCH BUTTON =====
@@ -2354,6 +2358,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     shadowColor: COLORS.black,
     shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 6,
   },

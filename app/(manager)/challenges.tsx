@@ -17,19 +17,20 @@ import { useManagerStore, NewChallenge } from "../../store/useManagerStore";
 import { useToast } from "../../contexts/ToastContext";
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",
-  primaryDark: "#00565A",
+  primaryDark: "#003D40",
   accent: "#F59E0B",
   dark: "#003D40",
   background: "#F7F9FA",
   white: "#FFFFFF",
   gray: "#8B989C",
-  grayLight: "#F1F5F9",
+  grayLight: "#EDF1F2",
   green: "#059669",
 };
 
 const CHALLENGE_TYPES = [
-  { value: "co2_reduction", label: "CO2 Reduction" },
+  { value: "co2_reduction", label: "CO₂ Reduction" },
   { value: "carpool_days", label: "Carpool Days" },
   { value: "green_trips", label: "Green Trips" },
   { value: "distance", label: "Distance (km)" },
@@ -278,7 +279,7 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.white,
     alignItems: "center", justifyContent: "center",
   },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: COLORS.dark },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
   addBtn: {
     width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.white,
     alignItems: "center", justifyContent: "center",
@@ -287,27 +288,27 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, paddingHorizontal: 16 },
 
   emptyBox: { alignItems: "center", paddingVertical: 60, gap: 12 },
-  emptyTitle: { fontSize: 17, fontWeight: "bold", color: COLORS.dark },
-  emptyText: { fontSize: 14, color: COLORS.gray, textAlign: "center", paddingHorizontal: 24 },
+  emptyTitle: { fontSize: 17, fontWeight: "700", color: COLORS.dark },
+  emptyText: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", paddingHorizontal: 24 },
   createFirstBtn: { borderRadius: 14, overflow: "hidden", marginTop: 8 },
   createFirstGradient: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     paddingVertical: 14, paddingHorizontal: 28, gap: 8,
   },
-  createFirstText: { color: COLORS.white, fontWeight: "bold" },
+  createFirstText: { color: COLORS.white, fontWeight: "700" },
 
   challengeCard: {
     backgroundColor: COLORS.white, borderRadius: 18, padding: 16, marginBottom: 12,
-    shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, elevation: 3,
+    shadowColor: "#000", shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 3,
   },
   challengeHeader: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     marginBottom: 8,
   },
   challengeInfo: { flex: 1 },
-  challengeTitle: { fontSize: 15, fontWeight: "bold", color: COLORS.dark },
+  challengeTitle: { fontSize: 15, fontWeight: "700", color: COLORS.dark },
   challengeType: { fontSize: 12, color: COLORS.primary, fontWeight: "600", marginTop: 2 },
-  challengeDesc: { fontSize: 13, color: COLORS.gray, marginBottom: 10 },
+  challengeDesc: { fontSize: 13, color: COLORS.textMuted, marginBottom: 10 },
   progressRow: {
     flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8,
   },
@@ -315,9 +316,9 @@ const styles = StyleSheet.create({
     flex: 1, height: 6, backgroundColor: COLORS.grayLight, borderRadius: 3, overflow: "hidden",
   },
   progressFill: { height: 6, backgroundColor: COLORS.primary, borderRadius: 3 },
-  progressPct: { fontSize: 12, fontWeight: "bold", color: COLORS.primary, width: 36 },
+  progressPct: { fontSize: 12, fontWeight: "700", color: COLORS.primary, width: 36 },
   challengeMeta: { flexDirection: "row", justifyContent: "space-between" },
-  challengeMetaText: { fontSize: 12, color: COLORS.gray },
+  challengeMetaText: { fontSize: 12, color: COLORS.textMuted },
 
   // Modal
   modalContainer: { flex: 1, backgroundColor: COLORS.background },
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: COLORS.grayLight,
     backgroundColor: COLORS.white,
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", color: COLORS.dark },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
   modalScroll: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
 
   fieldLabel: {
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.grayLight,
   },
   typeBtnActive: { backgroundColor: COLORS.primary + "15", borderColor: COLORS.primary },
-  typeText: { fontSize: 13, color: COLORS.gray },
+  typeText: { fontSize: 13, color: COLORS.textMuted },
   typeTextActive: { color: COLORS.primary, fontWeight: "600" },
 
   saveBtn: { borderRadius: 14, overflow: "hidden", marginTop: 8 },
@@ -356,5 +357,5 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     paddingVertical: 16,
   },
-  saveBtnText: { color: COLORS.white, fontWeight: "bold", fontSize: 16 },
+  saveBtnText: { color: COLORS.white, fontWeight: "700", fontSize: 16 },
 });

@@ -15,14 +15,15 @@ import { useManagerStore, TimePeriod } from "../../store/useManagerStore";
 import { useToast } from "../../contexts/ToastContext";
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",
-  primaryDark: "#00565A",
+  primaryDark: "#003D40",
   accent: "#F59E0B",
   dark: "#003D40",
   background: "#F7F9FA",
   white: "#FFFFFF",
   gray: "#8B989C",
-  grayLight: "#F1F5F9",
+  grayLight: "#EDF1F2",
   green: "#059669",
 };
 
@@ -58,10 +59,10 @@ KEY INSIGHTS
 ${report.top_insights.map((i, n) => `${n + 1}. ${i.title}\n   ${i.metric}\n   ${i.description}`).join("\n\n")}
 
 DEPARTMENT RANKINGS
-${report.department_rankings.map((d, n) => `${n + 1}. ${d.dept_name}: ${d.co2_saved.toFixed(1)} kg CO2 saved (${d.employee_count} employees)`).join("\n")}
+${report.department_rankings.map((d, n) => `${n + 1}. ${d.dept_name}: ${d.co2_saved.toFixed(1)} kg CO₂ saved (${d.employee_count} employees)`).join("\n")}
 
 RECOMMENDATIONS
-${report.recommendations.map((r, n) => `${n + 1}. [${r.esg_pillar}] ${r.action}\n   Impact: -${r.expected_impact_kg_co2} kg CO2 | Effort: ${r.effort} | Timeframe: ${r.timeframe}`).join("\n\n")}
+${report.recommendations.map((r, n) => `${n + 1}. [${r.esg_pillar}] ${r.action}\n   Impact: -${r.expected_impact_kg_co2} kg CO₂ | Effort: ${r.effort} | Timeframe: ${r.timeframe}`).join("\n\n")}
 
 ESG NARRATIVE
 ${report.esg_narrative}
@@ -213,7 +214,7 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.white,
     alignItems: "center", justifyContent: "center",
   },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: COLORS.dark },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
   scroll: { flex: 1, paddingHorizontal: 16 },
 
   periodRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
@@ -223,18 +224,18 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "transparent",
   },
   periodBtnActive: { backgroundColor: COLORS.primary + "15", borderColor: COLORS.primary },
-  periodText: { fontSize: 12, color: COLORS.gray, fontWeight: "600" },
+  periodText: { fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },
   periodTextActive: { color: COLORS.primary },
 
   generateBtn: { borderRadius: 14, overflow: "hidden", marginBottom: 16 },
   generateGradient: { alignItems: "center", justifyContent: "center", paddingVertical: 14 },
-  generateText: { color: COLORS.white, fontWeight: "bold", fontSize: 15 },
+  generateText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
 
   previewCard: {
     backgroundColor: COLORS.white, borderRadius: 18, padding: 16, marginBottom: 14,
-    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+    shadowColor: "#000", shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
   },
-  previewLabel: { fontSize: 13, fontWeight: "600", color: COLORS.gray, marginBottom: 10 },
+  previewLabel: { fontSize: 13, fontWeight: "600", color: COLORS.textMuted, marginBottom: 10 },
   previewText: { fontSize: 11, color: COLORS.dark, lineHeight: 17, fontFamily: "monospace" },
 
   actionBtn: {
@@ -243,12 +244,12 @@ const styles = StyleSheet.create({
     gap: 8, marginBottom: 10,
   },
   copyBtn: { backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.primary + "40" },
-  actionBtnText: { fontSize: 15, fontWeight: "bold", color: COLORS.white },
+  actionBtnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
 
   emptyBox: {
     alignItems: "center", paddingVertical: 60, gap: 12,
   },
   emptyText: {
-    fontSize: 14, color: COLORS.gray, textAlign: "center", paddingHorizontal: 24,
+    fontSize: 14, color: COLORS.textMuted, textAlign: "center", paddingHorizontal: 24,
   },
 });

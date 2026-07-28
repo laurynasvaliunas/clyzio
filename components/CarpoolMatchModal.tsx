@@ -16,8 +16,9 @@ import { Avatar, toneFromKey } from "./ui/editorial";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",   // cyan
-  primaryDark: "#00565A",// teal-2
+  primaryDark: "#003D40",// teal-2
   accent: "#F59E0B",    // sun
   dark: "#003D40",      // teal
   light: "#E6F1F2",     // cyan-fog
@@ -101,7 +102,7 @@ export default function CarpoolMatchModal({
         <View style={styles.matchStat}>
           <Leaf size={13} color={COLORS.green} />
           <Text style={styles.matchStatText}>
-            -{item.co2_saving_kg.toFixed(2)} kg CO2
+            -{item.co2_saving_kg.toFixed(2)} kg CO₂
           </Text>
         </View>
         <View style={styles.matchStat}>
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
   },
 
   loadingBox: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
-  loadingText: { fontSize: 15, color: COLORS.gray },
+  loadingText: { fontSize: 15, color: COLORS.textMuted },
   retryBtn: {
     marginTop: 16,
     backgroundColor: COLORS.primary,
@@ -228,8 +229,8 @@ const styles = StyleSheet.create({
   retryBtnText: { color: COLORS.white, fontSize: 15, fontWeight: "700" },
 
   emptyBox: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingHorizontal: 32 },
-  emptyTitle: { fontSize: 17, fontWeight: "bold", color: COLORS.dark },
-  emptyText: { fontSize: 14, color: COLORS.gray, textAlign: "center", lineHeight: 20 },
+  emptyTitle: { fontSize: 17, fontWeight: "700", color: COLORS.dark },
+  emptyText: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", lineHeight: 20 },
 
   summaryBanner: {
     margin: 16,
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
   },
   matchInfo: { flex: 1 },
   matchName: { fontWeight: "700", fontSize: 20, color: "#0B1A1F" },
-  matchReasoning: { fontSize: 12, color: COLORS.gray, marginTop: 2, lineHeight: 16 },
+  matchReasoning: { fontSize: 12, color: COLORS.textMuted, marginTop: 2, lineHeight: 16 },
   scoreBox: { alignItems: "center" },
   scoreText: { fontWeight: "700", fontSize: 24, color: COLORS.dark },
   scoreLabel: {
@@ -270,7 +271,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     letterSpacing: 0.6,
     textTransform: "uppercase",
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 2,
   },
 
@@ -289,7 +290,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 11,
     letterSpacing: 0.3,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
   },
 
   requestBtn: {

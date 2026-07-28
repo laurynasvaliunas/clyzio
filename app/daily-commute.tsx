@@ -29,6 +29,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { getThemeColors } from "../lib/theme";
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",
   primaryDark: "#003D40",
   accent: "#F59E0B",
@@ -824,7 +825,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#EDF1F2",
   },
   headerBtn: {
     width: 40,
@@ -872,7 +873,7 @@ const styles = StyleSheet.create({
   },
   stepSubtitle: {
     fontSize: 14,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginBottom: 8,
   },
   stepDescription: {
@@ -883,7 +884,7 @@ const styles = StyleSheet.create({
   },
   stepHint: {
     fontSize: 13,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     textAlign: "center",
     marginTop: 4,
   },
@@ -945,6 +946,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     shadowColor: "#000",
     shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 2,
   },
@@ -956,7 +958,7 @@ const styles = StyleSheet.create({
   },
   fieldHint: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 8,
   },
   stepper: {
@@ -1038,7 +1040,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
     borderWidth: 1.5,
-    borderColor: "#E5E7EB",
+    borderColor: "#EDF1F2",
   },
   matchCardAccepted: {
     borderColor: COLORS.primary,
@@ -1070,7 +1072,7 @@ const styles = StyleSheet.create({
   },
   matchReasoning: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 4,
     fontStyle: "italic",
     lineHeight: 16,
@@ -1080,7 +1082,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: "#D1D5DB",
+    borderColor: "#EDF1F2",
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 10,
@@ -1100,6 +1102,7 @@ const styles = StyleSheet.create({
     borderColor: "#CFE5E7",
     shadowColor: "#000",
     shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 2,
   },
@@ -1113,7 +1116,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderWidth: 1.5,
-    borderColor: "#E5E7EB",
+    borderColor: "#EDF1F2",
   },
   detourCardSelected: {
     borderColor: COLORS.primary,

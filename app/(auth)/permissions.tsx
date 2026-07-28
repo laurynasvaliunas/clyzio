@@ -42,6 +42,7 @@ async function routeOnward(): Promise<string> {
  */
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: '#00565A',
   primaryDark: '#00565A',
   accent: '#F59E0B',
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
     height: 6,
     width: 28,
     borderRadius: 3,
-    backgroundColor: 'rgba(38,198,218,0.18)',
+    backgroundColor: 'rgba(0,86,90,0.18)',
   },
   dotActive: {
     backgroundColor: COLORS.primary,
@@ -402,7 +403,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   skipAllBtnText: {
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     fontSize: 12,
     fontWeight: '500',
     textDecorationLine: 'underline',

@@ -16,14 +16,14 @@ import { MAPBOX_TOKEN } from "../lib/config";
 const COLORS = {
   primary: "#00565A",
   accent: "#F59E0B",
-  accentDark: "#F9A825",
+  accentDark: "#F59E0B",
   dark: "#003D40",
   white: "#FFFFFF",
   gray: "#8B989C",
-  grayLight: "#F1F5F9",
-  grayDark: "#334155",
-  slate800: "#1E293B",
-  slate700: "#334155",
+  grayLight: "#EDF1F2",
+  grayDark: "#5A6A6F",
+  slate800: "#0B1A1F",
+  slate700: "#5A6A6F",
   red: "#DC2626",
 };
 
@@ -265,6 +265,7 @@ const styles = StyleSheet.create({
     maxHeight: 250,
     shadowColor: "#000",
     shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 8,
   },

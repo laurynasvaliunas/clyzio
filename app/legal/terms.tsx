@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft } from "lucide-react-native";
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",
   primaryDark: "#003D40",
   dark: "#003D40",
@@ -13,7 +14,7 @@ const COLORS = {
   white: "#FFFFFF",
   gray: "#8B989C",
   textSecondary: "#5A6A6F",
-  border: "#E5E7EB",
+  border: "#EDF1F2",
 };
 
 const LAST_UPDATED = "24 March 2026";
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
   },
   headerCenter: { flex: 1, alignItems: "center" },
   headerTitle: { fontSize: 17, fontWeight: "700", color: COLORS.dark },
-  headerSub: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  headerSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
 
   scroll: { flex: 1 },
   scrollContent: { padding: 16 },
@@ -242,7 +243,7 @@ const styles = StyleSheet.create({
   introPill: {
     alignSelf: "flex-start",
     backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 50,
+    borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
@@ -275,5 +276,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 20,
   },
-  footerText: { fontSize: 12, color: COLORS.gray },
+  footerText: { fontSize: 12, color: COLORS.textMuted },
 });

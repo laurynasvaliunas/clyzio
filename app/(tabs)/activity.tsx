@@ -43,6 +43,7 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",   // cyan
   primaryDark: "#003D40",// teal
   accent: "#F59E0B",    // sun
@@ -188,7 +189,7 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel, completing 
         </TouchableOpacity>
         <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} disabled={completing}>
           <X size={16} color={completing ? COLORS.gray : COLORS.red} />
-          <Text style={[styles.cancelText, completing && { color: COLORS.gray }]}>Cancel</Text>
+          <Text style={[styles.cancelText, completing && { color: COLORS.textMuted }]}>Cancel</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -648,10 +649,11 @@ const styles = StyleSheet.create({
   tabSwitcher: {
     flexDirection: "row",
     backgroundColor: COLORS.white,
-    borderRadius: 50,
+    borderRadius: 999,
     padding: 4,
     shadowColor: COLORS.black,
     shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 3,
   },
@@ -660,7 +662,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
-    borderRadius: 50,
+    borderRadius: 999,
   },
   tabActive: {
     backgroundColor: COLORS.primary
@@ -668,7 +670,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 15,
     fontWeight: "600",
-    color: COLORS.gray
+    color: COLORS.textMuted
   },
   tabTextActive: {
     color: COLORS.white
@@ -706,7 +708,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.light,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 50,
+    borderRadius: 999,
     marginBottom: 10,
   },
   dateBadgeText: {
@@ -722,12 +724,12 @@ const styles = StyleSheet.create({
   },
   cardTime: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: COLORS.dark
   },
   cardDay: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 2
   },
   cardCenter: {
@@ -754,7 +756,7 @@ const styles = StyleSheet.create({
   routeDotLine: {
     width: 2,
     flex: 1,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#EDF1F2",
     marginVertical: 3,
     minHeight: 14,
   },
@@ -794,7 +796,7 @@ const styles = StyleSheet.create({
   },
   transportMode: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 4,
     fontWeight: "500"
   },
@@ -846,7 +848,7 @@ const styles = StyleSheet.create({
   },
   roleBadgeText: {
     fontSize: 11,
-    fontWeight: "bold"
+    fontWeight: "700"
   },
   completeBtn: {
     flex: 1,
@@ -884,7 +886,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    borderTopColor: "#EDF1F2",
   },
 
   // Partner row
@@ -895,7 +897,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    borderTopColor: "#EDF1F2",
   },
   partnerAvatar: {
     width: 30,
@@ -941,12 +943,12 @@ const styles = StyleSheet.create({
   },
   historyRoute: {
     fontSize: 13,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 2
   },
   textCancelled: {
     textDecorationLine: "line-through",
-    color: COLORS.gray
+    color: COLORS.textMuted
   },
   statusRow: {
     flexDirection: "row",
@@ -965,7 +967,7 @@ const styles = StyleSheet.create({
   },
   transportModeSmall: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     fontWeight: "400"
   },
   historyRight: {
@@ -983,7 +985,7 @@ const styles = StyleSheet.create({
   },
   co2Text: {
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: COLORS.green
   },
   
@@ -997,7 +999,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: 999,
     backgroundColor: COLORS.light,
     alignItems: "center",
     justifyContent: "center",
@@ -1005,13 +1007,13 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { 
     fontSize: 20, 
-    fontWeight: "bold", 
+    fontWeight: "700", 
     color: COLORS.dark, 
     marginBottom: 8 
   },
   emptySubtitle: { 
     fontSize: 14, 
-    color: COLORS.gray, 
+    color: COLORS.textMuted, 
     textAlign: "center", 
     lineHeight: 22 
   },
@@ -1025,7 +1027,7 @@ const styles = StyleSheet.create({
   emptyButtonText: { 
     color: COLORS.white, 
     fontSize: 16, 
-    fontWeight: "bold" 
+    fontWeight: "700" 
   },
 });
 

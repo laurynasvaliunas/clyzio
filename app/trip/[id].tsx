@@ -258,7 +258,7 @@ export default function TripScreen() {
     return R * c;
   };
 
-  // 1.5 — Award current user's XP / CO2 / badges via the `complete-trip` edge
+  // 1.5 — Award current user's XP / CO₂ / badges via the `complete-trip` edge
   // function. Audit C2: profile counters are protected against direct client
   // writes by migration 018; this server path is the only legitimate writer.
   //
@@ -625,7 +625,7 @@ export default function TripScreen() {
               </View>
             </View>
 
-            {/* CO2 Savings Badge — carpool splits the saving 50/50, so show each
+            {/* CO₂ Savings Badge — carpool splits the saving 50/50, so show each
                 person's share here (matches what completion credits). */}
             <View style={styles.co2Badge}>
               <Text style={styles.co2BadgeText}>
@@ -672,7 +672,7 @@ export default function TripScreen() {
           {(ride.status === "completed" || ride.status === "cancelled") && (
             <View style={styles.completedSummary}>
               <Text style={styles.completedTitle}>
-                {ride.status === "completed" ? "Trip Completed ✅" : "Trip Cancelled"}
+                {ride.status === "completed" ? "Trip completed" : "Trip Cancelled"}
               </Text>
               {ride.status === "completed" && (
                 <View style={styles.summaryRow}>
@@ -765,7 +765,7 @@ export default function TripScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.safetyModal}>
-            <Text style={styles.safetyModalTitle}>Safety Toolkit 🛡️</Text>
+            <Text style={styles.safetyModalTitle}>Safety toolkit</Text>
             
             <TouchableOpacity style={styles.safetyOption} onPress={handleShareRide}>
               <AlertTriangle size={20} color={COLORS.blue} />
@@ -799,7 +799,7 @@ export default function TripScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.arrivalModal}>
-            <Text style={styles.arrivalTitle}>You&apos;ve arrived! 🎉</Text>
+            <Text style={styles.arrivalTitle}>You&apos;ve arrived</Text>
             <Text style={styles.arrivalSubtitle}>
               {isSoloTrip || isDriver
                 ? `CO₂ Saved: ${ride.co2_saved.toFixed(2)} kg`
@@ -897,6 +897,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     shadowColor: "#000",
     shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 4,
   },
@@ -914,6 +915,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     shadowColor: "#000",
     shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 4,
   },
@@ -979,6 +981,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     shadowColor: COLORS.primary,
     shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 4,
   },
@@ -1145,6 +1148,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     shadowColor: "#000",
     shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
   },

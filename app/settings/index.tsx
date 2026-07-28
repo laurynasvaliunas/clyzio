@@ -33,14 +33,15 @@ import {
 import { supabase } from "../../lib/supabase";
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",  // Unified Cyan (Phase 27)
-  primaryDark: "#00565A",
+  primaryDark: "#003D40",
   accent: "#F59E0B",
   dark: "#003D40",
   background: "#F7F9FA",
   white: "#FFFFFF",
   gray: "#8B989C",
-  grayLight: "#F1F5F9",
+  grayLight: "#EDF1F2",
   red: "#DC2626",
   green: "#059669",
 };
@@ -412,7 +413,7 @@ export default function SettingsScreen() {
         {/* App Version */}
         <View style={styles.versionContainer}>
           <Text style={[styles.versionText, { color: TC.textSecondary }]}>Clyzio v1.0.0</Text>
-          <Text style={[styles.versionSubtext, { color: TC.textSecondary }]}>Made with 🌱 for a greener future</Text>
+          <Text style={[styles.versionSubtext, { color: TC.textSecondary }]}>Built for a greener commute</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -435,8 +436,8 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.grayLight,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -458,7 +459,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     textTransform: "uppercase",
     marginBottom: 12,
     letterSpacing: 0.5,
@@ -495,7 +496,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     marginTop: 3,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
   },
   dangerItem: {
     borderWidth: 1,
@@ -508,11 +509,11 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 14,
     fontWeight: "600",
-    color: COLORS.gray,
+    color: COLORS.textMuted,
   },
   versionSubtext: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 4,
   },
 });

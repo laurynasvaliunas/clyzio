@@ -366,7 +366,7 @@ function RootLayoutContent() {
     };
   }, [isAuthenticated]);
 
-  // On sign-in: seed the CO2 baseline from the user's car fuel type, backfill
+  // On sign-in: seed the CO₂ baseline from the user's car fuel type, backfill
   // any signup consent captured in user_metadata (needed when email
   // confirmation defers the session past signup), and fire the one-time branded
   // welcome email (idempotent server-side via profiles.welcomed_at).
@@ -687,7 +687,7 @@ const splashStyles = StyleSheet.create({
     height: 140,
     borderRadius: 32,
     // Subtle drop shadow on iOS so the white O reads against the cyan halo.
-    shadowColor: "#003040",
+    shadowColor: "#0B1A1F",
     shadowOpacity: 0.18,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },

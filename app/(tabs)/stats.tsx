@@ -41,10 +41,11 @@ import { getLevelInfo, XP_PER_TRIP, TRIPS_PER_LEVEL, MAX_LEVEL, LEVEL_TITLES } f
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",   // cyan
-  primaryDark: "#00565A",// teal-2
+  primaryDark: "#003D40",// teal-2
   accent: "#F59E0B",    // sun
-  accentDark: "#DC2626",// clay
+  accentDark: "#D97706",// clay
   dark: "#003D40",      // teal
   light: "#E6F1F2",     // cyan-fog
   background: "#F7F9FA",// paper
@@ -64,7 +65,7 @@ const BADGES = [
   { id: "first_carpool", name: "Carpool King", desc: "Share your first ride", icon: Car, color: COLORS.primary },
   { id: "walker_5", name: "Walking Warrior", desc: "Walk 5 trips", icon: Footprints, color: "#059669" },
   { id: "trips_10", name: "Road Regular", desc: "Complete 10 trips", icon: Zap, color: "#D97706" },
-  { id: "co2_50", name: "CO2 Crusher", desc: "Save 50kg CO2", icon: Leaf, color: "#059669" },
+  { id: "co2_50", name: "CO₂ Crusher", desc: "Save 50kg CO2", icon: Leaf, color: "#059669" },
   { id: "co2_100", name: "Planet Protector", desc: "Save 100kg CO2", icon: TreeDeciduous, color: "#059669" },
 ];
 
@@ -415,7 +416,7 @@ export default function StatsScreen() {
     }, [loadStats])
   );
 
-  // Animate tree scale based on CO2 saved
+  // Animate tree scale based on CO₂ saved
   useEffect(() => {
     const trees = stats.total_co2_saved / CO2_PER_TREE;
     Animated.spring(treeScale, { 
@@ -584,7 +585,7 @@ export default function StatsScreen() {
           </View>
         )}
 
-        {/* Hero CO2 Card */}
+        {/* Hero CO₂ Card */}
         <View style={styles.heroContainer}>
           <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.heroCard}>
             <View style={styles.heroTop}>
@@ -600,7 +601,7 @@ export default function StatsScreen() {
 
             <View style={styles.treesProgress}>
               <View style={styles.treesInfo}>
-                <Text style={styles.treesLabel}>🌳 Trees Equivalent</Text>
+                <Text style={styles.treesLabel}>Trees equivalent</Text>
                 <Text style={styles.treesValue}>{treesPlanted}</Text>
               </View>
               <View style={styles.treeProgressBarBg}>
@@ -708,7 +709,7 @@ export default function StatsScreen() {
             </View>
             <Text style={[styles.impactMotivation, { color: TC.textSecondary }]}>
               {myCompanyRank > 0 && myCompanyRank <= 3
-                ? "You're leading the way 🏆 — keep it up!"
+                ? "You're leading the way — keep it up"
                 : `Every shared ride lifts ${companyTotals.company_name} higher. →`}
             </Text>
           </TouchableOpacity>
@@ -716,7 +717,7 @@ export default function StatsScreen() {
 
         {/* Weekly Chart */}
         <View style={[styles.chartCard, { backgroundColor: TC.surface }]}>
-          <Text style={[styles.chartTitle, { color: TC.text }]}>📊 Weekly Comparison</Text>
+          <Text style={[styles.chartTitle, { color: TC.text }]}>Weekly comparison</Text>
           <View style={styles.chartContainer}>
             <View style={styles.chartBar}>
               <Text style={[styles.chartBarLabel, { color: TC.textSecondary }]}>This Week</Text>
@@ -777,7 +778,7 @@ export default function StatsScreen() {
         </View>
 
         {/* Cost Savings */}
-        <View style={{ paddingHorizontal: 16 }}>
+        <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
           <CostSavingsCard
             totalCo2Saved={stats.total_co2_saved ?? 0}
             tripsCompleted={stats.total_trips ?? 0}
@@ -855,19 +856,19 @@ export default function StatsScreen() {
         <View style={[styles.guideCard, { backgroundColor: TC.surface }]}>
           <Text style={[styles.guideTitle, { color: TC.text }]}>How you earn XP & badges</Text>
           <View style={styles.guideRow}>
-            <Text style={styles.guideBullet}>🚊</Text>
+            <Zap size={16} color={COLORS.primary} style={styles.guideBullet} />
             <Text style={[styles.guideText, { color: TC.textSecondary }]}>
               +{XP_PER_TRIP} XP for every completed trip.
             </Text>
           </View>
           <View style={styles.guideRow}>
-            <Text style={styles.guideBullet}>📈</Text>
+            <TrendingUp size={16} color={COLORS.primary} style={styles.guideBullet} />
             <Text style={[styles.guideText, { color: TC.textSecondary }]}>
               Every {TRIPS_PER_LEVEL} trips is a new level — {MAX_LEVEL} levels from {LEVEL_TITLES[0]} to {LEVEL_TITLES[MAX_LEVEL - 1]}.
             </Text>
           </View>
           <View style={styles.guideRow}>
-            <Text style={styles.guideBullet}>🏅</Text>
+            <Award size={16} color={COLORS.primary} style={styles.guideBullet} />
             <Text style={[styles.guideText, { color: TC.textSecondary }]}>
               Badges unlock at milestones: first trip, first carpool, 5 walks, 10 trips, 50 kg & 100 kg CO₂ saved. Tap a badge above to see its goal.
             </Text>
@@ -918,7 +919,7 @@ export default function StatsScreen() {
             {/* Company Stats Hero */}
             {companyTotals && (
               <View style={styles.companyHero}>
-                <LinearGradient colors={[COLORS.dark, "#004D40"]} style={styles.companyHeroCard}>
+                <LinearGradient colors={[COLORS.dark, "#003D40"]} style={styles.companyHeroCard}>
                   <View style={styles.companyHeroIcon}>
                     <Building2 size={36} color={COLORS.accent} />
                   </View>
@@ -985,7 +986,12 @@ export default function StatsScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: TC.surface }]}>
-            <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedBadge(null)}>
+            <TouchableOpacity
+              style={styles.modalClose}
+              onPress={() => setSelectedBadge(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Close badge details"
+            >
               <X size={24} color={TC.textSecondary} />
             </TouchableOpacity>
 
@@ -997,7 +1003,7 @@ export default function StatsScreen() {
                 <Text style={[styles.modalTitle, { color: TC.text }]}>{selectedBadge.name}</Text>
                 <Text style={[styles.modalDesc, { color: TC.textSecondary }]}>{selectedBadge.desc}</Text>
                 <View style={styles.modalUnlocked}>
-                  <Text style={styles.modalUnlockedText}>🎉 Unlocked!</Text>
+                  <Text style={styles.modalUnlockedText}>Unlocked</Text>
                 </View>
               </>
             )}
@@ -1013,19 +1019,20 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  headerTitle: { fontSize: 28, fontWeight: "bold", color: COLORS.dark },
-  headerSubtitle: { fontSize: 14, color: COLORS.gray, marginTop: 4 },
+  headerTitle: { fontSize: 40, fontWeight: "700", lineHeight: 48, letterSpacing: -0.8, color: COLORS.dark },
+  headerSubtitle: { fontSize: 14, color: COLORS.textMuted, marginTop: 4 },
   
   // ===== SEGMENTED CONTROL =====
   segmentContainer: { paddingHorizontal: 16, marginTop: 12, marginBottom: 8 },
   segmentWrapper: {
     flexDirection: "row",
     backgroundColor: COLORS.white,
-    borderRadius: 50,
+    borderRadius: 999,
     padding: 4,
     position: "relative",
     shadowColor: COLORS.black,
     shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 2,
   },
@@ -1035,7 +1042,7 @@ const styles = StyleSheet.create({
     bottom: 4,
     width: "33.33%",
     backgroundColor: COLORS.primary,
-    borderRadius: 50,
+    borderRadius: 999,
   },
   segmentBtn: {
     flex: 1,
@@ -1046,7 +1053,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     zIndex: 1,
   },
-  segmentText: { fontSize: 12, fontWeight: "600", color: COLORS.gray },
+  segmentText: { fontSize: 12, fontWeight: "600", color: COLORS.textMuted },
   segmentTextActive: { color: COLORS.white },
   
   // ===== DEPARTMENT VIEW =====
@@ -1064,8 +1071,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 12,
   },
-  deptTitle: { fontSize: 22, fontWeight: "bold", color: COLORS.dark },
-  deptSubtitle: { fontSize: 14, color: COLORS.gray, marginTop: 4 },
+  deptTitle: { fontSize: 22, fontWeight: "700", color: COLORS.dark },
+  deptSubtitle: { fontSize: 14, color: COLORS.textMuted, marginTop: 4 },
   
   // ===== COMPANY VIEW =====
   companyHero: { paddingHorizontal: 16, marginTop: 16 },
@@ -1079,7 +1086,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 12,
   },
-  companyName: { fontSize: 24, fontWeight: "bold", color: COLORS.white },
+  companyName: { fontSize: 24, fontWeight: "700", color: COLORS.white },
   companyTagline: { fontSize: 14, color: COLORS.white, opacity: 0.8, marginTop: 4 },
   companyStatsRow: {
     flexDirection: "row",
@@ -1090,7 +1097,7 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.whiteTransparent20,
   },
   companyStat: { flex: 1, alignItems: "center" },
-  companyStatValue: { fontSize: 22, fontWeight: "bold", color: COLORS.accent },
+  companyStatValue: { fontSize: 22, fontWeight: "700", color: COLORS.accent },
   companyStatLabel: { fontSize: 11, color: COLORS.white, opacity: 0.8, marginTop: 4 },
   companyStatDivider: { width: 1, height: 36, backgroundColor: COLORS.whiteTransparent20 },
   
@@ -1103,16 +1110,17 @@ const styles = StyleSheet.create({
     marginTop: 16,
     shadowColor: COLORS.black,
     shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 3,
   },
   breakdownItem: { marginBottom: 16 },
   breakdownHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
   breakdownDept: { fontSize: 14, fontWeight: "600", color: COLORS.dark },
-  breakdownValue: { fontSize: 14, fontWeight: "bold", color: COLORS.primary },
+  breakdownValue: { fontSize: 14, fontWeight: "700", color: COLORS.primary },
   breakdownBarBg: { height: 12, backgroundColor: COLORS.light, borderRadius: 6, overflow: "hidden" },
   breakdownBarFill: { height: 12, borderRadius: 6 },
-  breakdownEmployees: { fontSize: 11, color: COLORS.gray, marginTop: 4 },
+  breakdownEmployees: { fontSize: 11, color: COLORS.textMuted, marginTop: 4 },
   
   // ===== LEVEL CARD =====
   levelCard: {
@@ -1123,6 +1131,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     shadowColor: COLORS.black,
     shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 3,
   },
@@ -1136,8 +1145,8 @@ const styles = StyleSheet.create({
   progressBarFill: { height: 12, borderRadius: 6, overflow: "hidden" },
   progressGradient: { flex: 1 },
   xpRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  xpText: { fontSize: 14, fontWeight: "bold", color: COLORS.dark },
-  xpToNext: { fontSize: 12, color: COLORS.gray },
+  xpText: { fontSize: 14, fontWeight: "700", color: COLORS.dark },
+  xpToNext: { fontSize: 12, color: COLORS.textMuted },
   
   // ===== XP & BADGES GUIDE =====
   guideCard: {
@@ -1152,21 +1161,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   guideRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 10 },
-  guideBullet: { fontSize: 16, lineHeight: 20 },
+  guideBullet: { marginTop: 2 },
   guideText: { flex: 1, fontSize: 13, lineHeight: 19 },
 
   // ===== BADGES SECTION =====
   badgesSection: { marginHorizontal: 16, marginTop: 20 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
-  sectionTitle: { fontWeight: "700", fontSize: 24, color: COLORS.dark },
+  sectionTitle: { fontWeight: "700", fontSize: 17, color: COLORS.dark },
   badgesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   badgeItem: { width: "30%", alignItems: "center", opacity: 0.5 },
   badgeItemUnlocked: { opacity: 1 },
   badgeCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.light, alignItems: "center", justifyContent: "center", marginBottom: 8 },
   badgeName: { fontSize: 11, fontWeight: "600", color: COLORS.dark, textAlign: "center" },
-  badgeNameLocked: { color: COLORS.gray },
+  badgeNameLocked: { color: COLORS.textMuted },
   
-  // ===== HERO CO2 CARD =====
+  // ===== HERO CO₂ CARD =====
   heroContainer: { paddingHorizontal: 16, marginTop: 20 },
   heroCard: { borderRadius: 28, padding: 24, overflow: "hidden" },
   heroTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
@@ -1190,7 +1199,7 @@ const styles = StyleSheet.create({
   treesProgress: { marginTop: 20, backgroundColor: COLORS.whiteTransparent20, borderRadius: 16, padding: 16 },
   treesInfo: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
   treesLabel: { fontSize: 14, color: COLORS.white },
-  treesValue: { fontSize: 24, fontWeight: "bold", color: COLORS.white },
+  treesValue: { fontSize: 24, fontWeight: "700", color: COLORS.white },
   treeProgressBarBg: { height: 8, backgroundColor: COLORS.whiteTransparent30, borderRadius: 4 },
   treeProgressBarFill: { height: 8, backgroundColor: COLORS.accent, borderRadius: 4 },
   progressText: { fontSize: 12, color: COLORS.white, opacity: 0.8, marginTop: 8, textAlign: "center" },
@@ -1210,13 +1219,13 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   statValue: { fontSize: 22, fontWeight: "800", color: COLORS.dark, marginTop: 8 },
-  statLabel: { fontSize: 11, color: COLORS.gray, marginTop: 4, textAlign: "center" },
+  statLabel: { fontSize: 11, color: COLORS.textMuted, marginTop: 4, textAlign: "center" },
   
   // ===== WEEKLY CHART =====
-  chartCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+  chartCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 10, elevation: 3 },
 
   // ── Period summary (week/month/all) ──
-  periodCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 16, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+  periodCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 16, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 10, elevation: 3 },
   periodToggle: { flexDirection: "row", borderRadius: 999, padding: 4, gap: 4, marginBottom: 16 },
   periodSeg: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: 999 },
   periodSegText: { fontSize: 13, fontWeight: "700" },
@@ -1224,17 +1233,17 @@ const styles = StyleSheet.create({
   periodMetric: { flex: 1, alignItems: "center" },
   periodValue: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
   periodLabel: { fontSize: 11, fontWeight: "600", marginTop: 2 },
-  chartTitle: { fontSize: 16, fontWeight: "bold", color: COLORS.dark, marginBottom: 16 },
+  chartTitle: { fontSize: 17, fontWeight: "700", color: COLORS.dark, marginBottom: 16 },
   chartContainer: { gap: 16 },
   chartBar: { gap: 8 },
-  chartBarLabel: { fontSize: 13, color: COLORS.gray },
+  chartBarLabel: { fontSize: 13, color: COLORS.textMuted },
   chartBarBg: { height: 24, backgroundColor: COLORS.light, borderRadius: 12, overflow: "hidden" },
   chartBarFill: { height: 24, borderRadius: 12 },
   chartBarFillGray: { height: 24, backgroundColor: COLORS.gray, borderRadius: 12, opacity: 0.3 },
-  chartBarValue: { fontSize: 14, fontWeight: "bold", color: COLORS.dark },
+  chartBarValue: { fontSize: 14, fontWeight: "700", color: COLORS.dark },
   
   // ===== LEADERBOARD =====
-  leaderboardCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+  leaderboardCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 10, elevation: 3 },
 
   errorBanner: {
     marginHorizontal: 16,
@@ -1284,6 +1293,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     shadowColor: COLORS.black,
     shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 3,
   },
@@ -1334,11 +1344,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontWeight: "500",
   },
-  emptyText: { fontSize: 14, color: COLORS.gray, textAlign: "center", paddingVertical: 20 },
+  emptyText: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", paddingVertical: 20 },
   leaderboardRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.light },
   leaderboardRowHighlight: { backgroundColor: COLORS.light, marginHorizontal: -12, paddingHorizontal: 12, borderRadius: 12 },
   leaderboardRank: { width: 28, alignItems: "center" },
-  rankNumber: { fontSize: 14, fontWeight: "bold", color: COLORS.gray },
+  rankNumber: { fontSize: 14, fontWeight: "700", color: COLORS.textMuted },
   leaderboardAvatar: {
     width: 38,
     height: 38,
@@ -1351,20 +1361,20 @@ const styles = StyleSheet.create({
   leaderboardInfo: { flex: 1 },
   leaderboardName: { fontSize: 15, fontWeight: "600", color: COLORS.dark },
   leaderboardNameYou: { color: COLORS.primary },
-  leaderboardDept: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  leaderboardDept: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   leaderboardScore: { alignItems: "flex-end" },
-  leaderboardValue: { fontSize: 18, fontWeight: "bold", color: COLORS.primary },
-  leaderboardUnit: { fontSize: 11, color: COLORS.gray },
+  leaderboardValue: { fontSize: 18, fontWeight: "700", color: COLORS.primary },
+  leaderboardUnit: { fontSize: 11, color: COLORS.textMuted },
   
   // ===== BADGE MODAL =====
   modalOverlay: { flex: 1, backgroundColor: COLORS.blackOverlay, alignItems: "center", justifyContent: "center", padding: 24 },
   modalContent: { backgroundColor: COLORS.white, borderRadius: 28, padding: 32, width: "100%", alignItems: "center" },
   modalClose: { position: "absolute", top: 16, right: 16 },
-  modalBadge: { width: 100, height: 100, borderRadius: 50, alignItems: "center", justifyContent: "center", marginBottom: 20 },
-  modalTitle: { fontSize: 24, fontWeight: "bold", color: COLORS.dark, marginBottom: 8 },
-  modalDesc: { fontSize: 14, color: COLORS.gray, textAlign: "center", marginBottom: 20 },
+  modalBadge: { width: 100, height: 100, borderRadius: 999, alignItems: "center", justifyContent: "center", marginBottom: 20 },
+  modalTitle: { fontSize: 24, fontWeight: "700", color: COLORS.dark, marginBottom: 8 },
+  modalDesc: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", marginBottom: 20 },
   modalUnlocked: { backgroundColor: COLORS.accent, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 16 },
-  modalUnlockedText: { color: COLORS.dark, fontWeight: "bold", fontSize: 16 },
+  modalUnlockedText: { color: COLORS.dark, fontWeight: "700", fontSize: 16 },
   
   // ===== TOP COMMUTING MODES =====
   topModesCard: {
@@ -1375,6 +1385,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     shadowColor: COLORS.black,
     shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 3,
   },
@@ -1410,6 +1421,6 @@ const styles = StyleSheet.create({
   },
   topModePercentage: {
     fontSize: 11,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
   },
 });

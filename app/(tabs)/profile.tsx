@@ -25,8 +25,9 @@ import CommuteMixEditor, {
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",   // cyan
-  primaryDark: "#00565A",// teal-2
+  primaryDark: "#003D40",// teal-2
   accent: "#F59E0B",    // sun
   dark: "#003D40",      // teal
   light: "#E6F1F2",     // cyan-fog
@@ -39,19 +40,19 @@ const COLORS = {
 };
 
 /**
- * Get eco level badge based on baseline CO2
+ * Get eco level badge based on baseline CO₂
  */
 function getEcoLevel(baseline: number | null) {
-  if (baseline === null) return { label: "Not set", color: COLORS.gray };
+  if (baseline === null) return { label: "Not set", color: COLORS.textMuted };
   if (baseline === 0) return { label: "Zero Hero! 🌟", color: COLORS.accent };
   if (baseline < 0.04) return { label: "Eco Champion!", color: COLORS.accent };
   if (baseline < 0.08) return { label: "Green Warrior!", color: COLORS.primary };
   if (baseline < 0.12) return { label: "Good Progress!", color: COLORS.primary };
-  return { label: "Getting Started", color: COLORS.gray };
+  return { label: "Getting Started", color: COLORS.textMuted };
 }
 
 /**
- * ScoreCard - Displays CO2 baseline score with glow effect
+ * ScoreCard - Displays CO₂ baseline score with glow effect
  */
 interface ScoreCardProps {
   /** null = the user hasn't set a commute mix yet — show a prompt, not a number. */
@@ -100,7 +101,7 @@ function ScoreCard({ baseline, scaleAnim, glowOpacity, ecoLevel }: ScoreCardProp
 
 /**
  * ProfileScreen - User profile and commute baseline configuration
- * Allows users to set their weekly commute habits and calculate CO2 baseline
+ * Allows users to set their weekly commute habits and calculate CO₂ baseline
  */
 export default function ProfileScreen() {
   const router = useRouter();
@@ -173,6 +174,8 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={[styles.settingsButton, { backgroundColor: TC.surface }]}
             onPress={() => router.push("/settings")}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
           >
             <Settings size={22} color={TC.text} />
           </TouchableOpacity>
@@ -252,6 +255,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     shadowColor: COLORS.black,
     shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 2,
   },
@@ -281,7 +285,7 @@ const styles = StyleSheet.create({
   },
   scoreUnit: { fontSize: 14, color: COLORS.white, opacity: 0.8 },
   levelBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginTop: 12 },
-  levelText: { color: COLORS.dark, fontWeight: "bold", fontSize: 14 },
+  levelText: { color: COLORS.dark, fontWeight: "700", fontSize: 14 },
   
   // ===== COMMUTE SECTION =====
   sectionHeaderRow: {
@@ -292,7 +296,7 @@ const styles = StyleSheet.create({
   },
   section: { paddingHorizontal: 16, marginBottom: 20 },
   sectionTitle: { fontWeight: "700", fontSize: 24, color: COLORS.dark },
-  sectionSubtitle: { fontSize: 13, color: COLORS.gray, marginTop: 4, marginBottom: 16 },
+  sectionSubtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 4, marginBottom: 16 },
   modeCardsContainer: { paddingVertical: 8, gap: 12 },
   
   // ===== MODE CARDS =====
@@ -305,22 +309,23 @@ const styles = StyleSheet.create({
     marginRight: 12,
     shadowColor: COLORS.black,
     shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 2,
     borderColor: COLORS.transparent,
     position: "relative",
   },
-  modeCardSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primaryDark, shadowColor: COLORS.primary, shadowOpacity: 0.3, elevation: 8 },
+  modeCardSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primaryDark, shadowColor: COLORS.primary, shadowOpacity: 0.3, shadowOffset: { width: 0, height: 2 }, elevation: 8 },
   modeCardHasData: { borderColor: COLORS.primary },
   daysBadge: { position: "absolute", top: -8, right: -8, width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
   daysBadgeSelected: { backgroundColor: COLORS.white },
-  daysBadgeText: { fontSize: 12, fontWeight: "bold", color: COLORS.white },
+  daysBadgeText: { fontSize: 12, fontWeight: "700", color: COLORS.white },
   daysBadgeTextSelected: { color: COLORS.primary },
   modeEmoji: { fontSize: 32, marginBottom: 8 },
   modeName: { fontSize: 13, fontWeight: "600", color: COLORS.dark },
   modeNameSelected: { color: COLORS.white },
-  modeCo2: { fontSize: 11, color: COLORS.gray, marginTop: 4 },
+  modeCo2: { fontSize: 11, color: COLORS.textMuted, marginTop: 4 },
   modeCo2Selected: { color: COLORS.white, opacity: 0.8 },
   
   // ===== DAY SELECTOR =====
@@ -331,6 +336,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     shadowColor: COLORS.primary,
     shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 4,
   },
@@ -347,13 +353,13 @@ const styles = StyleSheet.create({
     borderColor: COLORS.transparent,
   },
   dayBubbleActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primaryDark },
-  dayText: { fontSize: 14, fontWeight: "600", color: COLORS.gray },
+  dayText: { fontSize: 14, fontWeight: "600", color: COLORS.textMuted },
   
   // ===== SAVE BUTTON =====
   saveButton: { marginHorizontal: 16, marginBottom: 12, borderRadius: 28, overflow: "hidden" },
   saveButtonDisabled: { opacity: 0.7 },
   saveButtonGradient: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 18, gap: 10 },
-  saveButtonText: { color: COLORS.white, fontSize: 17, fontWeight: "bold" },
+  saveButtonText: { color: COLORS.white, fontSize: 17, fontWeight: "700" },
 
   // ===== SIGN OUT BUTTON =====
   signOutButton: {

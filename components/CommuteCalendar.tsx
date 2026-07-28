@@ -108,7 +108,7 @@ export default function CommuteCalendar({ rides, isDark = false }: Props) {
 
   return (
     <View style={[styles.card, { backgroundColor: surface }]}>
-      <Text style={[styles.title, { color: ink }]}>🗓️ Commute calendar</Text>
+      <Text style={[styles.title, { color: ink }]}>Commute calendar</Text>
       <Text style={[styles.month, { color: inkSoft }]}>{monthLabel}</Text>
 
       <View style={styles.weekRow}>
@@ -158,10 +158,12 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 24,
     padding: 18,
-    marginHorizontal: 16,
+    // No horizontal margin: hosts already pad by 16 (Activity's list content),
+    // and the extra margin double-inset the card to 32 vs 16 for trip cards.
     marginBottom: 16,
     shadowColor: "#000",
     shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 3,
   },
@@ -197,5 +199,5 @@ const styles = StyleSheet.create({
   },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
-  legendText: { fontSize: 11, color: "#8B989C", fontWeight: "600" },
+  legendText: { fontSize: 11, color: "#5A6A6F", fontWeight: "600" },
 });

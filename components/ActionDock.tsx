@@ -95,6 +95,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     shadowColor: editorial.cyan,
     shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 6,
   },

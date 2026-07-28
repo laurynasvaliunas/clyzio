@@ -25,6 +25,7 @@ export default function TabsLayout() {
           borderTopWidth: 0,
           elevation: 0,
           shadowOpacity: 0,
+          shadowOffset: { width: 0, height: 2 },
           height: 88,
           paddingBottom: 28,
           paddingTop: 12,

@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#EDF1F2",
   },
   headerLeft: {
     flex: 1,
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === "ios" ? 32 : 12,
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
+    borderTopColor: "#EDF1F2",
   },
   input: {
     flex: 1,
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   sendBtnDisabled: {
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#EDF1F2",
   },
 });
 

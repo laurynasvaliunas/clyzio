@@ -43,8 +43,9 @@ import CarpoolMatchModal from "../../components/CarpoolMatchModal";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",   // cyan
-  primaryDark: "#00565A",// teal-2
+  primaryDark: "#003D40",// teal-2
   accent: "#F59E0B",    // sun
   dark: "#003D40",      // teal
   light: "#E6F1F2",     // cyan-fog
@@ -115,7 +116,7 @@ function SuggestionCard({
     >
       {/* Best Pick badge */}
       <View style={styles.bestPickBadge}>
-        <Text style={styles.bestPickText}>✨ Best Pick</Text>
+        <Text style={styles.bestPickText}>Best pick</Text>
       </View>
 
       <View style={styles.cardHeader}>
@@ -141,7 +142,7 @@ function SuggestionCard({
           <Text style={[styles.statValue, { color: COLORS.white }]}>
             {suggestion.estimated_co2_kg.toFixed(2)} kg
           </Text>
-          <Text style={[styles.statLabel, { color: "rgba(255,255,255,0.7)" }]}>CO2 / trip</Text>
+          <Text style={[styles.statLabel, { color: "rgba(255,255,255,0.7)" }]}>CO₂ / trip</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.stat}>
@@ -197,7 +198,7 @@ function SuggestionCard({
           <Text style={[styles.statValue, { color: TC.text }]}>
             {suggestion.estimated_co2_kg.toFixed(2)} kg
           </Text>
-          <Text style={[styles.statLabel, { color: TC.textSecondary }]}>CO2 / trip</Text>
+          <Text style={[styles.statLabel, { color: TC.textSecondary }]}>CO₂ / trip</Text>
         </View>
         <View style={[styles.statDivider, { backgroundColor: TC.border }]} />
         <View style={styles.stat}>
@@ -250,7 +251,7 @@ function LocalInsightsPanel({
   const modes = useMemo(() => computeLocalModes(distKm), [distKm]);
   const bestCO2 = modes[0];
   const weeklyKg = (CAR_CO2 * distKm * 2 * 5) - (bestCO2.co2PerKm * distKm * 2 * 5);
-  const yearlyTrees = Math.round((weeklyKg * 52) / 20); // 20kg CO2 per tree/year
+  const yearlyTrees = Math.round((weeklyKg * 52) / 20); // 20kg CO₂ per tree/year
 
   return (
     <View>
@@ -301,7 +302,7 @@ function LocalInsightsPanel({
         ]}>
           {i === 0 && (
             <View style={[styles.localModeTagBadge, { backgroundColor: m.color }]}>
-              <Text style={styles.localModeTagText}>✨ {m.tag}</Text>
+              <Text style={styles.localModeTagText}>{m.tag}</Text>
             </View>
           )}
 
@@ -434,7 +435,7 @@ function PlannerAddressInput({ placeholder, value, onSelect, TC }: PlannerAddres
         />
         {text.length > 0 && isFocused && (
           <TouchableOpacity onPress={() => { setText(""); setResults([]); }}>
-            <Text style={{ color: COLORS.gray, fontSize: 16 }}>✕</Text>
+            <Text style={{ color: COLORS.textMuted, fontSize: 16 }}>✕</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -474,6 +475,7 @@ const plannerInputStyles = StyleSheet.create({
     marginTop: 4,
     shadowColor: "#000",
     shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 4,
     zIndex: 999,
@@ -899,6 +901,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     shadowColor: "#000",
     shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 2,
     zIndex: 10,
@@ -948,7 +951,7 @@ const styles = StyleSheet.create({
   },
   completionText: { flex: 1 },
   completionTitle: { fontSize: 14, fontWeight: "600", color: COLORS.dark },
-  completionSubtitle: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  completionSubtitle: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
 
   // Insight hero — dark gradient card
   insightCard: {
@@ -1007,13 +1010,14 @@ const styles = StyleSheet.create({
   topCard: {
     shadowColor: COLORS.primary,
     shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 12,
     elevation: 6,
   },
   bestPickBadge: {
     alignSelf: "flex-start",
     backgroundColor: COLORS.white,
-    borderRadius: 50,
+    borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 5,
     marginBottom: 16,
@@ -1046,7 +1050,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 12,
   },
-  co2BadgeText: { fontSize: 13, fontWeight: "bold", color: COLORS.white },
+  co2BadgeText: { fontSize: 13, fontWeight: "700", color: COLORS.white },
 
   // Stats row
   statsRow: {
@@ -1064,7 +1068,7 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     letterSpacing: 0.6,
     textTransform: "uppercase",
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 4,
   },
   statDivider: {
@@ -1080,7 +1084,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 6,
   },
-  tipText: { flex: 1, fontSize: 13, color: COLORS.gray, lineHeight: 18 },
+  tipText: { flex: 1, fontSize: 13, color: COLORS.textMuted, lineHeight: 18 },
 
   // CTA buttons
   ctaButtonTop: {
@@ -1122,6 +1126,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     shadowColor: "#000",
     shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 3,
     borderWidth: 0,
@@ -1129,7 +1134,7 @@ const styles = StyleSheet.create({
   },
   localModeTagBadge: {
     alignSelf: "flex-start",
-    borderRadius: 50,
+    borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 5,
     marginBottom: 14,
@@ -1230,8 +1235,8 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  emptyTitle: { fontSize: 16, fontWeight: "bold", color: COLORS.dark, textAlign: "center" },
-  emptySubtitle: { fontSize: 13, color: COLORS.gray, textAlign: "center", lineHeight: 20 },
+  emptyTitle: { fontSize: 16, fontWeight: "700", color: COLORS.dark, textAlign: "center" },
+  emptySubtitle: { fontSize: 13, color: COLORS.textMuted, textAlign: "center", lineHeight: 20 },
   generateBtn: { borderRadius: 14, overflow: "hidden", marginTop: 8, width: "100%" },
   generateGradient: {
     flexDirection: "row",
@@ -1240,7 +1245,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 8,
   },
-  generateText: { color: COLORS.white, fontWeight: "bold", fontSize: 15 },
+  generateText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
 
   // Matches Near Your Route section
   matchSection: {
@@ -1249,6 +1254,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     shadowColor: "#000",
     shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 2,
   },

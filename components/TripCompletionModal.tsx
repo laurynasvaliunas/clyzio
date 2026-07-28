@@ -35,7 +35,7 @@ interface TripCompletionModalProps {
 }
 
 /**
- * StatCard - Displays a single stat (XP or CO2) in the completion modal
+ * StatCard - Displays a single stat (XP or CO₂) in the completion modal
  */
 interface StatCardProps {
   icon: React.ReactNode;
@@ -55,7 +55,7 @@ function StatCard({ icon, value, label }: StatCardProps) {
 
 /**
  * TripCompletionModal - Celebratory modal shown after completing a trip
- * Shows XP earned, CO2 saved, and special message if user leveled up
+ * Shows XP earned, CO₂ saved, and special message if user leveled up
  */
 export default function TripCompletionModal({
   visible,
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: COLORS.dark,
   },
   

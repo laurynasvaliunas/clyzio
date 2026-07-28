@@ -190,7 +190,7 @@ export default function WelcomeScreen() {
             </View>
           </Animated.View>
 
-          {/* CO2 cloud — shrinks + recolors */}
+          {/* CO₂ cloud — shrinks + recolors */}
           <Animated.View
             style={[
               styles.stageItem,

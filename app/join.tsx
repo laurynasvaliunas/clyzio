@@ -15,7 +15,7 @@ const COLORS = {
   gray: "#8B989C",
   textSecondary: "#5A6A6F",
   white: "#FFFFFF",
-  border: "#E5E7EB",
+  border: "#EDF1F2",
   green: "#059669",
   red: "#DC2626",
 };
@@ -99,7 +99,7 @@ export default function JoinScreen() {
 
         {phase === "joined" && (
           <>
-            <Text style={styles.heading}>You're in! 🌱</Text>
+            <Text style={styles.heading}>You're in</Text>
             <Text style={styles.sub}>
               You've joined {companyName ?? "your company"}'s eco team. Your commutes now
               count toward their sustainability goals.

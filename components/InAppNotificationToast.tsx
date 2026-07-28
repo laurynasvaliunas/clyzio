@@ -29,7 +29,7 @@ const TYPE_CONFIG: Record<
 > = {
   co2:      { icon: Leaf,    iconColor: "#059669", accentColor: "#059669", bg: "#ECFDF5" },
   trip:     { icon: MapPin,  iconColor: "#00565A", accentColor: "#00565A", bg: "#E6F1F2" },
-  carpool:  { icon: Users,   iconColor: "#00676D", accentColor: "#00676D", bg: "#EDE9FE" },
+  carpool:  { icon: Users,   iconColor: "#00676D", accentColor: "#00676D", bg: "#E6F1F2" },
   badge:    { icon: Trophy,  iconColor: "#F59E0B", accentColor: "#F59E0B", bg: "#FFFBEB" },
   reminder: { icon: Bell,    iconColor: "#D97706", accentColor: "#D97706", bg: "#FFFBEB" },
   info:     { icon: Car,     iconColor: "#00565A", accentColor: "#00565A", bg: "#E6F1F2" },
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#EDF1F2",
     alignItems: "center",
     justifyContent: "center",
   },

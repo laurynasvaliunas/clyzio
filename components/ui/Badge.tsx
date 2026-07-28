@@ -29,7 +29,7 @@ function toneMap(t: BadgeTone) {
     case 'success': return { bg: semantic.success + '22', fg: '#047857' };
     case 'warning': return { bg: semantic.warning + '22', fg: '#92400E' };
     case 'danger': return { bg: semantic.danger + '22', fg: '#B91C1C' };
-    default: return { bg: 'rgba(0,0,0,0.06)', fg: '#334155' };
+    default: return { bg: 'rgba(0,0,0,0.06)', fg: '#5A6A6F' };
   }
 }
 

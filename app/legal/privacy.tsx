@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft } from "lucide-react-native";
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",
   primaryDark: "#003D40",
   dark: "#003D40",
@@ -13,7 +14,7 @@ const COLORS = {
   white: "#FFFFFF",
   gray: "#8B989C",
   textSecondary: "#5A6A6F",
-  border: "#E5E7EB",
+  border: "#EDF1F2",
   green: "#059669",
 };
 
@@ -289,7 +290,7 @@ const styles = StyleSheet.create({
   },
   headerCenter: { flex: 1, alignItems: "center" },
   headerTitle: { fontSize: 17, fontWeight: "700", color: COLORS.dark },
-  headerSub: { fontSize: 12, color: COLORS.gray, marginTop: 2 },
+  headerSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
 
   scroll: { flex: 1 },
   scrollContent: { padding: 16 },
@@ -314,7 +315,7 @@ const styles = StyleSheet.create({
   introPill: {
     alignSelf: "flex-start",
     backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 50,
+    borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
@@ -332,6 +333,7 @@ const styles = StyleSheet.create({
     borderLeftColor: COLORS.primary,
     shadowColor: "#000",
     shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 2,
   },
@@ -367,6 +369,6 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     gap: 4,
   },
-  footerText: { fontSize: 12, color: COLORS.gray },
-  footerSub: { fontSize: 11, color: COLORS.gray },
+  footerText: { fontSize: 12, color: COLORS.textMuted },
+  footerSub: { fontSize: 11, color: COLORS.textMuted },
 });

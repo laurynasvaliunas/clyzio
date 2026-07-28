@@ -53,6 +53,7 @@ const SHEET_HEIGHT = height * 0.85;
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",   // cyan
   white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
@@ -516,7 +517,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         destCoords.lng
       );
 
-      // Calculate CO2 saved vs user's actual car fuel type (not a fixed petrol assumption)
+      // Calculate CO₂ saved vs user's actual car fuel type (not a fixed petrol assumption)
       const baselineCO2 = distance * userCarCO2;
       const tripCO2 = distance * (selectedMode?.co2 || 0);
       const co2SavedKg = Math.max(0, baselineCO2 - tripCO2);
@@ -1018,7 +1019,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                             }}
                             accessibilityRole="button"
                             accessibilityState={{ selected: active }}
-                            accessibilityLabel={`${opt.summary}, ${opt.duration_min} minutes, ${opt.co2_kg} kg CO2, leaves ${opt.departure_text ?? "soon"}`}
+                            accessibilityLabel={`${opt.summary}, ${opt.duration_min} minutes, ${opt.co2_kg} kg CO₂, leaves ${opt.departure_text ?? "soon"}`}
                           >
                             <View style={[styles.co2Dot, styles.transitDot, { backgroundColor: co2DotColor(opt.co2_per_km) }]} />
                             <View style={{ flex: 1 }}>
@@ -1134,6 +1135,7 @@ const styles = StyleSheet.create({
     maxHeight: height * 0.92,
     shadowColor: "#000",
     shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 10,
     elevation: 10,
   },
@@ -1150,7 +1152,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 5,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: "#EDF1F2",
     borderRadius: 10,
   },
   header: {
@@ -1213,6 +1215,7 @@ const styles = StyleSheet.create({
     padding: 8,
     shadowColor: "#000",
     shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
     elevation: 5,
     maxHeight: 200,
@@ -1264,7 +1267,7 @@ const styles = StyleSheet.create({
   roleSelectorSub: {
     fontSize: 11,
     fontWeight: "600",
-    color: COLORS.gray,
+    color: COLORS.textMuted,
   },
 
   // Carpool (Driver/Rider) inline form
@@ -1282,7 +1285,7 @@ const styles = StyleSheet.create({
   fieldLabelSm: {
     fontSize: 13,
     fontWeight: "600",
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginBottom: 8,
   },
   dtBtn: {
@@ -1331,7 +1334,7 @@ const styles = StyleSheet.create({
   },
   carpoolHint: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     lineHeight: 16,
   },
 
@@ -1340,7 +1343,7 @@ const styles = StyleSheet.create({
   vehiclePickerLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginBottom: 8,
   },
   vehicleChipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -1356,7 +1359,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     backgroundColor: COLORS.primary + "14",
   },
-  vehicleChipText: { fontSize: 13, color: COLORS.gray },
+  vehicleChipText: { fontSize: 13, color: COLORS.textMuted },
 
   // Mode List
   modeItem: {
@@ -1401,7 +1404,7 @@ const styles = StyleSheet.create({
   },
   modeCo2: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     fontWeight: "600",
   },
   disclaimerRow: {
@@ -1411,7 +1414,7 @@ const styles = StyleSheet.create({
   },
   disclaimerText: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     fontStyle: "italic",
     lineHeight: 16,
   },
@@ -1431,7 +1434,7 @@ const styles = StyleSheet.create({
   },
   transitLoadingText: {
     fontSize: 13,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
   },
   transitRow: {
     flexDirection: "row",
@@ -1463,7 +1466,7 @@ const styles = StyleSheet.create({
   },
   transitMeta: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 2,
   },
 
@@ -1495,12 +1498,13 @@ const styles = StyleSheet.create({
   btnDisabled: {
     backgroundColor: COLORS.gray,
     shadowOpacity: 0,
+    shadowOffset: { width: 0, height: 2 },
     opacity: 0.5,
   },
   btnText: {
     color: "white",
     fontSize: 17,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
 
   // Waypoint buttons
@@ -1540,7 +1544,7 @@ const styles = StyleSheet.create({
   // Divider between location section and mode section
   modeSectionDivider: {
     height: 1,
-    backgroundColor: "#F0F0F0",
+    backgroundColor: "#EDF1F2",
     marginVertical: 16,
   },
 

@@ -19,7 +19,7 @@ const COLORS = {
   gray: "#8B989C",
   textSecondary: "#5A6A6F",
   white: "#FFFFFF",
-  border: "#E5E7EB",
+  border: "#EDF1F2",
   red: "#DC2626",
 };
 

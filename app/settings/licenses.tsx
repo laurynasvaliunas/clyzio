@@ -11,13 +11,14 @@ import { useRouter } from "expo-router";
 import { ChevronLeft, Scale } from "lucide-react-native";
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",
   dark: "#003D40",
   background: "#F7F9FA",
   white: "#FFFFFF",
   gray: "#8B989C",
   textSecondary: "#5A6A6F",
-  border: "#E5E7EB",
+  border: "#EDF1F2",
 };
 
 const LICENSES = [
@@ -131,8 +132,8 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -203,7 +204,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     textAlign: "center",
   },
 });

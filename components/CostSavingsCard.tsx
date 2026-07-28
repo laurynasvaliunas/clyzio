@@ -4,8 +4,9 @@ import { TrendingDown, Fuel, ParkingCircle, Leaf } from "lucide-react-native";
 
 // Editorial reskin — brand + paper-ink palette.
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",   // cyan
-  primaryDark: "#00565A",// teal-2
+  primaryDark: "#003D40",// teal-2
   dark: "#003D40",      // teal
   white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
@@ -26,7 +27,7 @@ interface CostSavingsCardProps {
  *
  * Methodology:
  *  - Fuel saved = km avoided × fuel consumption × fuel cost per litre
- *  - km avoided = trips where CO2 was saved vs driving alone
+ *  - km avoided = trips where CO₂ was saved vs driving alone
  *  - Parking saved = green commute days × avg daily parking cost
  */
 export default function CostSavingsCard({
@@ -36,7 +37,7 @@ export default function CostSavingsCard({
   avgDistanceKm = 15,
   workingDaysPerMonth = 22,
 }: CostSavingsCardProps) {
-  // Approximate km avoided based on CO2 saved vs baseline
+  // Approximate km avoided based on CO₂ saved vs baseline
   const kmAvoided = baselineCo2 > 0 ? totalCo2Saved / baselineCo2 : 0;
 
   // Fuel cost: avg EU ~1.80 EUR/L, avg consumption 7L/100km
@@ -100,7 +101,7 @@ export default function CostSavingsCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
     marginBottom: 16,
   },
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 15,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: COLORS.dark,
   },
   totalRow: {
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 13,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginTop: 2,
   },
   breakdownRow: {
@@ -158,10 +159,10 @@ const styles = StyleSheet.create({
   },
   allTimeText: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
   },
   allTimeHighlight: {
-    fontWeight: "bold",
+    fontWeight: "700",
     color: COLORS.green,
   },
 });

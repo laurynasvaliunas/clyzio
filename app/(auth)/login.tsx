@@ -27,6 +27,7 @@ const FREE_MAIL_DOMAINS = [
 ];
 
 const COLORS = {
+  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
   primary: "#00565A",
   primaryDark: "#003D40",
   accent: "#F59E0B",
@@ -36,7 +37,7 @@ const COLORS = {
   gray: "#8B989C",
   textSecondary: "#5A6A6F",
   green: "#059669",
-  border: "#E5E7EB",
+  border: "#EDF1F2",
 };
 
 export default function LoginScreen() {
@@ -481,7 +482,7 @@ const styles = StyleSheet.create({
   },
   subheading: {
     fontSize: 15,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginBottom: 28,
   },
 
@@ -612,7 +613,7 @@ const styles = StyleSheet.create({
   toggleRow: {
     textAlign: "center",
     fontSize: 14,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
     marginBottom: 24,
   },
   toggleLink: {
@@ -633,7 +634,7 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     fontSize: 13,
-    color: COLORS.gray,
+    color: COLORS.textMuted,
   },
 
   infoCard: {

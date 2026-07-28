@@ -84,28 +84,44 @@ jest.mock("expo-router", () => ({
   Stack: { Screen: ({ children }) => children },
 }));
 
-// Mock react-native-maps
-jest.mock("react-native-maps", () => {
+// Mock @rnmapbox/maps — the map library this app actually uses.
+// This block previously mocked `react-native-maps` (and
+// `react-native-maps-directions`), neither of which is a dependency, so
+// jest.setup.js threw "Cannot find module" before any test could load and
+// ALL 14 suites failed with 0 tests run.
+jest.mock("@rnmapbox/maps", () => {
   const React = require("react");
   const { View } = require("react-native");
-  const MockMap = React.forwardRef((props, ref) => {
+  const passthrough = (testID) => (props) =>
+    React.createElement(View, { ...props, testID });
+  const MockMapView = React.forwardRef((props, ref) => {
     React.useImperativeHandle(ref, () => ({
-      animateToRegion: jest.fn(),
-      fitToCoordinates: jest.fn(),
+      getPointInView: jest.fn(),
+      getCoordinateFromView: jest.fn(),
     }));
     return React.createElement(View, { ...props, testID: "mock-map-view" });
   });
+  const MockCamera = React.forwardRef((props, ref) => {
+    React.useImperativeHandle(ref, () => ({
+      setCamera: jest.fn(),
+      fitBounds: jest.fn(),
+    }));
+    return React.createElement(View, { ...props, testID: "mock-camera" });
+  });
   return {
     __esModule: true,
-    default: MockMap,
-    Marker: (p) => React.createElement(View, { ...p, testID: "mock-marker" }),
-    PROVIDER_GOOGLE: "google",
+    default: {
+      setAccessToken: jest.fn(),
+      StyleURL: { Street: "street", Dark: "dark" },
+    },
+    MapView: MockMapView,
+    Camera: MockCamera,
+    PointAnnotation: passthrough("mock-point-annotation"),
+    MarkerView: passthrough("mock-marker-view"),
+    ShapeSource: passthrough("mock-shape-source"),
+    LineLayer: passthrough("mock-line-layer"),
+    UserLocation: passthrough("mock-user-location"),
   };
-});
-
-jest.mock("react-native-maps-directions", () => {
-  const { View } = require("react-native");
-  return (props) => require("react").createElement(View, { ...props, testID: "mock-directions" });
 });
 
 // Mock expo-location
@@ -173,11 +189,18 @@ jest.mock("expo-notifications", () => ({
 // Mock expo-device
 jest.mock("expo-device", () => ({ isDevice: false }));
 
-// Mock react-native-google-places-autocomplete
-jest.mock("react-native-google-places-autocomplete", () => {
+// (react-native-google-places-autocomplete was mocked here but is not a
+// dependency — address entry uses the in-house components/AddressInput backed
+// by the Mapbox geocoding API. Mocking a missing module threw at setup.)
+
+// Mock the toast context so screen tests don't each need a ToastProvider
+// wrapper. Screens call `useToast()` at the top level, which throws outside a
+// provider — that was failing most suites once they started running again.
+jest.mock("./contexts/ToastContext", () => {
   const React = require("react");
-  const { TextInput } = require("react-native");
-  return function MockPlaces(props) {
-    return React.createElement(TextInput, { ...props, testID: "places-autocomplete" });
+  return {
+    __esModule: true,
+    ToastProvider: ({ children }) => children,
+    useToast: () => ({ showToast: jest.fn(), hideToast: jest.fn() }),
   };
 });
