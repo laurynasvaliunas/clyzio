@@ -159,7 +159,9 @@ export default function ProfileEditor({
     }, []),
   );
 
-  const loadProfile = async () => {
+  // Declared as a hoisted `function` (not a const arrow) so it is safe to call
+  // from the focus effect above regardless of evaluation order.
+  async function loadProfile() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -260,7 +262,7 @@ export default function ProfileEditor({
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const retryLoad = () => {
     setLoading(true);

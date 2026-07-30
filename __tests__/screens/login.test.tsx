@@ -8,8 +8,12 @@ describe("LoginScreen", () => {
     expect(toJSON()).toBeTruthy();
   });
 
-  it("shows corporate ride-sharing subtitle", () => {
+  // Assert on the controls, not on marketing copy — the subtitle has already
+  // been reworded twice and a copy edit shouldn't fail the suite.
+  it("renders the sign-in form", () => {
     render(<LoginScreen />);
-    expect(screen.getByText(/Corporate ride-sharing/)).toBeTruthy();
+    expect(screen.getByTestId("login-email")).toBeTruthy();
+    expect(screen.getByTestId("login-password")).toBeTruthy();
+    expect(screen.getByText("Sign In")).toBeTruthy();
   });
 });

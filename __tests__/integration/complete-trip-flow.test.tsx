@@ -70,19 +70,23 @@ describe("Complete Trip Flow Integration", () => {
           data: table === "rides" ? rideRow : table === "profiles" ? { xp_points: 0, total_co2_saved: 0, trips_completed: 0 } : null,
           error: null,
         }),
+        maybeSingle: jest.fn().mockResolvedValue({
+          data: table === "rides" ? rideRow : table === "profiles" ? { xp_points: 0, total_co2_saved: 0, trips_completed: 0 } : null,
+          error: null,
+        }),
       };
       return chain;
     });
   });
 
-  it("completes trip and triggers completion flow", async () => {
+  it("shows the Mark Complete action and confirms before completing", async () => {
     const { queryByText } = render(<ActivityScreen />);
 
     await waitFor(() => {
-      expect(queryByText("✓ Complete")).toBeTruthy();
+      expect(queryByText("Mark Complete")).toBeTruthy();
     });
 
-    const completeBtn = queryByText("✓ Complete");
+    const completeBtn = queryByText("Mark Complete");
     expect(completeBtn).toBeTruthy();
     fireEvent.press(completeBtn!);
 

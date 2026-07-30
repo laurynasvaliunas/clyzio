@@ -37,6 +37,7 @@ jest.mock("./lib/supabase", () => ({
         limit: jest.fn().mockResolvedValue({ data: [], error: null }),
         order: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({ data: null, error: null }),
+        maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
       };
       if (table === "rides") {
         const rideRow = {
@@ -73,16 +74,24 @@ jest.mock("./lib/supabase", () => ({
   },
 }));
 
-// Mock expo-router
-jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => true }),
-  useSegments: () => ["(tabs)"],
-  // No-op: running on every render caused infinite loops; no-op keeps smoke tests stable
-  useFocusEffect: () => {},
-  useLocalSearchParams: () => ({ id: "test-id" }),
-  Redirect: ({ href }) => null,
-  Stack: { Screen: ({ children }) => children },
-}));
+// Mock expo-router.
+// useFocusEffect must behave like the real hook — run the callback AFTER render
+// via an effect, and honour its cleanup. It used to be a no-op "to avoid
+// infinite loops", but the loops were caused by invoking the callback DURING
+// render; deferring to useEffect fixes that properly. As a no-op, screens whose
+// data loading lives in a focus effect (e.g. the Profile tab) never left their
+// loading spinner, so tests couldn't see their real content.
+jest.mock("expo-router", () => {
+  const React = require("react");
+  return {
+    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: () => true }),
+    useSegments: () => ["(tabs)"],
+    useFocusEffect: (cb) => React.useEffect(cb, [cb]),
+    useLocalSearchParams: () => ({ id: "test-id" }),
+    Redirect: ({ href }) => null,
+    Stack: { Screen: ({ children }) => children },
+  };
+});
 
 // Mock @rnmapbox/maps — the map library this app actually uses.
 // This block previously mocked `react-native-maps` (and
@@ -139,10 +148,18 @@ jest.mock("expo-linear-gradient", () => {
   return { LinearGradient: (props) => require("react").createElement(View, { ...props, testID: "linear-gradient" }) };
 });
 
-// Mock @react-navigation/native for useFocusEffect
-jest.mock("@react-navigation/native", () => ({
-  useFocusEffect: (cb) => (typeof cb === "function" ? cb() : undefined),
-}));
+// Mock @react-navigation/native for useFocusEffect.
+// This must behave like the real hook: run the callback AFTER render (inside an
+// effect) and honour its cleanup function. The previous version invoked the
+// callback synchronously during render, which made any focus effect that calls
+// setState or starts a timer loop forever — the map screen OOM'd Node.
+jest.mock("@react-navigation/native", () => {
+  const React = require("react");
+  return {
+    useFocusEffect: (cb) => React.useEffect(cb, [cb]),
+    useIsFocused: () => true,
+  };
+});
 
 // Mock react-native-safe-area-context
 jest.mock("react-native-safe-area-context", () => ({
@@ -184,6 +201,19 @@ jest.mock("expo-notifications", () => ({
   getPermissionsAsync: jest.fn().mockResolvedValue({ status: "denied" }),
   requestPermissionsAsync: jest.fn().mockResolvedValue({ status: "denied" }),
   getExpoPushTokenAsync: jest.fn().mockRejectedValue(new Error("Not in Expo Go")),
+}));
+
+// Mock expo-secure-store with an in-memory store. Exposed on globalThis so
+// tests can seed device-local flags (e.g. the permissions-primed key) and get
+// deterministic routing out of nextRouteAfterAuth().
+globalThis.__secureStore = new Map();
+// The factory must reference globalThis (jest forbids out-of-scope locals here).
+jest.mock("expo-secure-store", () => ({
+  getItemAsync: jest.fn(async (k) =>
+    globalThis.__secureStore.has(k) ? globalThis.__secureStore.get(k) : null,
+  ),
+  setItemAsync: jest.fn(async (k, v) => { globalThis.__secureStore.set(k, v); }),
+  deleteItemAsync: jest.fn(async (k) => { globalThis.__secureStore.delete(k); }),
 }));
 
 // Mock expo-device

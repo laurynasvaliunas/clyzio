@@ -3,9 +3,10 @@ import { render } from "../utils/test-utils";
 import ActivityScreen from "../../app/(tabs)/activity";
 
 describe("ActivityScreen", () => {
-  it("renders without crashing", () => {
+  it("renders the header and both tabs", () => {
     const { getByText } = render(<ActivityScreen />);
-    expect(getByText("My Commutes")).toBeTruthy();
+    expect(getByText("Activity")).toBeTruthy();
     expect(getByText("Upcoming")).toBeTruthy();
+    expect(getByText("History")).toBeTruthy();
   });
 });

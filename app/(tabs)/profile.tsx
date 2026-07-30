@@ -146,6 +146,71 @@ export default function ProfileScreen() {
     router.replace("/(auth)/login");
   }, [router]);
 
+  /**
+   * Load the commute mix + baseline. Identity/avatar/company are owned by
+   * ProfileEditor, so this only reads what this screen renders.
+   */
+  const loadData = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("commuting_habits, baseline_co2")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (error) {
+          setLoadError(true);
+        } else if (profile) {
+          setLoadError(false);
+          if (Array.isArray(profile.commuting_habits)) {
+            setHabits(profile.commuting_habits as CommuteHabit[]);
+          }
+          if (profile.baseline_co2 != null) setBaseline(profile.baseline_co2);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading data:", error);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData]),
+  );
+
+  // Recompute the baseline whenever the mix changes, and give the number a
+  // small pulse so the change is noticeable.
+  useEffect(() => {
+    setBaseline(computeBaseline(habits));
+    Animated.sequence([
+      Animated.timing(scaleAnim, { toValue: 1.08, duration: 150, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 4 }),
+    ]).start();
+  }, [habits, scaleAnim]);
+
+  // Ambient glow behind the score. `Animated.loop` runs forever, so it MUST be
+  // stopped on unmount — an un-stopped loop kept firing after tear-down, which
+  // is why the screen's test was skipped.
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 1, duration: 2000, useNativeDriver: false }),
+        Animated.timing(glowAnim, { toValue: 0, duration: 2000, useNativeDriver: false }),
+      ]),
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+      glowAnim.stopAnimation();
+    };
+  }, [glowAnim]);
+
   // Memoize derived values
   const ecoLevel = useMemo(() => getEcoLevel(baseline), [baseline]);
   const glowOpacity = useMemo(() => glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.6] }), [glowAnim]);
