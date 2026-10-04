@@ -17,17 +17,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
 import { format, isToday, isTomorrow, parseISO } from "date-fns";
 import {
-  Calendar,
   Clock,
-  Car,
   Leaf,
   X,
   ChevronRight,
   CheckCircle2,
-  Users,
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import TripCompletionModal from "../../components/TripCompletionModal";
+import ModeIcon from "../../components/ModeIcon";
 import CommuteCalendar, { type CalendarRide } from "../../components/CommuteCalendar";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
@@ -111,17 +109,6 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel, completing 
     return null;
   };
 
-  const getModeEmoji = (mode?: string) => {
-    switch (mode) {
-      case "walking": return "🚶";
-      case "bike": return "🚲";
-      case "ebike": return "⚡";
-      case "motorbike": return "🏍️";
-      case "public": return "🚌";
-      default: return "🚗";
-    }
-  };
-
   const { time, day } = formatScheduledTime(item.scheduled_at);
   const role = getRoleBadge();
 
@@ -152,7 +139,7 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel, completing 
       {/* Details row */}
       <View style={styles.cardDetailsRow}>
         <View style={styles.modeCircle}>
-          <Text style={{ fontSize: 16 }}>{getModeEmoji(item.transport_mode)}</Text>
+          <ModeIcon mode={item.transport_mode} size={18} color={COLORS.white} />
         </View>
         <View style={styles.timeChip}>
           <Clock size={14} color={TC.textSecondary} />
@@ -241,7 +228,7 @@ function HistoryCard({ item, onPress, TC }: HistoryCardProps) {
             {item.status === "completed" ? (
               <CheckCircle2 size={20} color={COLORS.white} />
             ) : (
-              <Car size={20} color={COLORS.white} />
+              <ModeIcon mode={item.transport_mode} size={20} color={COLORS.white} />
             )}
           </View>
         </View>
@@ -1043,10 +1030,11 @@ const styles = StyleSheet.create({
     lineHeight: 22 
   },
   emptyButton: {
+    minHeight: 56,
     backgroundColor: COLORS.primary,
     paddingHorizontal: 24,
     paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: 28,
     marginTop: 24,
   },
   emptyButtonText: { 

@@ -91,7 +91,7 @@ export default function ManagerDashboardScreen() {
           <Building2 size={18} color={COLORS.primary} />
           <Text style={styles.headerTitle}>Sustainability Dashboard</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -323,12 +323,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: COLORS.white,
-    alignItems: "center", justifyContent: "center",
+    // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F7F9FA",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerCenter: { flexDirection: "row", alignItems: "center", gap: 8 },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: COLORS.dark },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
   scroll: { flex: 1, paddingHorizontal: 16 },
 
   // Hero

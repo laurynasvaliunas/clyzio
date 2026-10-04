@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: COLORS.primary,
     paddingVertical: 16,
-    borderRadius: 16,
+    borderRadius: 28,
     shadowColor: COLORS.primary,
     shadowOpacity: 0.25,
     shadowRadius: 10,

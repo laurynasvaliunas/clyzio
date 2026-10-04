@@ -238,7 +238,7 @@ export default function TripCompletionModal({
 
             {/* Footer Message */}
             <Text style={styles.footerText}>
-              Keep it up! Every trip makes a difference. 🌍
+              Keep it up. Every trip makes a difference.
             </Text>
           </LinearGradient>
         </Animated.View>

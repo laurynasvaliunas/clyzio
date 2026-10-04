@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     fontWeight: weights.semibold,
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",
     color: "rgba(255,255,255,0.55)",

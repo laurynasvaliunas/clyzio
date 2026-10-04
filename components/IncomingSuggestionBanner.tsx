@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontWeight: "600",
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: 0.4,
   },
   actions: {

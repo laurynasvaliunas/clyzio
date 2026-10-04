@@ -24,6 +24,18 @@ export const semantic = {
   info: '#00565A',
 } as const;
 
+/** Light backgrounds / borders / dark text for status banners and pills. */
+export const semanticTint = {
+  successBg: '#ECFDF5',
+  successBorder: '#D1FAE5',
+  successInk: '#047857',
+  warningBg: '#FFFBEB',
+  warningInk: '#92400E',
+  dangerBg: '#FEF2F2',
+  dangerBorder: '#FECACA',
+  dangerInk: '#B91C1C',
+} as const;
+
 /**
  * Editorial design system — re-themed to "pro white" (2026-07).
  * White/near-white surfaces, ink type, one deep-teal brand hue + sharp

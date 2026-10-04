@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Plus, Trash2, Check, ChevronDown, Star, Pencil } from "lucide-react-native";
+import ModeIcon from "./ModeIcon";
 import {
   Vehicle,
   VehicleType,
@@ -27,14 +28,14 @@ const COLORS = {
 };
 
 const FUEL_TYPES = [
-  { id: "petrol", label: "Petrol", emoji: "⛽" },
-  { id: "diesel", label: "Diesel", emoji: "🛢️" },
-  { id: "hybrid", label: "Hybrid", emoji: "⚡⛽" },
-  { id: "electric", label: "Electric (BEV)", emoji: "⚡" },
-  { id: "phev", label: "Plug-in Hybrid (PHEV)", emoji: "🔌" },
-  { id: "lpg", label: "LPG / Autogas", emoji: "🔵" },
-  { id: "hydrogen", label: "Hydrogen", emoji: "💧" },
-  { id: "cng", label: "CNG (Natural Gas)", emoji: "🟢" },
+  { id: "petrol", label: "Petrol" },
+  { id: "diesel", label: "Diesel" },
+  { id: "hybrid", label: "Hybrid" },
+  { id: "electric", label: "Electric (BEV)" },
+  { id: "phev", label: "Plug-in Hybrid (PHEV)" },
+  { id: "lpg", label: "LPG / Autogas" },
+  { id: "hydrogen", label: "Hydrogen" },
+  { id: "cng", label: "CNG (Natural Gas)" },
 ];
 
 const TYPE_ORDER: VehicleType[] = [
@@ -45,15 +46,6 @@ const TYPE_ORDER: VehicleType[] = [
   "ebike",
   "escooter",
 ];
-
-const TYPE_EMOJI: Record<VehicleType, string> = {
-  car: "🚗",
-  motorcycle: "🏍️",
-  bicycle: "🚲",
-  scooter: "🛵",
-  ebike: "⚡🚲",
-  escooter: "⚡🛵",
-};
 
 interface Props {
   vehicles: Vehicle[];
@@ -146,7 +138,9 @@ export default function GarageEditor({ vehicles, primaryVehicleId, onChange, onS
               onPress={() => setExpandedId(v.id)}
               activeOpacity={0.8}
             >
-              <Text style={styles.summaryEmoji}>{TYPE_EMOJI[v.type]}</Text>
+              <View style={styles.summaryIcon}>
+                <ModeIcon mode={v.type} size={22} color={COLORS.primary} />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.summaryName} numberOfLines={1}>
                   {vehicleName(v)}
@@ -243,7 +237,7 @@ export default function GarageEditor({ vehicles, primaryVehicleId, onChange, onS
                   <Text style={styles.fuelToggleText}>
                     {(() => {
                       const f = FUEL_TYPES.find((x) => x.id === v.fuel_type);
-                      return f ? `${f.emoji} ${f.label}` : "Select fuel type";
+                      return f ? f.label : "Select fuel type";
                     })()}
                   </Text>
                   <ChevronDown size={16} color={COLORS.gray} />
@@ -262,7 +256,6 @@ export default function GarageEditor({ vehicles, primaryVehicleId, onChange, onS
                           }}
                           activeOpacity={0.75}
                         >
-                          <Text style={styles.fuelEmoji}>{f.emoji}</Text>
                           <Text
                             style={[
                               styles.fuelLabel,
@@ -387,7 +380,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 12,
   },
-  summaryEmoji: { fontSize: 24 },
+  summaryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,86,90,0.10)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   summaryName: { fontSize: 15, fontWeight: "700", color: COLORS.ink },
   summaryMetaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 },
   summaryMeta: { fontSize: 12, color: COLORS.textMuted },
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 999,
   },
-  primaryPillText: { fontSize: 10, fontWeight: "700", color: COLORS.primary },
+  primaryPillText: { fontSize: 11, fontWeight: "700", color: COLORS.primary },
   summaryIconBtn: { padding: 4 },
   saveBtn: {
     flexDirection: "row",
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
   },
   typeChipActive: { backgroundColor: COLORS.primary },
   typeChipText: { fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },
-  typeChipTextActive: { color: COLORS.ink },
+  typeChipTextActive: { color: "#FFFFFF" },
   inputRow: { flexDirection: "row", gap: 12 },
   label: { fontSize: 12, color: COLORS.textMuted, marginBottom: 6 },
   input: {
@@ -459,7 +459,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 11,
   },
-  fuelEmoji: { fontSize: 16 },
   fuelLabel: { flex: 1, fontSize: 14, color: COLORS.ink },
   footer: {
     flexDirection: "row",

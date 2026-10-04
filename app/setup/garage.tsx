@@ -25,6 +25,7 @@ import {
   FUELED_VEHICLE_TYPES,
 } from "../../lib/vehicles";
 import SetupProgress from "../../components/SetupProgress";
+import ModeIcon from "../../components/ModeIcon";
 import { deriveProfileCarFields, getPrimaryVehicle } from "../../lib/commuteUtils";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -56,17 +57,16 @@ const COLORS = {
 
 interface VehicleCard {
   type: VehicleType;
-  emoji: string;
   label: string;
 }
 
 const CARDS: VehicleCard[] = [
-  { type: "car",        emoji: "🚗",   label: "Car" },
-  { type: "motorcycle", emoji: "🏍️",  label: "Motorcycle" },
-  { type: "bicycle",    emoji: "🚲",   label: "Bike" },
-  { type: "scooter",    emoji: "🛵",   label: "Scooter" },
-  { type: "ebike",      emoji: "⚡🚲",  label: "E-Bike" },
-  { type: "escooter",   emoji: "⚡🛵",  label: "E-Scooter" },
+  { type: "car",        label: "Car" },
+  { type: "motorcycle", label: "Motorcycle" },
+  { type: "bicycle",    label: "Bike" },
+  { type: "scooter",    label: "Scooter" },
+  { type: "ebike",      label: "E-Bike" },
+  { type: "escooter",   label: "E-Scooter" },
 ];
 
 const FUEL_OPTIONS: Array<{ id: string; label: string }> = [
@@ -230,9 +230,9 @@ export default function GarageSetupScreen() {
                       <Check size={12} color={COLORS.surface} />
                     </View>
                   )}
-                  <Text style={styles.cardEmoji} accessibilityElementsHidden importantForAccessibility="no">
-                    {card.emoji}
-                  </Text>
+                  <View style={styles.cardIcon} accessibilityElementsHidden importantForAccessibility="no">
+                    <ModeIcon mode={card.type} size={36} color={selected ? COLORS.selected : COLORS.inkSoft} strokeWidth={1.75} />
+                  </View>
                   <Text style={[styles.cardLabel, selected && styles.cardLabelSelected]}>
                     {card.label}
                   </Text>
@@ -388,9 +388,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cardEmoji: {
-    fontSize: 40,
-    lineHeight: 46,
+  cardIcon: {
+    height: 46,
+    justifyContent: "center",
   },
   cardLabel: {
     fontSize: 15,

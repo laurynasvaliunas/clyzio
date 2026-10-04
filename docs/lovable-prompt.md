@@ -222,6 +222,62 @@ a security audit. These are all web-side changes.
 > Do not create new tables or functions for this — `delete-account` already
 > exists and is what the mobile app uses.
 
+## Prompt 9 — Match the mobile app's design system
+
+> The mobile app just had a full design pass. Please align the website with it
+> so both feel like one product. Apply site-wide (marketing pages, dashboard,
+> legal pages):
+>
+> **Colours** — one brand hue, used sparingly:
+> - Brand teal `#00565A` (hover/pressed `#003D40`, darkest `#002B2E`). Accent amber `#F59E0B` only for small highlights.
+> - Status: success `#059669`, warning `#D97706`, danger `#DC2626`. Light tints for banners/pills: success `#ECFDF5` (border `#D1FAE5`, text `#047857`), warning `#FFFBEB` (text `#92400E`), danger `#FEF2F2` (border `#FECACA`, text `#B91C1C`).
+> - Page background `#F7F9FA`, cards `#FFFFFF`, borders `#EDF1F2`. Text `#0B1A1F`, secondary text `#5A6A6F`. Never use `#8B989C` for text (it fails contrast) — placeholders and disabled states only.
+> - Remove any other hues (purples, extra greens/blues, Tailwind defaults). Don't give each transport mode its own colour: mode icons are all brand teal, and CO₂ impact is shown with a small dot (green low, amber medium, red high).
+>
+> **Typography** — the system font stack (`-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`); weight carries hierarchy. Page titles 40px/48px bold with -0.8px letter-spacing (32px on mobile), section titles 18px bold, body 15–16px. No text smaller than 12px (11px only inside small badges).
+>
+> **Buttons** — primary: teal, fully rounded (pill), 56px tall on mobile / 48px on desktop, 17px bold white label. Secondary: white with teal border and teal label. Destructive: red. One primary button per view.
+>
+> **Icons** — line icons only from `lucide-react` (2px stroke). Replace every emoji used as an icon or decoration (🚗 🚲 🌱 🎉 👋 ⚡ etc.) and every text glyph used as an icon (✕ ← › ⊙). Transport modes: walking `Footprints`, bike `Bike`, e-bike/e-scooter `Zap`, motorbike `Gauge`, car `Car`, public transport `Bus`, carpool `Users`, working from home `House`.
+>
+> **Layout** — cards: 16px radius, 1px `#EDF1F2` border, very soft shadow. 16px side padding on mobile. Back buttons: 44px round, light `#F7F9FA` background, chevron-left icon. Every icon-only button needs an `aria-label`; visible focus rings; all text ≥ 4.5:1 contrast.
+>
+> **Wording** — "CO₂" with the subscript ₂ (never "CO2"), "Petrol" (not "Gasoline"), "Public transport", "Working from home". No emoji in headings or body copy.
+
+## Prompt 10 — Backend rules that changed (the website shares this database)
+
+> The shared Supabase backend was hardened in October 2026. Do **not** change
+> the schema, RLS policies, functions or edge functions — but check the website
+> still works with these rules, and handle the new errors gracefully:
+>
+> 1. `get_company_stats(p_company_id)` now only answers for a **manager or
+>    company admin of that company**; anyone else gets error `42501`
+>    ("forbidden"). Show "You don't have access to this company's dashboard"
+>    instead of an error page.
+> 2. `get_department_leaderboard(user_uuid)` and `get_company_breakdown(user_uuid)`
+>    must be called with the **signed-in user's own id** (or a colleague in the
+>    same company); other ids return `42501`.
+> 3. **Rides**: a signed-in user can only insert a ride with `status = 'scheduled'`
+>    where they are the only participant, and can only change an existing ride's
+>    status to `'cancelled'`. Completing a trip must go through the
+>    `complete-trip` edge function. Never update `rides` columns directly otherwise.
+> 4. **Carpool matches** (`trip_intent_matches`): no direct updates from the
+>    client. Approve, decline or withdraw through the `respond-to-match` edge
+>    function (`{ match_id, accepted: true | false }`).
+> 5. `profiles.baseline_co2` must be between 0 and 0.3 (kg CO₂ per km).
+> 6. **AI features**: the AI edge functions now require the user's opt-in
+>    (`profiles.ai_consent_at`). If the website offers AI suggestions to a user,
+>    first show this text and set `ai_consent_at = now()` on agreement: *"Personalised
+>    tips are written by Claude, an AI model made by Anthropic. To do that we send
+>    Anthropic your commute distance, usual transport modes and working days,
+>    departure time, car fuel type and CO₂ totals. We never send your name, your
+>    addresses or your exact location. You can turn this off anytime in Settings."*
+>    Without consent the functions return HTTP 403 with code `ai_consent_required`.
+>
+> Search the web codebase for every `.rpc(`, `.from('rides')`,
+> `.from('trip_intent_matches')` and `functions.invoke(` call and confirm each
+> one fits these rules. Tell me which ones you changed.
+
 ## Do NOT change (mobile app depends on these)
 
 > Please treat the Supabase backend as read-only from the web app's

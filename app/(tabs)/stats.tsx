@@ -1136,7 +1136,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   levelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  levelHint: { fontWeight: "600", fontSize: 10, letterSpacing: 1.4, marginBottom: 14 },
+  levelHint: { fontWeight: "600", fontSize: 11, letterSpacing: 1.4, marginBottom: 14 },
   levelBadge: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: COLORS.accent + "20", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   levelNumber: { fontWeight: "700", fontSize: 20, color: COLORS.accentDark },
   levelTitle: { fontSize: 16, fontWeight: "600", color: COLORS.dark },

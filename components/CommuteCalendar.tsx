@@ -34,7 +34,7 @@ const COLORS = {
   yellow: "#F59E0B",
   orange: "#DC2626",
   emptyCell: "#EDF1F2",
-  emptyCellDark: "#1B2E33",
+  emptyCellDark: "#1B3035",
 };
 
 const GREEN_MODES = new Set(["walking", "bike", "ebike", "escooter", "scooter", "wfh"]);

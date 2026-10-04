@@ -22,7 +22,7 @@ const COLORS = {
   leaf: "#059669",
   clay: "#DC2626",
   track: "#EDF1F2",
-  trackDark: "#1B2E33",
+  trackDark: "#1B3035",
 };
 
 const MODE_LABEL: Record<string, string> = {

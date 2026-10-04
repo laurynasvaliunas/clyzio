@@ -66,18 +66,20 @@ const COLORS = {
 };
 
 // Base transport modes — "my_car" co2 is patched at runtime from user's fuel type
+// One brand colour for every mode icon (the impact signal is the CO₂ dot,
+// not a rainbow of per-mode hues).
 const BASE_TRANSPORT_MODES = [
-  { id: "walking", label: "Walking",           icon: Footprints, co2: 0,     color: "#059669" },
-  { id: "bike",    label: "Bike / Scooter",    icon: Bike,       co2: 0,     color: "#D97706" },
-  { id: "ebike",   label: "E-Bike / E-Scooter",icon: Zap,        co2: 0.023, color: "#7C3AED" },
-  { id: "moto",    label: "Motorbike",          icon: NavIcon,    co2: 0.090, color: "#5A6A6F" },
-  { id: "public",  label: "Public Transport",   icon: Bus,        co2: 0.040, color: "#00676D" },
+  { id: "walking", label: "Walking",           icon: Footprints, co2: 0,     color: COLORS.primary },
+  { id: "bike",    label: "Bike / Scooter",    icon: Bike,       co2: 0,     color: COLORS.primary },
+  { id: "ebike",   label: "E-Bike / E-Scooter",icon: Zap,        co2: 0.023, color: COLORS.primary },
+  { id: "moto",    label: "Motorbike",          icon: NavIcon,    co2: 0.090, color: COLORS.primary },
+  { id: "public",  label: "Public Transport",   icon: Bus,        co2: 0.040, color: COLORS.primary },
   // Taxi — CO₂ estimated as an average hybrid car (Prius is the most common
   // EU taxi). A disclaimer is shown when this mode is selected. (PDF Branch C)
-  { id: "taxi",    label: "Taxi",               icon: TaxiIcon,   co2: 0.120, color: "#F59E0B" },
+  { id: "taxi",    label: "Taxi",               icon: TaxiIcon,   co2: 0.120, color: COLORS.primary },
   { id: "my_car",  label: "My Car",             icon: Car,        co2: 0.192, color: COLORS.primary },
   // Working from home — a zero-commute day. No route required. (PDF Stage 3)
-  { id: "wfh",     label: "Working from home",  icon: HomeIcon,   co2: 0,     color: "#059669" },
+  { id: "wfh",     label: "Working from home",  icon: HomeIcon,   co2: 0,     color: COLORS.primary },
 ];
 
 /**
@@ -87,7 +89,7 @@ const BASE_TRANSPORT_MODES = [
  */
 function co2DotColor(co2PerKm: number): string {
   if (co2PerKm <= 0.001) return "#059669";   // leaf — zero/near-zero
-  if (co2PerKm < 0.05) return "#34D399";      // soft green — low (e-bike, transit)
+  if (co2PerKm < 0.05) return "#059669";      // leaf — low (e-bike, transit)
   if (co2PerKm < 0.13) return "#F59E0B";      // sun — medium (hybrid/taxi)
   return "#DC2626";                            // clay — high (car/moto)
 }

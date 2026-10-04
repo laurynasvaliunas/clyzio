@@ -70,7 +70,7 @@ export default function InsightsScreen() {
           <ArrowLeft size={22} color={COLORS.dark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Full AI Report</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       {/* Period selector */}
@@ -116,7 +116,7 @@ export default function InsightsScreen() {
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
 
           {/* CO₂ Equivalents */}
-          <LinearGradient colors={["#E6F1F2", "#CFE5E7"]} style={styles.equivCard}>
+          <LinearGradient colors={["#E6F1F2", "#E2E8EA"]} style={styles.equivCard}>
             <Text style={styles.equivTitle}>Impact Equivalents</Text>
             <View style={styles.equivRow}>
               <View style={styles.equivItem}>
@@ -243,8 +243,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.white,
-    alignItems: "center", justifyContent: "center",
+    // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F7F9FA",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
 

@@ -277,7 +277,7 @@ export default function LoginScreen() {
                 {inviteCompany ? `Join ${inviteCompany}` : "Accept your invite"}
               </Text>
               <Text style={styles.corpBannerSub}>
-                Create your account with this email to join the team. 🌱
+                Create your account with this email to join the team.
               </Text>
             </View>
           </View>
@@ -312,7 +312,7 @@ export default function LoginScreen() {
                 <>
                   <Text style={styles.corpBannerTitle}>{companyMatch}</Text>
                   <Text style={styles.corpBannerSub}>
-                    You'll join {companyMatch}'s eco team 🌱
+                    You'll join {companyMatch}'s eco team
                   </Text>
                 </>
               ) : lookupStatus === "loading" ? (

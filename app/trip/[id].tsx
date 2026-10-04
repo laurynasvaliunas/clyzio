@@ -20,7 +20,7 @@ import { supabase } from "../../lib/supabase";
 // server-side in the `complete-trip` edge function. See audit C2.
 import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserLocation } from "@rnmapbox/maps";
 import * as Location from "expo-location";
-import { MessageCircle, Shield, X, Phone, AlertTriangle, Car, Footprints, Bike, Zap, Bus, Navigation as NavIcon, Circle, MapPin } from "lucide-react-native";
+import { MessageCircle, Shield, X, Phone, AlertTriangle, Car, Footprints, Bike, Zap, Bus, Navigation as NavIcon, Circle, MapPin, ChevronLeft, Leaf, Star } from "lucide-react-native";
 import ChatModal from "../../components/ChatModal";
 import SOSSheet from "../../components/SOSSheet";
 import RatingSheet from "../../components/RatingSheet";
@@ -451,7 +451,7 @@ export default function TripScreen() {
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <Text style={{ color: COLORS.gray400, fontSize: 13 }}>Go Back</Text>
+            <Text style={{ color: COLORS.gray700, fontSize: 13 }}>Go Back</Text>
           </TouchableOpacity>
         </View>
       );
@@ -535,7 +535,7 @@ export default function TripScreen() {
         <Text style={{ fontSize: 16, fontWeight: '600', color: COLORS.dark, marginBottom: 8 }}>
           Map unavailable
         </Text>
-        <Text style={{ fontSize: 13, color: COLORS.gray400, textAlign: 'center' }}>
+        <Text style={{ fontSize: 13, color: COLORS.gray700, textAlign: 'center' }}>
           We couldn&apos;t load the trip map. Please reinstall the latest version of Clyzio.
         </Text>
       </View>
@@ -614,8 +614,10 @@ export default function TripScreen() {
         <TouchableOpacity
           style={[styles.backButtonOverlay, { top: insets.top + 10 }]}
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
-          <Text style={styles.backButtonText}>←</Text>
+          <ChevronLeft size={24} color={COLORS.dark} />
         </TouchableOpacity>
 
         {/* Distance Badge */}
@@ -694,9 +696,10 @@ export default function TripScreen() {
 
             {/* CO₂ Savings Badge — carpool splits the saving 50/50, so show each
                 person's share here (matches what completion credits). */}
-            <View style={styles.co2Badge}>
+            <View style={[styles.co2Badge, { flexDirection: "row", justifyContent: "center", gap: 6 }]}>
+              <Leaf size={16} color={COLORS.primary} />
               <Text style={styles.co2BadgeText}>
-                🌱 Saving {(isSoloTrip ? ride.co2_saved : ride.co2_saved / 2).toFixed(2)} kg CO₂{isSoloTrip ? "" : " (your share)"}
+                Saving {(isSoloTrip ? ride.co2_saved : ride.co2_saved / 2).toFixed(2)} kg CO₂{isSoloTrip ? "" : " (your share)"}
               </Text>
             </View>
           </View>
@@ -872,7 +875,13 @@ export default function TripScreen() {
                 ? `CO₂ Saved: ${ride.co2_saved.toFixed(2)} kg`
                 : `Don't forget to rate ${partnerName.split(' ')[0] || 'your driver'}.`}
             </Text>
-            <Text style={styles.arrivalEmoji}>{isSoloTrip || isDriver ? '🌱' : '⭐'}</Text>
+            <View style={styles.arrivalIcon}>
+              {isSoloTrip || isDriver ? (
+                <Leaf size={36} color={COLORS.primary} />
+              ) : (
+                <Star size={36} color={COLORS.accent} />
+              )}
+            </View>
 
             {isSoloTrip || isDriver ? (
               <TouchableOpacity
@@ -922,7 +931,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: COLORS.gray400,
+    color: COLORS.gray700,
   },
   backButtonAlt: {
     marginTop: 20,
@@ -968,10 +977,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  backButtonText: {
-    fontSize: 24,
-    color: COLORS.dark,
-  },
   distanceBadge: {
     position: "absolute",
     top: 50,
@@ -993,10 +998,10 @@ const styles = StyleSheet.create({
   },
   distanceBadgeLabel: {
     fontWeight: "600",
-    fontSize: 9.5,
+    fontSize: 11,
     letterSpacing: 0.8,
     textTransform: "uppercase",
-    color: COLORS.gray400,
+    color: COLORS.gray700,
     textAlign: "center",
     marginTop: 3,
   },
@@ -1060,7 +1065,7 @@ const styles = StyleSheet.create({
   },
   distanceLabelHeader: {
     fontSize: 13,
-    color: COLORS.gray400,
+    color: COLORS.gray700,
     fontWeight: "500",
   },
 
@@ -1089,9 +1094,9 @@ const styles = StyleSheet.create({
   },
   routeLabel: {
     fontWeight: "600",
-    fontSize: 9.5,
+    fontSize: 11,
     letterSpacing: 0.8,
-    color: COLORS.gray400,
+    color: COLORS.gray700,
     textTransform: "uppercase",
     marginBottom: 4,
   },
@@ -1177,7 +1182,7 @@ const styles = StyleSheet.create({
   },
   partnerRole: {
     fontSize: 14,
-    color: COLORS.gray400,
+    color: COLORS.gray700,
     marginTop: 4,
     fontWeight: "500",
   },
@@ -1294,18 +1299,24 @@ const styles = StyleSheet.create({
   },
   arrivalSubtitle: {
     fontSize: 16,
-    color: COLORS.gray400,
+    color: COLORS.gray700,
     marginBottom: 20,
   },
-  arrivalEmoji: {
-    fontSize: 64,
+  arrivalIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(0,86,90,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 24,
   },
   confirmButton: {
+    minHeight: 56,
     backgroundColor: COLORS.primary,
     paddingHorizontal: 32,
     paddingVertical: 16,
-    borderRadius: 24,
+    borderRadius: 28,
     width: "100%",
     marginBottom: 12,
   },
@@ -1317,7 +1328,7 @@ const styles = StyleSheet.create({
   },
   notYetText: {
     fontSize: 15,
-    color: COLORS.gray400,
+    color: COLORS.gray700,
     marginTop: 8,
   },
 
@@ -1342,7 +1353,7 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 15,
-    color: COLORS.gray400,
+    color: COLORS.gray700,
     fontWeight: "600",
   },
   summaryValue: {

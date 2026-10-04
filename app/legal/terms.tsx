@@ -150,7 +150,7 @@ export default function TermsScreen() {
           <Text style={styles.headerTitle}>Terms & Conditions</Text>
           <Text style={styles.headerSub}>Version {VERSION} · {LAST_UPDATED}</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
@@ -209,15 +209,16 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: COLORS.background,
+    // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F7F9FA",
     alignItems: "center",
     justifyContent: "center",
   },
   headerCenter: { flex: 1, alignItems: "center" },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: COLORS.dark },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
   headerSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
 
   scroll: { flex: 1 },

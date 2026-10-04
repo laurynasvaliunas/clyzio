@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 import { Check } from "lucide-react-native";
+import ModeIcon from "./ModeIcon";
 
 /**
  * CommuteMixEditor — "which modes do you use on which days?".
@@ -31,7 +32,6 @@ export interface TransportMode {
   id: string;
   name: string;
   co2: number;
-  emoji: string;
 }
 
 export interface CommuteHabit {
@@ -41,17 +41,17 @@ export interface CommuteHabit {
 
 /** Per-km CO₂ by mode (kg). Mirrors lib/commuteUtils FUEL_CO2_FACTORS. */
 export const TRANSPORT_OPTIONS: TransportMode[] = [
-  { id: "wfh", name: "Working from home", co2: 0, emoji: "🏠" },
-  { id: "walking", name: "Walking", co2: 0, emoji: "🚶" },
-  { id: "bike", name: "Bike/Scooter", co2: 0, emoji: "🚴" },
-  { id: "ebike", name: "E-Bike/Scooter", co2: 0.023, emoji: "⚡" },
-  { id: "moto_gas", name: "Motorbike", co2: 0.09, emoji: "🏍️" },
-  { id: "car_gas", name: "Car (Gasoline)", co2: 0.192, emoji: "🚗" },
-  { id: "car_diesel", name: "Car (Diesel)", co2: 0.171, emoji: "🚙" },
-  { id: "car_hybrid", name: "Car (Hybrid)", co2: 0.12, emoji: "🔋" },
-  { id: "car_hydrogen", name: "Car (Hydrogen)", co2: 0.02, emoji: "💧" },
-  { id: "car_electric", name: "Car (Electric)", co2: 0.032, emoji: "⚡" },
-  { id: "public", name: "Public Transport", co2: 0.04, emoji: "🚌" },
+  { id: "wfh", name: "Working from home", co2: 0 },
+  { id: "walking", name: "Walking", co2: 0 },
+  { id: "bike", name: "Bike/Scooter", co2: 0 },
+  { id: "ebike", name: "E-Bike/Scooter", co2: 0.023 },
+  { id: "moto_gas", name: "Motorbike", co2: 0.09 },
+  { id: "car_gas", name: "Car (Petrol)", co2: 0.192 },
+  { id: "car_diesel", name: "Car (Diesel)", co2: 0.171 },
+  { id: "car_hybrid", name: "Car (Hybrid)", co2: 0.12 },
+  { id: "car_hydrogen", name: "Car (Hydrogen)", co2: 0.02 },
+  { id: "car_electric", name: "Car (Electric)", co2: 0.032 },
+  { id: "public", name: "Public Transport", co2: 0.04 },
 ];
 
 export const emptyDays = (): boolean[] => [false, false, false, false, false, false, false];
@@ -112,7 +112,9 @@ function ModeCard({
           </Text>
         </View>
       )}
-      <Text style={styles.modeEmoji}>{mode.emoji}</Text>
+      <View style={styles.modeIcon}>
+        <ModeIcon mode={mode.id} size={26} color={isSelected || hasData ? COLORS.primary : COLORS.inkSoft} />
+      </View>
       <Text style={[styles.modeName, isSelected && styles.modeNameSelected]} numberOfLines={2}>
         {mode.name}
       </Text>
@@ -264,7 +266,7 @@ const styles = StyleSheet.create({
   },
   modeCardSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.tint },
   modeCardHasData: { borderColor: COLORS.primary },
-  modeEmoji: { fontSize: 28, marginBottom: 6 },
+  modeIcon: { height: 32, justifyContent: "center", marginBottom: 6 },
   modeName: {
     fontSize: 12,
     fontWeight: "600",

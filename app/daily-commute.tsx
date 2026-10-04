@@ -812,7 +812,7 @@ export default function DailyCommuteScreen() {
             <ChevronLeft size={24} color={TC.text} />
           </TouchableOpacity>
         ) : (
-          <View style={styles.headerBtn} />
+          <View style={styles.headerSpacer} />
         )}
         <Text style={[styles.headerTitle, { color: TC.text }]}>Daily Commute</Text>
         {showCloseBtn ? (
@@ -820,7 +820,7 @@ export default function DailyCommuteScreen() {
             <X size={22} color={TC.textSecondary} />
           </TouchableOpacity>
         ) : (
-          <View style={styles.headerBtn} />
+          <View style={styles.headerSpacer} />
         )}
       </View>
 
@@ -878,19 +878,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#EDF1F2",
   },
+  headerSpacer: { width: 44, height: 44 },
   headerBtn: {
-    width: 40,
-    height: 40,
+    // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F7F9FA",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "700",
   },
   errorBanner: {
@@ -1053,7 +1057,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.primaryDark,
     textAlign: "center",
-    backgroundColor: "#F0FDFA",
+    backgroundColor: "#E6F1F2",
     ...Platform.select({ ios: {}, android: { paddingVertical: 0 } }),
   },
   timeSep: {
@@ -1100,7 +1104,7 @@ const styles = StyleSheet.create({
   },
   matchCardAccepted: {
     borderColor: COLORS.primary,
-    backgroundColor: "#F0FDFA",
+    backgroundColor: "#E6F1F2",
   },
   matchCardLeft: {
     flexDirection: "row",
@@ -1155,7 +1159,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     borderWidth: 1.5,
-    borderColor: "#CFE5E7",
+    borderColor: "#E2E8EA",
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
@@ -1176,7 +1180,7 @@ const styles = StyleSheet.create({
   },
   detourCardSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: "#F0FDFA",
+    backgroundColor: "#E6F1F2",
   },
   detourTitle: {
     fontSize: 15,
@@ -1193,11 +1197,11 @@ const styles = StyleSheet.create({
   confirmedCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0FFF4",
+    backgroundColor: "#ECFDF5",
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#BBF7D0",
+    borderColor: "#D1FAE5",
     gap: 10,
     width: "100%",
   },
@@ -1257,8 +1261,9 @@ const styles = StyleSheet.create({
 
   // ── Primary button ──
   primaryBtn: {
+    minHeight: 56,
     backgroundColor: COLORS.primary,
-    borderRadius: 16,
+    borderRadius: 28,
     paddingVertical: 16,
     alignItems: "center",
     justifyContent: "center",

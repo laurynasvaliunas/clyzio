@@ -269,7 +269,7 @@ function LocalInsightsPanel({
           Your <Text style={{ fontWeight: "800" }}>{distKm.toFixed(1)} km</Text> commute has real potential.
           Switch to {bestCO2.label.toLowerCase()} and you'd save{" "}
           <Text style={{ color: COLORS.accent }}>~{weeklyKg.toFixed(1)} kg CO₂/week</Text>
-          {yearlyTrees > 0 ? `. That's ${yearlyTrees} tree${yearlyTrees !== 1 ? "s" : ""} planted a year 🌳` : " 🌱"}.
+          {yearlyTrees > 0 ? `. That's like planting ${yearlyTrees} tree${yearlyTrees !== 1 ? "s" : ""} a year` : ""}.
           {" "}Want to give it a try this week?
         </Text>
         <View style={styles.savingPill}>
@@ -983,14 +983,16 @@ const styles = StyleSheet.create({
   headerLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 4 },
   headerTitle: {
     fontWeight: "700",
-    fontSize: 20,
+    fontSize: 18,
     color: "#0B1A1F",
     flexShrink: 1,
   },
   backBtn: {
+    // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 999,
+    borderRadius: 22,
+    backgroundColor: "#F7F9FA",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1177,7 +1179,7 @@ const styles = StyleSheet.create({
   statValue: { fontWeight: "700", fontSize: 19, letterSpacing: -0.3 },
   statLabel: {
     fontWeight: "600",
-    fontSize: 9.5,
+    fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",
     color: COLORS.textMuted,
@@ -1349,15 +1351,17 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: COLORS.dark, textAlign: "center" },
   emptySubtitle: { fontSize: 13, color: COLORS.textMuted, textAlign: "center", lineHeight: 20 },
-  generateBtn: { borderRadius: 14, overflow: "hidden", marginTop: 8, width: "100%" },
+  generateBtn: {
+    minHeight: 56, borderRadius: 28, overflow: "hidden", marginTop: 8, width: "100%" },
   generateGradient: {
+    minHeight: 56,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
     gap: 8,
   },
-  generateText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
+  generateText: { color: COLORS.white, fontWeight: "700", fontSize: 17 },
 
   // Matches Near Your Route section
   matchSection: {

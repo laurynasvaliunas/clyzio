@@ -12,7 +12,7 @@ import Mapbox, { MapView, Camera, PointAnnotation, MarkerView, ShapeSource, Line
 import { Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
-import { Car, Users, UserCircle, X, Sparkles } from "lucide-react-native";
+import { Car, Users, UserCircle, X, Sparkles, House, Briefcase, ChevronRight, LocateFixed } from "lucide-react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -233,7 +233,7 @@ function SearchingOverlay({ status, searchMode, matchCount, onCancel, onViewMap 
 
         {/* Status text */}
         <Text style={styles.searchingTitle}>
-          {status === 'matched' ? '🎉 Match Found!' : status === 'waiting' ? '⏳ Waiting' : '🔍 Searching'}
+          {status === 'matched' ? 'Match found' : status === 'waiting' ? 'Waiting for a reply' : 'Searching nearby'}
         </Text>
         <Text style={styles.searchingMessage}>{getMessage()}</Text>
 
@@ -315,7 +315,7 @@ function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = fal
           accessibilityRole="button"
           accessibilityLabel="Close match details"
         >
-          <Text style={styles.matchClose} accessibilityElementsHidden importantForAccessibility="no">✕</Text>
+          <X size={20} color={COLORS.textMuted} />
         </TouchableOpacity>
       </View>
 
@@ -421,7 +421,7 @@ function IntentPeerCard({
           accessibilityRole="button"
           accessibilityLabel="Close commuter details"
         >
-          <Text style={styles.matchClose} accessibilityElementsHidden importantForAccessibility="no">✕</Text>
+          <X size={20} color={COLORS.textMuted} />
         </TouchableOpacity>
       </View>
 
@@ -1453,14 +1453,14 @@ export default function MapScreen() {
         {!activeTrip && places?.homeLat != null && places?.homeLng != null && (
           <PointAnnotation id="home-place" coordinate={[places.homeLng, places.homeLat]}>
             <View style={[styles.placePin, { backgroundColor: COLORS.primary }]}>
-              <Text style={styles.placePinGlyph}>🏠</Text>
+              <House size={16} color={COLORS.white} strokeWidth={2.25} />
             </View>
           </PointAnnotation>
         )}
         {!activeTrip && places?.workLat != null && places?.workLng != null && (
           <PointAnnotation id="work-place" coordinate={[places.workLng, places.workLat]}>
             <View style={[styles.placePin, { backgroundColor: COLORS.green }]}>
-              <Text style={styles.placePinGlyph}>💼</Text>
+              <Briefcase size={16} color={COLORS.white} strokeWidth={2.25} />
             </View>
           </PointAnnotation>
         )}
@@ -1633,7 +1633,7 @@ export default function MapScreen() {
                   </Text>
                 )}
               </View>
-              <Text style={{ color: textColor, opacity: 0.7, fontSize: 12, fontWeight: "600" }}>›</Text>
+              <ChevronRight size={14} color={textColor} style={{ opacity: 0.7 }} />
             </TouchableOpacity>
           );
         })()}
@@ -1810,7 +1810,7 @@ export default function MapScreen() {
             accessibilityRole="button"
             accessibilityLabel="Center map on my location"
           >
-            <Text style={styles.myLocationBtnText} accessibilityElementsHidden importantForAccessibility="no">⊙</Text>
+            <LocateFixed size={22} color={COLORS.primary} />
           </TouchableOpacity>
         );
       })()}
@@ -1859,10 +1859,6 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
-  },
-  placePinGlyph: {
-    fontSize: 16,
-    lineHeight: 20,
   },
 
   // ===== ACTIVE TRIP CARD =====
@@ -1972,7 +1968,7 @@ const styles = StyleSheet.create({
   },
   emptyStateInvite: {
     fontWeight: "600",
-    fontSize: 10.5,
+    fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",
     marginTop: 8,
@@ -1997,10 +1993,6 @@ const styles = StyleSheet.create({
   },
   myLocationBtnDark: {
     backgroundColor: "#0B1A1F",
-  },
-  myLocationBtnText: {
-    fontSize: 22,
-    color: COLORS.primary,
   },
   // ===== MAPBOX MARKER DOTS =====
   markerDot: {
@@ -2165,11 +2157,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gray + "15",
     alignItems: "center",
     justifyContent: "center",
-  },
-  matchClose: {
-    fontSize: 20,
-    color: COLORS.textMuted,
-    fontWeight: "400",
   },
   matchRouteContainer: {
     backgroundColor: COLORS.gray + "08",

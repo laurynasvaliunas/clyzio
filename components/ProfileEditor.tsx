@@ -919,7 +919,8 @@ const styles = StyleSheet.create({
     color: COLORS.dark,
     padding: 0,
   },
-  saveButton: { borderRadius: 16, overflow: "hidden", marginTop: 8 },
+  saveButton: {
+    minHeight: 56, borderRadius: 28, overflow: "hidden", marginTop: 8 },
   saveButtonDisabled: { opacity: 0.7 },
   saveGradient: {
     flexDirection: "row",

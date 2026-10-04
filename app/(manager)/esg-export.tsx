@@ -115,7 +115,7 @@ export default function ESGExportScreen() {
           <ArrowLeft size={22} color={COLORS.dark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>ESG Export</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -211,8 +211,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.white,
-    alignItems: "center", justifyContent: "center",
+    // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F7F9FA",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
   scroll: { flex: 1, paddingHorizontal: 16 },
@@ -227,9 +232,10 @@ const styles = StyleSheet.create({
   periodText: { fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },
   periodTextActive: { color: COLORS.primary },
 
-  generateBtn: { borderRadius: 14, overflow: "hidden", marginBottom: 16 },
-  generateGradient: { alignItems: "center", justifyContent: "center", paddingVertical: 14 },
-  generateText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
+  generateBtn: {
+    minHeight: 56, borderRadius: 28, overflow: "hidden", marginBottom: 16 },
+  generateGradient: { minHeight: 56, alignItems: "center", justifyContent: "center", paddingVertical: 14 },
+  generateText: { color: COLORS.white, fontWeight: "700", fontSize: 17 },
 
   previewCard: {
     backgroundColor: COLORS.white, borderRadius: 18, padding: 16, marginBottom: 14,

@@ -14,7 +14,7 @@ const COLORS = {
   textSecondary: "#5A6A6F",
   white: "#FFFFFF",
   bg: "#F7F9FA",
-  border: "#E0F2F3",
+  border: "#E6F1F2",
 };
 
 type PublicProfile = {
@@ -67,7 +67,7 @@ export default function PublicProfileScreen() {
           <ChevronLeft size={24} color={COLORS.dark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
-        <View style={styles.backBtn} />
+        <View style={styles.headerSpacer} />
       </View>
 
       {loading ? (
@@ -115,10 +115,19 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
-  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: COLORS.dark },
+  headerSpacer: { width: 44, height: 44 },
+  backBtn: {
+    // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F7F9FA",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 8 },
   emptyTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark, marginTop: 8 },
   emptySub: { fontSize: 14, color: COLORS.textSecondary, textAlign: "center", lineHeight: 20 },

@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { ArrowRight, Pencil, Leaf } from "lucide-react-native";
+import ModeIcon from "./ModeIcon";
 
 /**
  * CommuteHomeCard — Stage 2 of the customer-journey PDF.
@@ -50,31 +51,8 @@ const COLORS = {
   teal: "#003D40",
   leaf: "#059669",
   track: "#EDF1F2",
-  trackDark: "#1B2E33",
+  trackDark: "#1B3035",
 };
-
-// Transport-mode → emoji. Mirrors the planner's mode ids so a saved ride
-// renders the right glyph in the summary.
-const MODE_EMOJI: Record<string, string> = {
-  walking: "🚶",
-  bike: "🚲",
-  ebike: "⚡🚲",
-  escooter: "⚡🛵",
-  scooter: "🛵",
-  motorbike: "🏍️",
-  motorcycle: "🏍️",
-  public: "🚌",
-  taxi: "🚕",
-  my_car: "🚗",
-  car: "🚗",
-  carpool: "👥",
-  wfh: "🏠",
-};
-
-function emojiFor(modeId: string | null): string {
-  if (!modeId) return "🧭";
-  return MODE_EMOJI[modeId] ?? "🧭";
-}
 
 export default function CommuteHomeCard({
   targetDay,
@@ -137,7 +115,7 @@ export default function CommuteHomeCard({
           // ── Planned state ───────────────────────────────────────────────
           <View style={styles.plannedRow}>
             <View style={styles.planEmojiWrap}>
-              <Text style={styles.planEmoji}>{emojiFor(plan.modeId)}</Text>
+              <ModeIcon mode={plan.modeId} size={26} color={COLORS.cyan} />
             </View>
             <View style={styles.planInfo}>
               <Text style={[styles.planEyebrow, { color: inkSoft }]}>
@@ -303,15 +281,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  planEmoji: {
-    fontSize: 26,
-  },
   planInfo: {
     flex: 1,
     gap: 2,
   },
   planEyebrow: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "600",
     letterSpacing: 0.6,
     textTransform: "uppercase",

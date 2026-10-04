@@ -112,13 +112,14 @@ export default function CompanySettingsScreen() {
       >
         <TouchableOpacity
           onPress={() => router.back()}
+          accessibilityRole="button"
           accessibilityLabel="Back"
-          hitSlop={8}
+          style={styles.backBtn}
         >
           <ChevronLeft size={24} color={p.text} />
         </TouchableOpacity>
         <Text variant="heading">Company settings</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: spacing[4] }}>
@@ -179,11 +180,20 @@ export default function CompanySettingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  backBtn: {
+    // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F7F9FA",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
   },

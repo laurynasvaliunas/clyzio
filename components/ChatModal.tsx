@@ -201,7 +201,7 @@ export default function ChatModal({
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No messages yet.</Text>
             <Text style={styles.emptySubtext}>
-              Say hi to your {partnerName}! 👋
+              Say hi to {partnerName}.
             </Text>
           </View>
         ) : (
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 12,
-    color: COLORS.gray400,
+    color: COLORS.gray700,
     marginTop: 2,
   },
   closeBtn: {
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 14,
-    color: COLORS.gray400,
+    color: COLORS.gray700,
     textAlign: "center",
   },
   messagesList: {
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     color: COLORS.gray800,
   },
   timeText: {
-    fontSize: 10,
+    fontSize: 11,
     marginTop: 4,
   },
   myTimeText: {
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   theirTimeText: {
-    color: COLORS.gray400,
+    color: COLORS.gray700,
     textAlign: "left",
   },
   inputContainer: {

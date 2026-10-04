@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Home, Briefcase, ArrowRight } from "lucide-react-native";
+import ModeIcon from "../../components/ModeIcon";
 
 import { supabase } from "../../lib/supabase";
 import { useToast } from "../../contexts/ToastContext";
@@ -39,15 +40,6 @@ const COLORS = {
   homePin: "#00565A",
   workPin: "#059669",
   divider: "#EDF1F2",
-};
-
-const VEHICLE_EMOJI: Record<string, string> = {
-  car: "🚗",
-  motorcycle: "🏍️",
-  bicycle: "🚲",
-  scooter: "🛵",
-  ebike: "⚡🚲",
-  escooter: "⚡🛵",
 };
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -233,9 +225,7 @@ export default function DoneScreen() {
                   <View style={styles.vehiclesRow}>
                     {vehicles.map((v) => (
                       <View key={v.id} style={styles.vehicleChip}>
-                        <Text style={styles.vehicleEmoji}>
-                          {VEHICLE_EMOJI[v.type] ?? "🚗"}
-                        </Text>
+                        <ModeIcon mode={v.type} size={22} color={COLORS.ink} />
                       </View>
                     ))}
                   </View>
@@ -403,9 +393,6 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
-  },
-  vehicleEmoji: {
-    fontSize: 24,
   },
   footer: {
     paddingTop: 12,

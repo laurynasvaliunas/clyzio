@@ -34,7 +34,7 @@ export default function EditProfileScreen() {
           <ArrowLeft size={24} color={COLORS.dark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Profile</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
@@ -67,10 +67,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backButton: {
+    // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.white,
+    borderRadius: 22,
+    backgroundColor: "#F7F9FA",
     alignItems: "center",
     justifyContent: "center",
   },

@@ -276,8 +276,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 12,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.white,
-    alignItems: "center", justifyContent: "center",
+    // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F7F9FA",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
   addBtn: {
@@ -352,10 +357,11 @@ const styles = StyleSheet.create({
   typeText: { fontSize: 13, color: COLORS.textMuted },
   typeTextActive: { color: COLORS.primary, fontWeight: "600" },
 
-  saveBtn: { borderRadius: 14, overflow: "hidden", marginTop: 8 },
+  saveBtn: {
+    minHeight: 56, borderRadius: 28, overflow: "hidden", marginTop: 8 },
   saveGradient: {
-    alignItems: "center", justifyContent: "center",
+    minHeight: 56, alignItems: "center", justifyContent: "center",
     paddingVertical: 16,
   },
-  saveBtnText: { color: COLORS.white, fontWeight: "700", fontSize: 16 },
+  saveBtnText: { color: COLORS.white, fontWeight: "700", fontSize: 17 },
 });

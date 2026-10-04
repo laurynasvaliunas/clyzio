@@ -174,7 +174,7 @@ export default function CarpoolMatchModal({
           <>
             {/* Summary banner */}
             <LinearGradient
-              colors={["#E6F1F2", "#CFE5E7"]}
+              colors={["#E6F1F2", "#E2E8EA"]}
               style={styles.summaryBanner}
             >
               <Text style={styles.summaryText}>{result.best_match_summary}</Text>
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   scoreText: { fontWeight: "700", fontSize: 24, color: COLORS.dark },
   scoreLabel: {
     fontWeight: "600",
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",
     color: COLORS.textMuted,
