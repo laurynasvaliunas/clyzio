@@ -190,7 +190,7 @@ export default function TripCompletionModal({
 
             {/* Title */}
             <Text style={styles.title}>
-              {leveledUp ? "🎉 Level Up!" : "Trip Completed!"}
+              {leveledUp ? "Level up!" : "Trip completed!"}
             </Text>
             {leveledUp && newLevel != null && (
               <Text style={styles.levelUpText}>

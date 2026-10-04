@@ -17,6 +17,7 @@ import Mapbox, { MapView, Camera, PointAnnotation } from "@rnmapbox/maps";
 import { Home, Briefcase, X, Check, MapPin, ArrowRight, ArrowLeft } from "lucide-react-native";
 
 import { supabase } from "../../lib/supabase";
+import { friendlyError } from "../../lib/friendlyError";
 import { MAPBOX_TOKEN, IS_MAPBOX_TOKEN_VALID } from "../../lib/config";
 import { useToast } from "../../contexts/ToastContext";
 import AddressInput from "../../components/AddressInput";
@@ -24,6 +25,8 @@ import SetupProgress from "../../components/SetupProgress";
 
 if (IS_MAPBOX_TOKEN_VALID) {
   Mapbox.setAccessToken(MAPBOX_TOKEN);
+  // Mapbox usage telemetry is off (privacy policy §5); maps work without it.
+  Mapbox.setTelemetryEnabled(false);
 }
 
 /**
@@ -56,7 +59,12 @@ const COLORS = {
 
 const PROMPT_MIN_DISTANCE_METERS = 50; // don't prompt if we already accepted home within 50m
 
-type Pin = { lat: number; lng: number; address: string } | null;
+// lat/lng are null while the user is typing: only a picked suggestion has
+// real coordinates. (Typing used to keep 0,0 — or the previous pick's
+// coordinates — and save them, putting home in the Gulf of Guinea.)
+type Place = { lat: number; lng: number; address: string };
+type Pin = { lat: number | null; lng: number | null; address: string } | null;
+const hasCoords = (p: Pin): p is Place => !!p && p.lat != null && p.lng != null;
 
 export default function PlacesScreen() {
   const router = useRouter();
@@ -65,7 +73,7 @@ export default function PlacesScreen() {
 
   const [home, setHome] = useState<Pin>(null);
   const [work, setWork] = useState<Pin>(null);
-  const [detected, setDetected] = useState<Pin>(null);     // current-location reverse-geocoded
+  const [detected, setDetected] = useState<Place | null>(null);     // current-location reverse-geocoded
   const [promptVisible, setPromptVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   // Hide the (preview-only) map while the keyboard is up, so both address
@@ -117,8 +125,8 @@ export default function PlacesScreen() {
   const fitCamera = useCallback(() => {
     if (!cameraRef.current) return;
     const pts: Array<[number, number]> = [];
-    if (home) pts.push([home.lng, home.lat]);
-    if (work) pts.push([work.lng, work.lat]);
+    if (hasCoords(home)) pts.push([home.lng, home.lat]);
+    if (hasCoords(work)) pts.push([work.lng, work.lat]);
     if (pts.length === 0 && detected) pts.push([detected.lng, detected.lat]);
     if (pts.length === 0) return;
 
@@ -154,12 +162,15 @@ export default function PlacesScreen() {
   };
 
   const canProceed = useMemo(
-    () => !!(home?.address?.trim() && work?.address?.trim()),
+    () => !!(home?.address?.trim() && work?.address?.trim() && hasCoords(home) && hasCoords(work)),
     [home, work],
   );
+  // Typed text that was never matched to a suggestion.
+  const needsPick =
+    (!!home?.address?.trim() && !hasCoords(home)) || (!!work?.address?.trim() && !hasCoords(work));
 
   const handleNext = async () => {
-    if (!canProceed) return;
+    if (!canProceed || !hasCoords(home) || !hasCoords(work)) return;
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -171,19 +182,19 @@ export default function PlacesScreen() {
       const { error } = await supabase
         .from("profiles")
         .update({
-          home_address: home!.address,
-          home_lat: home!.lat,
-          home_long: home!.lng,
-          work_address: work!.address,
-          work_lat: work!.lat,
-          work_long: work!.lng,
+          home_address: home.address,
+          home_lat: home.lat,
+          home_long: home.lng,
+          work_address: work.address,
+          work_lat: work.lat,
+          work_long: work.lng,
         })
         .eq("id", user.id);
       if (error) throw error;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
       router.push("/setup/garage" as any);
     } catch (err: any) {
-      showToast({ title: "Couldn't save", message: err?.message ?? "Please try again.", type: "error" });
+      showToast({ title: "Couldn't save", message: friendlyError(err), type: "error" });
     } finally {
       setSaving(false);
     }
@@ -199,11 +210,7 @@ export default function PlacesScreen() {
     });
   };
   const onHomeText = (text: string) => {
-    setHome((prev) => ({
-      address: text,
-      lat: prev?.lat ?? 0,
-      lng: prev?.lng ?? 0,
-    }));
+    setHome({ address: text, lat: null, lng: null });
   };
 
   const onWorkPick = (_: any, details: any) => {
@@ -215,11 +222,7 @@ export default function PlacesScreen() {
     });
   };
   const onWorkText = (text: string) => {
-    setWork((prev) => ({
-      address: text,
-      lat: prev?.lat ?? 0,
-      lng: prev?.lng ?? 0,
-    }));
+    setWork({ address: text, lat: null, lng: null });
   };
 
   return (
@@ -251,8 +254,8 @@ export default function PlacesScreen() {
           <MapView
             style={styles.map}
             styleURL={Mapbox.StyleURL.Street}
-            logoEnabled={false}
-            attributionEnabled={false}
+            logoEnabled
+            attributionEnabled
             scaleBarEnabled={false}
             compassEnabled={false}
           >
@@ -263,14 +266,14 @@ export default function PlacesScreen() {
                 zoomLevel: 11,
               }}
             />
-            {home && home.lat !== 0 && (
+            {hasCoords(home) && (
               <PointAnnotation id="home-pin" coordinate={[home.lng, home.lat]}>
                 <View style={[styles.pin, { backgroundColor: COLORS.homePin }]}>
                   <Home size={16} color={COLORS.surface} />
                 </View>
               </PointAnnotation>
             )}
-            {work && work.lat !== 0 && (
+            {hasCoords(work) && (
               <PointAnnotation id="work-pin" coordinate={[work.lng, work.lat]}>
                 <View style={[styles.pin, { backgroundColor: COLORS.workPin }]}>
                   <Briefcase size={16} color={COLORS.surface} />
@@ -363,7 +366,11 @@ export default function PlacesScreen() {
           />
         </View>
 
-        <Text style={styles.helper}>You can change these anytime in Settings.</Text>
+        <Text style={styles.helper}>
+          {needsPick
+            ? "Pick your address from the suggestions so we can place it on the map."
+            : "You can change these anytime in your Profile."}
+        </Text>
 
         <TouchableOpacity
           style={[styles.next, !canProceed && styles.nextDisabled]}

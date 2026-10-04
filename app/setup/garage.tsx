@@ -16,6 +16,7 @@ import * as Haptics from "expo-haptics";
 import { Check, ChevronDown, ArrowRight, ArrowLeft } from "lucide-react-native";
 
 import { supabase } from "../../lib/supabase";
+import { friendlyError } from "../../lib/friendlyError";
 import { useToast } from "../../contexts/ToastContext";
 import {
   type VehicleType,
@@ -156,7 +157,7 @@ export default function GarageSetupScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
       router.push("/setup/week" as any);
     } catch (err: any) {
-      showToast({ title: "Couldn't save", message: err?.message ?? "Please try again.", type: "error" });
+      showToast({ title: "Couldn't save", message: friendlyError(err), type: "error" });
     } finally {
       setSaving(false);
     }
@@ -174,7 +175,7 @@ export default function GarageSetupScreen() {
         .eq("id", user.id);
       router.push("/setup/week" as any);
     } catch (err: any) {
-      showToast({ title: "Couldn't save", message: err?.message ?? "Please try again.", type: "error" });
+      showToast({ title: "Couldn't save", message: friendlyError(err), type: "error" });
     } finally {
       setSaving(false);
     }

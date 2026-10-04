@@ -111,7 +111,7 @@ export default function ESGExportScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backBtn} onPress={() => router.back()}>
           <ArrowLeft size={22} color={COLORS.dark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>ESG Export</Text>

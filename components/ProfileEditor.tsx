@@ -25,6 +25,7 @@ import {
   ShieldCheck,
 } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
+import { friendlyError } from "../lib/friendlyError";
 import AddressInput from "./AddressInput";
 import { useToast } from "../contexts/ToastContext";
 import { deriveProfileCarFields, getPrimaryVehicle } from "../lib/commuteUtils";
@@ -65,6 +66,8 @@ interface ProfileData {
   last_name: string;
   phone: string;
   department: string;
+  /** The company team (departments row). Distinct from the free-text label. */
+  department_id: string | null;
   avatar_url: string | null;
   car_make: string;
   car_model: string;
@@ -122,6 +125,8 @@ export default function ProfileEditor({
   // work columns. We only ever allow a save after a confirmed successful load.
   const [loadFailed, setLoadFailed] = useState(false);
   const loadedOnceRef = useRef(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
   // True once we've confirmed the prod schema has the garage / address-privacy
   // columns (migration 20260520_014). Until then, save omits those keys so the
   // update doesn't fail against a pre-migration database.
@@ -131,6 +136,7 @@ export default function ProfileEditor({
     last_name: "",
     phone: "",
     department: "",
+    department_id: null,
     avatar_url: null,
     car_make: "",
     car_model: "",
@@ -149,12 +155,31 @@ export default function ProfileEditor({
     primary_vehicle_id: null,
   });
 
+  // Snapshot of the form as last loaded/saved. A focus reload is skipped while
+  // the form differs from it, so switching tabs mid-edit keeps the edits.
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+  const cleanSnapshotRef = useRef<string | null>(null);
+
+  // Fold fields persisted outside the main Save (avatar, garage) into the clean
+  // snapshot so they don't make the form look dirty.
+  const markClean = (patch: Partial<ProfileData>) => {
+    if (cleanSnapshotRef.current === null) return;
+    cleanSnapshotRef.current = JSON.stringify({
+      ...(JSON.parse(cleanSnapshotRef.current) as ProfileData),
+      ...patch,
+    });
+  };
+
   // Reload whenever the host screen regains focus. The Profile tab never
   // unmounts, so without this an edit made in /settings/edit-profile would be
   // overwritten by this component's stale copy on the next Save.
   useFocusEffect(
     useCallback(() => {
-      loadProfile();
+      const dirty =
+        cleanSnapshotRef.current !== null &&
+        JSON.stringify(profileRef.current) !== cleanSnapshotRef.current;
+      if (!dirty) loadProfile();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
@@ -175,7 +200,7 @@ export default function ProfileEditor({
       // don't exist and the full select errors. Fall back to the legacy
       // columns so the editor still loads the user's real data.
       const LEGACY_COLUMNS =
-        "first_name, last_name, phone, department, avatar_url, car_make, car_model, car_color, car_plate, car_fuel_type, home_address, home_lat, home_long, work_address, work_lat, work_long, is_public";
+        "first_name, last_name, phone, department, department_id, company_id, avatar_url, car_make, car_model, car_color, car_plate, car_fuel_type, home_address, home_lat, home_long, work_address, work_lat, work_long, is_public";
       const FULL_COLUMNS =
         LEGACY_COLUMNS + ", share_pickup_address, vehicles, primary_vehicle_id";
 
@@ -231,11 +256,12 @@ export default function ProfileEditor({
           primaryId = vehicles[0].id;
         }
 
-        setProfile({
+        const loaded: ProfileData = {
           first_name: data.first_name || "",
           last_name: data.last_name || "",
           phone: data.phone || "",
           department: data.department || "",
+          department_id: data.department_id ?? null,
           avatar_url: data.avatar_url,
           car_make: data.car_make || "",
           car_model: data.car_model || "",
@@ -252,7 +278,23 @@ export default function ProfileEditor({
           share_pickup_address: (data as any).share_pickup_address ?? true,
           vehicles,
           primary_vehicle_id: primaryId,
-        });
+        };
+        setProfile(loaded);
+        cleanSnapshotRef.current = JSON.stringify(loaded);
+
+        // Company users pick a real team here. Users who skipped the picker
+        // during onboarding had no other way to join one.
+        setCompanyId(data.company_id ?? null);
+        if (data.company_id) {
+          const { data: teams } = await supabase
+            .from("departments")
+            .select("id, name")
+            .eq("company_id", data.company_id)
+            .order("name");
+          setTeams(Array.isArray(teams) ? teams : []);
+        } else {
+          setTeams([]);
+        }
         loadedOnceRef.current = true;
         setLoadFailed(false);
       }
@@ -335,19 +377,20 @@ export default function ProfileEditor({
 
       const avatarUrl = urlData.publicUrl + `?t=${Date.now()}`;
 
-      // Update profile
-      setProfile({ ...profile, avatar_url: avatarUrl });
-
-      // Save to database
-      await supabase
+      // Save to database first — only show the new photo once it's stored.
+      const { error: saveError } = await supabase
         .from("profiles")
         .update({ avatar_url: avatarUrl })
         .eq("id", userId);
+      if (saveError) throw saveError;
+
+      setProfile((prev) => ({ ...prev, avatar_url: avatarUrl }));
+      markClean({ avatar_url: avatarUrl });
 
       showToast({ title: 'Photo Updated', message: 'Your avatar has been saved.', type: 'success' });
     } catch (error: any) {
       console.error("Upload error:", error);
-      showToast({ title: 'Upload Failed', message: error.message, type: 'error' });
+      showToast({ title: 'Upload Failed', message: friendlyError(error), type: 'error' });
     } finally {
       setUploading(false);
     }
@@ -386,9 +429,10 @@ export default function ProfileEditor({
       .eq("id", userId);
 
     if (error) {
-      showToast({ title: "Couldn't save", message: error.message, type: "error" });
+      showToast({ title: "Couldn't save", message: friendlyError(error), type: "error" });
       throw error;
     }
+    markClean({ vehicles, primary_vehicle_id: primaryVehicleId });
     showToast({ title: "Vehicle saved", message: "Your garage is up to date.", type: "success" });
   };
 
@@ -399,7 +443,7 @@ export default function ProfileEditor({
     if (!loadedOnceRef.current || loadFailed) {
       showToast({
         title: "Can't save yet",
-        message: "Your profile hasn't loaded. Pull to retry, then save.",
+        message: "Your profile hasn't loaded yet. Try again in a moment.",
         type: "warning",
       });
       return;
@@ -423,6 +467,9 @@ export default function ProfileEditor({
         last_name: profile.last_name,
         phone: profile.phone,
         department: profile.department,
+        // Only company users have teams; the DB guard rejects a team from
+        // another company.
+        ...(companyId && teams.length > 0 ? { department_id: profile.department_id } : {}),
         car_make: derived.car_make,
         car_model: derived.car_model,
         car_color: derived.car_color,
@@ -464,10 +511,11 @@ export default function ProfileEditor({
       // button and one success state.
       await onExtraSave?.();
 
+      cleanSnapshotRef.current = JSON.stringify(profile);
       showToast({ title: 'Saved!', message: 'Your profile has been updated.', type: 'success' });
       onSaved?.();
     } catch (error: any) {
-      showToast({ title: 'Error', message: error.message, type: 'error' });
+      showToast({ title: "Couldn't save", message: friendlyError(error), type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -510,7 +558,7 @@ export default function ProfileEditor({
     <View>
       {/* Avatar Section */}
       <View style={styles.avatarSection}>
-        <TouchableOpacity style={styles.avatarWrapper} onPress={pickImage} disabled={uploading}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Change profile photo" style={styles.avatarWrapper} onPress={pickImage} disabled={uploading}>
           {profile.avatar_url ? (
             <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
           ) : (
@@ -573,19 +621,48 @@ export default function ProfileEditor({
           </View>
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Department</Text>
-          <View style={styles.inputWithIcon}>
-            <Building2 size={18} color={COLORS.gray} />
-            <TextInput
-              style={styles.inputInner}
-              placeholder=""
-              placeholderTextColor={COLORS.gray}
-              value={profile.department}
-              onChangeText={(v) => updateField("department", v)}
-            />
+        {companyId && teams.length > 0 ? (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Team</Text>
+            <View style={styles.teamRow}>
+              {teams.map((team) => {
+                const selected = profile.department_id === team.id;
+                return (
+                  <TouchableOpacity
+                    key={team.id}
+                    style={[styles.teamChip, selected && styles.teamChipSelected]}
+                    // The free-text label follows the team so leaderboards
+                    // (which still group by it) stay consistent.
+                    onPress={() =>
+                      setProfile((prev) => ({ ...prev, department_id: team.id, department: team.name }))
+                    }
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`Team ${team.name}`}
+                  >
+                    <Text style={[styles.teamChipText, selected && styles.teamChipTextSelected]}>
+                      {team.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-        </View>
+        ) : (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Department</Text>
+            <View style={styles.inputWithIcon}>
+              <Building2 size={18} color={COLORS.gray} />
+              <TextInput
+                style={styles.inputInner}
+                placeholder=""
+                placeholderTextColor={COLORS.gray}
+                value={profile.department}
+                onChangeText={(v) => updateField("department", v)}
+              />
+            </View>
+          </View>
+        )}
       </View>
 
       {/* My Garage */}
@@ -805,6 +882,19 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.dark },
   sectionSubtitle: { fontSize: 12, color: COLORS.textMuted, marginBottom: 16 },
   inputGroup: { marginBottom: 16 },
+  teamRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  teamChip: {
+    minHeight: 44,
+    paddingHorizontal: 16,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: COLORS.grayLight,
+    backgroundColor: COLORS.white,
+    justifyContent: "center",
+  },
+  teamChipSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.light },
+  teamChipText: { fontSize: 15, fontWeight: "600", color: COLORS.inkSoft },
+  teamChipTextSelected: { color: COLORS.primary },
   inputLabel: { fontSize: 12, color: COLORS.textMuted, marginBottom: 8, fontWeight: "500" },
   input: {
     backgroundColor: COLORS.grayLight,

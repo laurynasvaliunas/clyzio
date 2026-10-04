@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { supabase } from "../lib/supabase";
+import { tomorrowLocalISODate } from "../lib/localDate";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -114,11 +115,8 @@ interface DailyCommuteState {
 
 // ─── Tomorrow helper ──────────────────────────────────────────────────────────
 
-function getTomorrowDate(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().split("T")[0];
-}
+// Local calendar date, not UTC (see lib/localDate).
+const getTomorrowDate = tomorrowLocalISODate;
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 

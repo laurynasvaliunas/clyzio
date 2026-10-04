@@ -31,10 +31,12 @@ async function routeOnward(): Promise<string> {
  * HIG explicitly discourages and which leaves the user without context if
  * they tap Don't Allow.
  *
- * Each card explains *why* we need the permission before triggering the OS
- * prompt. The user can `Skip` any card; permissions can always be granted
- * later from the system Settings, and the UI surfaces a small inline
- * indicator on screens that need a permission they don't have.
+ * Each card explains *why* we need the permission, then its single
+ * "Continue" button always shows the OS prompt — where the user decides.
+ * App Store Review Guideline 5.1.1(iv): a pre-permission screen must not
+ * offer a way to skip the system prompt, and its button must not pressure
+ * ("Enable", "Allow"). Permissions can be changed later in system Settings,
+ * and the UI surfaces an inline indicator on screens that need one.
  *
  * Persistence: a `clyzio.permissionsPrimed` SecureStore key prevents this
  * screen from re-appearing on subsequent launches. Bump the key suffix
@@ -149,16 +151,6 @@ export default function PermissionsScreen() {
     }
   };
 
-  const skipCurrent = () => {
-    if (working) return;
-    advance('denied');
-  };
-
-  const skipAll = () => {
-    if (working) return;
-    finish();
-  };
-
   const step = STEPS[stepIdx];
   const card = CARDS[step];
   const Icon = card.icon;
@@ -217,7 +209,7 @@ export default function PermissionsScreen() {
           activeOpacity={0.85}
           disabled={working}
           accessibilityRole="button"
-          accessibilityLabel={`Allow ${card.title}`}
+          accessibilityLabel={`Continue to the ${card.title.toLowerCase()} permission`}
         >
           {working ? (
             <ActivityIndicator size="small" color={COLORS.white} />
@@ -229,23 +221,6 @@ export default function PermissionsScreen() {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={skipCurrent}
-          style={styles.skipBtn}
-          accessibilityRole="button"
-          accessibilityLabel={`Skip ${card.title} for now`}
-        >
-          <Text style={styles.skipBtnText}>Skip for now</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={skipAll}
-          style={styles.skipAllBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Skip all permissions"
-        >
-          <Text style={styles.skipAllBtnText}>Skip all</Text>
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -254,14 +229,14 @@ export default function PermissionsScreen() {
 const CARDS: Record<Step, { title: string; body: string; cta: string; icon: typeof MapPin }> = {
   location: {
     title: 'Location',
-    body: 'We use your location to find rides nearby and show your route on the map. We never sell or share location data.',
-    cta: 'Enable location',
+    body: 'We use your location to find rides nearby and show your route on the map. We never sell your location.',
+    cta: 'Continue',
     icon: MapPin,
   },
   notifications: {
     title: 'Notifications',
     body: 'Get a heads-up when a match is found, when your ride is confirmed, or when your driver is on the way. You can fine-tune these later.',
-    cta: 'Enable notifications',
+    cta: 'Continue',
     icon: Bell,
   },
 };
@@ -388,24 +363,5 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 16,
     fontWeight: '700',
-  },
-  skipBtn: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  skipBtnText: {
-    color: COLORS.grayDark,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  skipAllBtn: {
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  skipAllBtnText: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
   },
 });

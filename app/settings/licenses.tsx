@@ -76,7 +76,7 @@ export default function LicensesScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backButton} onPress={() => router.back()}>
           <ChevronLeft size={24} color={COLORS.dark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Open Source Licenses</Text>

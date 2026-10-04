@@ -16,12 +16,14 @@ import * as Device from "expo-device";
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
-import { parseLink, toRoutePath, notificationToRoute } from "../lib/deepLinks";
+import { parseLink, notificationToRoute } from "../lib/deepLinks";
 import { nextRouteAfterAuth } from "../lib/permissionsPriming";
 import { WELCOME_SEEN_KEY } from "./welcome";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 import { ToastProvider } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
+import { rememberDevicePushToken } from '../lib/signOut';
+import { markRecoveryEvent, redactUrl, stashRecoveryUrl } from '../lib/recoveryLink';
 import { checkAndSendAINotifications } from "../lib/aiNotifications";
 import { useAIStore } from "../store/useAIStore";
 import { useTripStore } from "../store/useTripStore";
@@ -256,6 +258,10 @@ function RootLayoutContent() {
   const { isDark } = useTheme(); // Use theme context instead of system color scheme
   const router = useRouter();
   const segments = useSegments();
+  // Read inside long-lived callbacks (auth listener) that would otherwise see
+  // the segments from their first render.
+  const segmentsRef = useRef(segments);
+  segmentsRef.current = segments;
   const [isReady, setIsReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { subscribeToIncomingSuggestions, unsubscribeFromSuggestions } = useAIStore();
@@ -306,7 +312,12 @@ function RootLayoutContent() {
       }
       // Password-recovery deep link: route to the set-new-password screen.
       if (_event === "PASSWORD_RECOVERY") {
-        try { router.push("/reset-password"); } catch { /* router not ready; deep-link queue handles it */ }
+        markRecoveryEvent();
+        // The deep-link queue usually routes there first; pushing again
+        // stacked a second reset screen.
+        if (segmentsRef.current[0] !== "reset-password") {
+          try { router.push("/reset-password"); } catch { /* router not ready; deep-link queue handles it */ }
+        }
       }
     });
 
@@ -315,44 +326,24 @@ function RootLayoutContent() {
     };
   }, []);
 
-  // H4: deep-link handler queues URLs that arrive before the router/auth is
-  // ready, then drains the queue once `isReady && isAuthenticated !== null`.
-  // Previous implementation used `setTimeout(..., 0)` which dropped links
-  // silently if the router wasn't mounted yet (e.g. cold-start from a push
-  // notification or universal link).
-  const pendingDeepLinkRef = useRef<string | null>(null);
-  // Set true the instant a deep link is routed so the auth-routing effect below
-  // skips exactly one pass — otherwise a cold-start clyzio://join/<token> gets
-  // clobbered by a bare /login redirect in the same commit, losing the invite. H4.
-  const deepLinkNavRef = useRef(false);
-
+  // Deep links are rewritten to real routes by app/+native-intent.tsx, which
+  // covers both cold-start and warm links (the old queue here only ever routed
+  // the launch URL, and pushed it a second time on top of expo-router's own
+  // navigation). What remains is handing a password-recovery link's one-time
+  // tokens to the reset screen, which may mount after the event fired.
   useEffect(() => {
-    const enqueue = (url: string | null) => {
+    const stashIfRecovery = (url: string | null) => {
       if (!url) return;
-      pendingDeepLinkRef.current = url;
+      try {
+        if (parseLink(url).type === 'reset') stashRecoveryUrl(url);
+      } catch (err) {
+        captureError(err, { feature: 'deep-link', url: redactUrl(url) });
+      }
     };
-    Linking.getInitialURL().then(enqueue);
-    const sub = Linking.addEventListener('url', (ev) => enqueue(ev.url));
+    Linking.getInitialURL().then(stashIfRecovery);
+    const sub = Linking.addEventListener('url', (ev) => stashIfRecovery(ev.url));
     return () => sub.remove();
   }, []);
-
-  // Drain the pending deep link once the navigator is ready.
-  useEffect(() => {
-    if (!isReady || isAuthenticated === null) return;
-    const url = pendingDeepLinkRef.current;
-    if (!url) return;
-    pendingDeepLinkRef.current = null;
-    try {
-      const target = parseLink(url);
-      const path = toRoutePath(target);
-      if (path) {
-        deepLinkNavRef.current = true;
-        router.push(path as any);
-      }
-    } catch (err) {
-      captureError(err, { feature: 'deep-link', url });
-    }
-  }, [isReady, isAuthenticated, router]);
 
   // Subscribe to incoming carpool suggestions when authenticated
   useEffect(() => {
@@ -376,7 +367,7 @@ function RootLayoutContent() {
       if (!user) return;
       const { data } = await supabase
         .from('profiles')
-        .select('car_fuel_type, welcomed_at, terms_accepted_at, privacy_policy_accepted_at')
+        .select('car_fuel_type, welcomed_at, terms_accepted_at, privacy_policy_accepted_at, pending_referral_code')
         .eq('id', user.id)
         .single();
       if (data?.car_fuel_type) {
@@ -393,6 +384,13 @@ function RootLayoutContent() {
       }
       if (!data?.privacy_policy_accepted_at && typeof meta.privacy_policy_accepted_at === 'string') {
         patch.privacy_policy_accepted_at = meta.privacy_policy_accepted_at;
+      }
+      // Referral code captured at signup from an invite link. Only copied on
+      // the account's first session (welcomed_at is still unset), so it can't
+      // be re-applied later; the referral trigger consumes it on the first
+      // completed trip.
+      if (!data?.pending_referral_code && !data?.welcomed_at && typeof meta.referral_code === 'string') {
+        patch.pending_referral_code = meta.referral_code;
       }
       if (Object.keys(patch).length > 0) {
         await supabase.from('profiles').update(patch).eq('id', user.id);
@@ -420,10 +418,6 @@ function RootLayoutContent() {
   useEffect(() => {
     if (isAuthenticated === null) return;      // Still loading auth
     if (welcomeSeen === null) return;          // Still loading welcome flag
-
-    // H4: a deep link was just routed this commit — skip one pass so we don't
-    // replace it (e.g. an invite /join) with a bare /login before it can run.
-    if (deepLinkNavRef.current) { deepLinkNavRef.current = false; return; }
 
     const inAuthGroup = segments[0] === '(auth)';
     // Post-auth flow screens live INSIDE (auth) but must be reachable while
@@ -476,7 +470,12 @@ function RootLayoutContent() {
     const inPublicGroup = segments[0] === 'legal';
     const inWelcome = segments[0] === 'welcome';
     const inSetup = segments[0] === 'setup';
-    if (inAuthGroup || inPublicGroup || inWelcome || inSetup) return;
+    // A recovery or invite link signs the user in on arrival; resuming setup
+    // here used to yank them off the reset-password / join screen mid-flow.
+    // Not marking the gate checked means it runs once they move on.
+    const inReset = segments[0] === 'reset-password';
+    const inJoin = segments[0] === 'join';
+    if (inAuthGroup || inPublicGroup || inWelcome || inSetup || inReset || inJoin) return;
     commuteGateChecked.current = true;
     (async () => {
       try {
@@ -500,6 +499,7 @@ function RootLayoutContent() {
         const token = await registerForPushNotificationsAsync();
         if (cancelled) return;
         setExpoPushToken(token);
+        rememberDevicePushToken(token ?? null);
         if (!token) return;
         const { data: { user } } = await supabase.auth.getUser();
         if (!user || cancelled) return;
@@ -532,7 +532,9 @@ function RootLayoutContent() {
         pushToast({
           title: title as string,
           body: (body as string) ?? "",
-          screen: (data?.screen as string) ?? undefined,
+          // Resolve through the same table as a notification tap; the raw
+          // `screen` value ('chat', 'trip-match', …) isn't a route.
+          screen: notificationToRoute(data as any) ?? undefined,
           type: undefined as any, // inferred from title by the store
         });
       }

@@ -1,7 +1,6 @@
 import React from 'react';
-import { Modal, View, StyleSheet, Linking, Alert, Platform } from 'react-native';
+import { Modal, View, StyleSheet, Linking, Alert, Platform, Share } from 'react-native';
 import * as Location from 'expo-location';
-import * as Sharing from 'expo-sharing';
 import { Phone, Share2, X } from 'lucide-react-native';
 import { Text, Button, Card } from './ui';
 import { getPalette, semantic, spacing } from '../lib/theme/tokens';
@@ -21,9 +20,11 @@ interface Props {
  * The previous implementation hard-coded "911" regardless of region. This
  * resolves the user's country from the OS locale and picks the correct
  * emergency number (US 911, UK 999, EU 112, default 112). It also:
- *   - asks for the current location permission (if missing) then shares a
- *     snapshot link to emergency contacts via the system share sheet;
- *   - records a `safety_incidents` row so the team can follow up.
+ *   - dials immediately — logging never delays the call;
+ *   - asks for the current location permission (if missing) then opens the
+ *     system share sheet with a map link the user can send to anyone;
+ *   - records a `safety_incidents` row (in the background) so the team can
+ *     follow up.
  */
 export default function SOSSheet({ visible, onClose, rideId }: Props) {
   const { isDark } = useTheme();
@@ -48,11 +49,15 @@ export default function SOSSheet({ visible, onClose, rideId }: Props) {
   };
 
   const handleCall = async () => {
-    await logIncident();
+    // Dial first. The incident row is written in the background so a slow or
+    // offline network can never hold up an emergency call.
+    void logIncident();
     const url = Platform.OS === 'ios' ? `telprompt:${emergencyNumber}` : `tel:${emergencyNumber}`;
-    const ok = await Linking.canOpenURL(url);
-    if (ok) await Linking.openURL(url);
-    else Alert.alert('Call failed', `Dial ${emergencyNumber} manually.`);
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Call failed', `Dial ${emergencyNumber} manually.`);
+    }
   };
 
   const handleShareLocation = async () => {
@@ -62,16 +67,15 @@ export default function SOSSheet({ visible, onClose, rideId }: Props) {
         Alert.alert('Location permission required', 'Enable location access to share your position.');
         return;
       }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+      // A recent fix is good enough and instant; only wait for GPS without one.
+      const loc =
+        (await Location.getLastKnownPositionAsync({ maxAge: 60_000 })) ??
+        (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }));
       const { latitude, longitude } = loc.coords;
-      await logIncident(latitude, longitude);
-      const url = `https://maps.google.com/?q=${latitude},${longitude}`;
-      const available = await Sharing.isAvailableAsync();
-      if (available) {
-        await Sharing.shareAsync(url, { dialogTitle: 'My live location' });
-      } else {
-        await Linking.openURL(url);
-      }
+      void logIncident(latitude, longitude);
+      const url = `https://maps.google.com/?q=${latitude.toFixed(5)},${longitude.toFixed(5)}`;
+      // expo-sharing only shares local files; a URL needs the RN share sheet.
+      await Share.share({ message: `I need help. My location: ${url}` });
     } catch (e: any) {
       Alert.alert('Could not share location', e?.message ?? 'Please try again.');
     }

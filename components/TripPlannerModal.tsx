@@ -40,6 +40,7 @@ import * as Haptics from "expo-haptics";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../lib/supabase";
+import { friendlyError } from "../lib/friendlyError";
 import { useToast } from "../contexts/ToastContext";
 import { computeLocalModes, getFuelBaseCO2, getVehicleCO2, getPrimaryVehicle } from "../lib/commuteUtils";
 import { Vehicle, parseVehicles } from "../lib/vehicles";
@@ -555,7 +556,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       const { data, error } = await supabase.from("rides").insert([rideData]).select();
       if (error) {
         console.error("❌ Error saving ride:", error);
-        showToast({ title: "Could not save trip", message: error.message, type: "error" });
+        showToast({ title: "Could not save trip", message: friendlyError(error), type: "error" });
         return;
       }
 
@@ -596,7 +597,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       onClose();
     } catch (error) {
       console.error("❌ Error in handleTripSubmit:", error);
-      showToast({ title: "Something went wrong", message: String(error), type: "error" });
+      showToast({ title: "Something went wrong", message: friendlyError(error), type: "error" });
     }
   };
 
@@ -718,7 +719,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
             </View>
           ) : (
             <View style={styles.header}>
-              <TouchableOpacity onPress={toggleMinimize} hitSlop={8}>
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Minimise planner" onPress={toggleMinimize} hitSlop={8}>
                 <ChevronDown size={20} color={COLORS.gray} />
               </TouchableOpacity>
               <Text style={styles.title}>Plan your route</Text>
@@ -906,7 +907,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                       <View style={styles.seatsRow}>
                         <Text style={styles.fieldLabelSm}>Seats for passengers</Text>
                         <View style={styles.stepper}>
-                          <TouchableOpacity
+                          <TouchableOpacity accessibilityRole="button" accessibilityLabel="One fewer seat"
                             style={styles.stepperBtn}
                             onPress={() => {
                               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -916,7 +917,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                             <Minus size={18} color={COLORS.primary} />
                           </TouchableOpacity>
                           <Text style={styles.stepperValue}>{capacity}</Text>
-                          <TouchableOpacity
+                          <TouchableOpacity accessibilityRole="button" accessibilityLabel="One more seat"
                             style={styles.stepperBtn}
                             onPress={() => {
                               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

@@ -133,14 +133,14 @@ function DriverDetailsStep({
       <View style={styles.fieldCard}>
         <Text style={styles.fieldLabel}>Passengers you can take</Text>
         <View style={styles.stepper}>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="One fewer passenger"
             style={styles.stepperBtn}
             onPress={() => setCapacity(c => Math.max(0, c - 1))}
           >
             <Minus size={18} color={COLORS.primary} />
           </TouchableOpacity>
           <Text style={styles.stepperValue}>{capacity}</Text>
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="One more passenger"
             style={styles.stepperBtn}
             onPress={() => setCapacity(c => Math.min(9, c + 1))}
           >
@@ -390,7 +390,25 @@ function DriverDetourStep({
 
 // ─── Step: Driver Waiting ─────────────────────────────────────────────────────
 
-function DriverWaitingStep({ matches }: { matches: TripIntentMatch[] }) {
+/** Ask before withdrawing — the other person is told the carpool is off. */
+function confirmWithdraw(matchIds: string[], onWithdraw: (ids: string[]) => void) {
+  Alert.alert(
+    "Withdraw request?",
+    "The other person will be told this carpool is off.",
+    [
+      { text: "Keep it", style: "cancel" },
+      { text: "Withdraw", style: "destructive", onPress: () => onWithdraw(matchIds) },
+    ],
+  );
+}
+
+interface WaitingStepProps {
+  matches: TripIntentMatch[];
+  onWithdraw: (matchIds: string[]) => void;
+  busy: boolean;
+}
+
+function DriverWaitingStep({ matches, onWithdraw, busy }: WaitingStepProps) {
   // Driver has approved; waiting on the passenger to approve too.
   const waiting = matches.filter(m => m.driver_approved && !m.passenger_approved && m.status === "awaiting_other");
   return (
@@ -401,13 +419,22 @@ function DriverWaitingStep({ matches }: { matches: TripIntentMatch[] }) {
         You approved {waiting.length} passenger{waiting.length !== 1 ? "s" : ""}. Waiting for them to approve too.
       </Text>
       <Text style={styles.stepHint}>The ride is confirmed once you both approve. You'll be notified.</Text>
+      <TouchableOpacity
+        style={[styles.declineBtn, styles.withdrawBtn]}
+        onPress={() => confirmWithdraw(waiting.map((m) => m.id), onWithdraw)}
+        disabled={busy || waiting.length === 0}
+        accessibilityRole="button"
+        accessibilityLabel="Withdraw your carpool request"
+      >
+        <Text style={styles.declineBtnText}>{busy ? "Withdrawing…" : "Withdraw request"}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 // ─── Step: Passenger Waiting ──────────────────────────────────────────────────
 
-function PassengerWaitingStep({ matches }: { matches: TripIntentMatch[] }) {
+function PassengerWaitingStep({ matches, onWithdraw, busy }: WaitingStepProps) {
   // Passenger has approved; waiting on the driver to approve too.
   const waiting = matches.filter(m => m.passenger_approved && !m.driver_approved && m.status === "awaiting_other");
   const driverName = waiting[0]?.driver_profile?.first_name ?? "your driver";
@@ -419,6 +446,15 @@ function PassengerWaitingStep({ matches }: { matches: TripIntentMatch[] }) {
         You approved the carpool with {driverName}. Waiting for them to approve too.
       </Text>
       <Text style={styles.stepHint}>The ride is confirmed once you both approve. You'll be notified.</Text>
+      <TouchableOpacity
+        style={[styles.declineBtn, styles.withdrawBtn]}
+        onPress={() => confirmWithdraw(waiting.map((m) => m.id), onWithdraw)}
+        disabled={busy || waiting.length === 0}
+        accessibilityRole="button"
+        accessibilityLabel="Withdraw your carpool request"
+      >
+        <Text style={styles.declineBtnText}>{busy ? "Withdrawing…" : "Withdraw request"}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -673,6 +709,22 @@ export default function DailyCommuteScreen() {
     reset,
   } = useDailyCommuteStore();
 
+  // Withdrawing = declining through respond-to-match, which tells the other
+  // side. (There was no way to take back an approval before.)
+  const [withdrawing, setWithdrawing] = useState(false);
+  const handleWithdraw = async (matchIds: string[]) => {
+    setWithdrawing(true);
+    try {
+      for (const id of matchIds) {
+        await respondAsPassenger({ match_id: id, accepted: false });
+      }
+    } catch {
+      Alert.alert("Couldn't withdraw", "Check your connection and try again.");
+    } finally {
+      setWithdrawing(false);
+    }
+  };
+
   // Accepted IDs staged during driver_review → needed for driver_detour step
   const pendingAcceptedIds = useRef<string[]>([]);
   const pendingDeclinedIds = useRef<string[]>([]);
@@ -756,7 +808,7 @@ export default function DailyCommuteScreen() {
       {/* Header */}
       <View style={styles.header}>
         {showBackBtn ? (
-          <TouchableOpacity style={styles.headerBtn} onPress={handleBack}>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.headerBtn} onPress={handleBack}>
             <ChevronLeft size={24} color={TC.text} />
           </TouchableOpacity>
         ) : (
@@ -796,7 +848,9 @@ export default function DailyCommuteScreen() {
           acceptedIds={pendingAcceptedIds.current}
         />
       )}
-      {step === "driver_waiting" && <DriverWaitingStep matches={matches} />}
+      {step === "driver_waiting" && (
+        <DriverWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} />
+      )}
       {step === "driver_confirmed" && <DriverConfirmedStep matches={matches} />}
       {step === "passenger_details" && (
         <PassengerDetailsStep onSubmit={handlePassengerDetailsSubmit} isLoading={isLoading} />
@@ -805,7 +859,9 @@ export default function DailyCommuteScreen() {
       {step === "passenger_review" && (
         <PassengerReviewStep matches={matches} onRespond={handlePassengerRespond} isLoading={isLoading} />
       )}
-      {step === "passenger_waiting" && <PassengerWaitingStep matches={matches} />}
+      {step === "passenger_waiting" && (
+        <PassengerWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} />
+      )}
       {step === "passenger_confirmed" && <PassengerConfirmedStep matches={matches} />}
     </SafeAreaView>
   );
@@ -1176,6 +1232,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: COLORS.red,
+  },
+  withdrawBtn: {
+    flex: 0,
+    alignSelf: "stretch",
+    marginTop: 24,
+    minHeight: 48,
   },
   acceptBtn: {
     flex: 2,

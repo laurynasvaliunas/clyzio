@@ -143,7 +143,7 @@ export default function TermsScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backBtn} onPress={() => router.back()}>
           <ArrowLeft size={22} color={COLORS.dark} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>

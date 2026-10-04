@@ -18,8 +18,8 @@ const COLORS = {
   green: "#059669",
 };
 
-const LAST_UPDATED = "24 March 2026";
-const VERSION = "1.0";
+const LAST_UPDATED = "4 October 2026";
+const VERSION = "1.1";
 
 const SECTIONS = [
   {
@@ -66,7 +66,7 @@ Technical Data
 • Device type and operating system version
 • App version
 • Push notification token (for reminders and alerts)
-• Crash logs and error reports (anonymised)`,
+• Crash logs and error reports, linked to a pseudonymous account ID (never your name or email)`,
   },
   {
     title: "3. Legal Basis for Processing",
@@ -79,7 +79,7 @@ Legitimate Interests (Article 6(1)(f) GDPR)
 We process technical and usage data to improve App performance, detect and prevent fraud, and ensure security. Our legitimate interests are balanced against your rights and freedoms.
 
 Consent (Article 6(1)(a) GDPR)
-Where required by law (e.g., for marketing communications or optional analytics), we will ask for your explicit consent. You may withdraw consent at any time without affecting the lawfulness of prior processing.
+AI-powered commute suggestions run only after you turn them on in the App, and marketing communications only with your agreement. You may withdraw consent at any time (for AI suggestions: Settings → AI suggestions) without affecting the lawfulness of prior processing.
 
 Legal Obligation (Article 6(1)(c) GDPR)
 In some cases we may need to process your data to comply with applicable legal obligations.`,
@@ -90,7 +90,7 @@ In some cases we may need to process your data to comply with applicable legal o
 
 • Providing and operating the App and its features
 • Calculating your personal CO₂ footprint savings
-• Generating AI-powered commute suggestions tailored to your routes and habits
+• Generating AI-powered commute suggestions tailored to your habits (only if you turn them on)
 • Matching you with carpool partners at your company
 • Displaying your statistics on personal and company leaderboards
 • Sending push notifications for trip reminders and gamification updates
@@ -101,21 +101,28 @@ In some cases we may need to process your data to comply with applicable legal o
   },
   {
     title: "5. Data Sharing",
-    body: `We do not sell your personal data. We may share your data with the following categories of recipients:
+    body: `We do not sell your personal data. We share it only with the recipients below.
 
-Cloud Infrastructure Provider
-Your data is stored on Supabase (hosted on AWS infrastructure within the European Union). Supabase acts as a data processor under a Data Processing Agreement.
+Other Clyzio Users
+To make carpooling work, people you can be matched with (normally colleagues at your company) can see your first name, profile photo, an approximate home area (never your exact address) and your planned trip times. Once you both agree to a carpool, your partner also sees your pickup point (unless you hide your pickup address) and, if you drive, your car details. You control your visibility in Profile → Privacy.
 
 Your Employer (Corporate Users Only)
 If you register with a corporate email address and your employer is enrolled in Clyzio, aggregated sustainability statistics (total CO₂ saved, trips completed, transport modes) may be visible to authorised managers in the Clyzio manager dashboard. Exact trip routes and timestamps are not directly shared with your employer.
 
-AI Service Providers
-To generate personalised commute suggestions, anonymised route and preference data may be processed by AI model providers under strict data processing agreements.
+Service Providers (Data Processors)
+These companies process data on our behalf under data processing agreements:
+• Supabase: database, sign-in and file storage, hosted on Amazon Web Services in London, United Kingdom.
+• Anthropic (Claude AI): only if you turn on AI suggestions. We send your commute distance, usual transport modes and working days, departure time, car fuel type and CO₂ totals. We never send your name, your addresses or your exact location. For carpool ranking, only anonymous distance and timing figures are sent.
+• Mapbox: maps and address search. The text you search for and the map area you view are sent to Mapbox. Mapbox usage telemetry is switched off.
+• Google: public-transport route options. The start and end points of a route you look up are sent to Google.
+• Sentry: crash and error reports, linked to a pseudonymous account ID, stored in the EU (Germany).
+• Expo, Apple and Google: delivery of push notifications (your device's push token and the notification text).
+• Our email service provider: account and service emails (your email address).
 
 Legal and Regulatory Authorities
 We may disclose your data where required to do so by applicable law, court order, or governmental authority.
 
-No other third-party sharing occurs without your explicit consent.`,
+We do not share your personal data with anyone else.`,
   },
   {
     title: "6. Data Retention",
@@ -132,7 +139,7 @@ You may request earlier deletion of your data at any time (see Section 8).`,
     title: "7. Data Security",
     body: `We implement appropriate technical and organisational measures to protect your personal data against unauthorised access, alteration, disclosure, or destruction. These include:
 
-• End-to-end TLS encryption for all data in transit
+• TLS encryption for all data in transit
 • Encryption at rest for stored data
 • Password hashing using industry-standard algorithms (bcrypt)
 • Row-level security policies in our database
@@ -174,7 +181,9 @@ To exercise any of these rights, please contact us at info@clyzio.com. We will r
   },
   {
     title: "10. International Data Transfers",
-    body: `Your personal data is stored on servers within the European Union. If any processing occurs outside the EEA (for example, by AI service providers), we ensure that appropriate safeguards are in place, such as Standard Contractual Clauses approved by the European Commission, to protect your data to an equivalent standard.`,
+    body: `Your personal data is stored in the United Kingdom (London), which the European Commission recognises as providing an adequate level of data protection. Crash reports are stored in the EU (Germany).
+
+Some service providers process data in the United States: Anthropic (only if you turn on AI suggestions), Mapbox, Google and Expo. For these transfers we rely on the EU-U.S. Data Privacy Framework where the provider is certified, or on Standard Contractual Clauses approved by the European Commission.`,
   },
   {
     title: "11. Changes to This Policy",
@@ -203,7 +212,7 @@ export default function PrivacyScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backBtn} onPress={() => router.back()}>
           <ArrowLeft size={22} color={COLORS.dark} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>

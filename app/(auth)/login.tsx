@@ -61,8 +61,12 @@ export default function LoginScreen() {
   // email). Pre-fill + lock the email so the signup email matches the invite
   // (accept_invite_on_signup links new users); redeem on sign-in for users who
   // already have an account.
-  const params = useLocalSearchParams<{ invite?: string | string[]; email?: string | string[]; company?: string | string[] }>();
+  const params = useLocalSearchParams<{ invite?: string | string[]; email?: string | string[]; company?: string | string[]; ref?: string | string[]; mode?: string | string[] }>();
   const inviteToken = Array.isArray(params.invite) ? params.invite[0] : params.invite;
+  // Referral code from a colleague's invite link (clyzio://invite/<code>),
+  // forwarded here by onboarding when the visitor wasn't signed in yet.
+  const rawRef = Array.isArray(params.ref) ? params.ref[0] : params.ref;
+  const referralCode = rawRef?.trim().toUpperCase() || undefined;
   const inviteCompany = Array.isArray(params.company) ? params.company[0] : params.company;
   const inviteEmail = Array.isArray(params.email) ? params.email[0] : params.email;
 
@@ -71,6 +75,13 @@ export default function LoginScreen() {
     setIsSignUp(true);
     if (inviteEmail) setEmail(inviteEmail);
   }, [inviteToken, inviteEmail]);
+
+  // A referral link — or arriving from the first-launch Welcome — means the
+  // visitor most likely has no account yet.
+  const modeParam = Array.isArray(params.mode) ? params.mode[0] : params.mode;
+  useEffect(() => {
+    if (referralCode || modeParam === "signup") setIsSignUp(true);
+  }, [referralCode, modeParam]);
 
   // Debounced lookup: when a work-email domain is typed, ask the shared DB
   // whether it belongs to a registered+verified company. Pre-auth, so this
@@ -146,7 +157,14 @@ export default function LoginScreen() {
           // Carry consent with the user so it survives email confirmation (when
           // the session is deferred past signup). _layout backfills it into the
           // profile on the first authenticated session.
-          options: { data: { terms_accepted_at: now, privacy_policy_accepted_at: now } },
+          // The referral code rides along the same way.
+          options: {
+            data: {
+              terms_accepted_at: now,
+              privacy_policy_accepted_at: now,
+              ...(referralCode ? { referral_code: referralCode } : {}),
+            },
+          },
         });
         if (error) { showToast({ title: 'Sign Up Failed', message: error.message, type: 'error' }); return; }
 

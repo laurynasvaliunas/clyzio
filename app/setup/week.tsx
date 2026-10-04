@@ -13,6 +13,7 @@ import * as Haptics from "expo-haptics";
 import { ArrowLeft, ArrowRight, Leaf } from "lucide-react-native";
 
 import { supabase } from "../../lib/supabase";
+import { friendlyError } from "../../lib/friendlyError";
 import { useToast } from "../../contexts/ToastContext";
 import SetupProgress from "../../components/SetupProgress";
 import CommuteMixEditor, {
@@ -74,7 +75,7 @@ export default function WeekSetupScreen() {
     } catch (err: any) {
       showToast({
         title: "Couldn't save",
-        message: err?.message ?? "Please try again.",
+        message: friendlyError(err),
         type: "error",
       });
     } finally {

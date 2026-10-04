@@ -12,6 +12,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Building2, Users, Check, ChevronRight } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
+import { friendlyError } from "../../lib/friendlyError";
 import { nextRouteAfterAuth } from "../../lib/permissionsPriming";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -70,7 +71,13 @@ export default function OnboardingScreen() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        router.replace("/(auth)/login");
+        // Keep the referral code through sign-up instead of dropping it.
+        const code = typeof ref === "string" && ref.trim() ? ref.trim() : undefined;
+        router.replace(
+          code
+            ? { pathname: "/(auth)/login", params: { ref: code } }
+            : "/(auth)/login",
+        );
         return;
       }
 
@@ -166,7 +173,7 @@ export default function OnboardingScreen() {
       console.error("Error saving department:", error);
       showToast({
         title: "Couldn't join that team",
-        message: error?.message ?? "Please try again.",
+        message: friendlyError(error),
         type: "error",
       });
     } finally {

@@ -3,6 +3,7 @@ import { callClaude, parseClaudeJSON } from '../_shared/anthropic.ts';
 import { verifyAuth } from '../_shared/auth.ts';
 import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
 import { parseBody, AICommutePlannerSchema } from '../_shared/validate.ts';
+import { hasAiConsent, haversineKm } from '../_shared/aiConsent.ts';
 
 const CACHE_TTL_HOURS = 6;
 
@@ -68,6 +69,10 @@ Deno.serve(async (req: Request) => {
   const forceRefresh = parsed.data.force_refresh === true;
 
   try {
+    // Opt-in gate (5.1.2(i)): nothing goes to the AI provider without it.
+    if (!(await hasAiConsent(supabase, userId))) {
+      return respondError(403, 'forbidden', 'ai_consent_required');
+    }
 
     // 1. Get full commute context from DB
     const { data: context, error: contextError } = await supabase
@@ -104,16 +109,22 @@ Deno.serve(async (req: Request) => {
         t.transport_label || t.transport_mode || 'unknown')
       .join(', ') || 'not recorded yet';
 
+    // Data minimisation: the AI only needs how far the commute is, not where.
+    // No name, addresses or coordinates leave our servers.
+    const commuteKm =
+      context.home_lat != null && context.home_long != null &&
+      context.work_lat != null && context.work_long != null
+        ? haversineKm(context.home_lat, context.home_long, context.work_lat, context.work_long)
+        : null;
+
     const userMessage = `User commute profile:
-- Name: ${context.first_name || 'User'}
-- Home: ${context.home_address || 'Not set'}${context.home_lat ? ` (${context.home_lat?.toFixed(4)}, ${context.home_long?.toFixed(4)})` : ''}
-- Work: ${context.work_address || 'Not set'}${context.work_lat ? ` (${context.work_lat?.toFixed(4)}, ${context.work_long?.toFixed(4)})` : ''}
+- One-way commute distance (straight line): ${commuteKm != null ? `${commuteKm.toFixed(1)} km` : 'unknown'}
 - Current main transport mode: ${context.baseline_co2_mode || 'Car (Gasoline)'}
 - Car fuel type: ${context.car_fuel_type || 'petrol'}
 - Baseline CO2 per km: ${context.baseline_co2 || 0.192} kg (DEFRA/EEA 2024 standard for ${context.car_fuel_type || 'petrol'} vehicle)
 - Usual working days: ${formatWorkingDays(context.preferred_departure_days)}
 - Preferred departure time: ${context.preferred_departure_time || '08:00'}
-- Car available: ${context.is_driver ? `Yes (${[context.car_make, context.car_model].filter(Boolean).join(' ') || 'own car'})` : 'No'}
+- Car available: ${context.is_driver ? 'Yes' : 'No'}
 - Total trips completed on Clyzio: ${context.trips_completed || 0}
 - Total CO2 saved so far: ${context.total_co2_saved || 0} kg
 - Recent trip modes used: ${recentModes}

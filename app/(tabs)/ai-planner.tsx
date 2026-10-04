@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TextInput,
   Keyboard,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -518,8 +519,25 @@ export default function AIPlannerScreen() {
   const {
     commuteResult, isLoadingCommute, commuteError, fetchCommuteSuggestions, clearCommuteResult,
     carpoolResult, isLoadingCarpool, fetchCarpoolMatches, clearCarpoolResult,
+    aiConsent, setAiConsent,
   } = useAIStore();
+  const [savingConsent, setSavingConsent] = useState(false);
+  const [consentDismissed, setConsentDismissed] = useState(false);
+
+  const handleEnableAi = async () => {
+    setSavingConsent(true);
+    try {
+      await setAiConsent(true);
+      fetchCommuteSuggestions(true);
+    } catch (e) {
+      Alert.alert("Couldn't turn on AI suggestions", e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setSavingConsent(false);
+    }
+  };
   const [hasLocations, setHasLocations] = useState(true);
+  // A failed profile read is not "you have no addresses".
+  const [profileLoadError, setProfileLoadError] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showCarpoolModal, setShowCarpoolModal] = useState(false);
 
@@ -567,12 +585,17 @@ export default function AIPlannerScreen() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("home_address, work_address, home_lat, home_long, work_lat, work_long, first_name")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
+    if (profileError) {
+      setProfileLoadError(true);
+      return;
+    }
+    setProfileLoadError(false);
     setUserProfile(profile);
     const hasAddresses = !!(profile?.home_address && profile?.work_address);
     setHasLocations(hasAddresses);
@@ -676,8 +699,64 @@ export default function AIPlannerScreen() {
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
+        {profileLoadError && (
+          <View style={[styles.errorCard, { backgroundColor: TC.surface }]}>
+            <AlertCircle size={20} color={COLORS.orange} />
+            <Text style={[styles.errorText, { color: TC.text }]}>
+              Couldn&apos;t load your commute. Check your connection and try again.
+            </Text>
+            <TouchableOpacity
+              style={styles.retryBtn}
+              onPress={() => { checkLocationsAndFetch(); }}
+              accessibilityRole="button"
+            >
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* AI opt-in (App Store 5.1.2(i)): say exactly what goes to whom
+            before anything is sent. */}
+        {hasLocations && aiConsent === false && !consentDismissed && (
+          <View style={[styles.emptyCard, { backgroundColor: TC.surface, alignItems: "stretch" }]}>
+            <Sparkles size={28} color={COLORS.primary} style={{ alignSelf: "center" }} />
+            <Text style={[styles.emptyTitle, { color: TC.text }]}>Turn on AI suggestions?</Text>
+            <Text style={[styles.emptySubtitle, { color: TC.textSecondary, textAlign: "left" }]}>
+              Personalised tips are written by Claude, an AI model made by Anthropic. To do that
+              we send Anthropic your commute distance, usual transport modes and working days,
+              departure time, car fuel type and CO₂ totals.
+            </Text>
+            <Text style={[styles.emptySubtitle, { color: TC.textSecondary, textAlign: "left" }]}>
+              We never send your name, your addresses or your exact location. You can turn this off
+              anytime in Settings.
+            </Text>
+            <TouchableOpacity
+              style={styles.generateBtn}
+              onPress={handleEnableAi}
+              disabled={savingConsent}
+              accessibilityRole="button"
+              accessibilityLabel="Turn on AI suggestions"
+            >
+              <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.generateGradient}>
+                {savingConsent ? (
+                  <ActivityIndicator color={COLORS.white} />
+                ) : (
+                  <Text style={styles.generateText}>Turn on AI suggestions</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setConsentDismissed(true)}
+              accessibilityRole="button"
+              style={{ minHeight: 44, justifyContent: "center", alignItems: "center" }}
+            >
+              <Text style={{ color: COLORS.primary, fontWeight: "600", fontSize: 15 }}>Not now</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Profile completion banner */}
-        {!hasLocations && (
+        {!hasLocations && !profileLoadError && (
           <TouchableOpacity
             style={styles.completionBanner}
             onPress={() => router.push("/settings/edit-profile")}
@@ -804,7 +883,7 @@ export default function AIPlannerScreen() {
         )}
 
         {/* Empty state when locations are set but no result yet (initial load) */}
-        {hasLocations && !isLoadingCommute && !commuteResult && !commuteError && distKm === 0 && (
+        {hasLocations && aiConsent === true && !isLoadingCommute && !commuteResult && !commuteError && distKm === 0 && (
           <View style={[styles.emptyCard, { backgroundColor: TC.surface }]}>
             <Sparkles size={32} color={COLORS.primary} />
             <Text style={[styles.emptyTitle, { color: TC.text }]}>Ready to suggest your green commute</Text>

@@ -11,6 +11,7 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -35,6 +36,7 @@ import { formatCO2 } from "../../lib/format";
 // Profile counters (xp_points / total_co2_saved / trips_completed / badges)
 // are protected against direct client writes by migration 018.
 import { useToast } from "../../contexts/ToastContext";
+import { completeTrip, shouldEndRide } from "../../lib/completeTrip";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -317,6 +319,9 @@ export default function ActivityScreen() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("upcoming");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  // A failed load must not look like "No commutes planned".
+  const [loadError, setLoadError] = useState(false);
   const [rides, setRides] = useState<Ride[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   // Trip completion modal state
@@ -346,8 +351,9 @@ export default function ActivityScreen() {
    * Load rides based on active tab
    * Fetches upcoming or history rides from Supabase
    */
-  const loadRides = useCallback(async () => {
-    setLoading(true);
+  const loadRides = useCallback(async (opts?: { pull?: boolean }) => {
+    if (opts?.pull) setRefreshing(true);
+    else setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -379,19 +385,18 @@ export default function ActivityScreen() {
 
       if (error) {
         console.error("Error fetching rides:", error);
-      showToast({
-        title: "Couldn't load your trips",
-        message: "Check your connection and pull to refresh.",
-        type: "error",
-      });
+        setLoadError(true);
       } else {
         if (__DEV__) { console.log(`✅ Fetched ${data?.length || 0} rides for ${activeTab}:`, data); }
         setRides(data || []);
+        setLoadError(false);
       }
     } catch (error) {
       console.error("Error:", error);
+      setLoadError(true);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [activeTab]);
 
@@ -431,8 +436,8 @@ export default function ActivityScreen() {
 
               if (error) throw error;
               loadRides();
-            } catch (error: any) {
-              showToast({ title: 'Error', message: error.message, type: 'error' });
+            } catch {
+              showToast({ title: "Couldn't cancel", message: 'Check your connection and try again.', type: 'error' });
             }
           },
         },
@@ -453,7 +458,7 @@ export default function ActivityScreen() {
    *   4. Shows the celebration modal with the server-returned deltas
    *   5. Refreshes the list so the trip moves to History
    */
-  const completeTrip = useCallback(async (rideId: string) => {
+  const handleComplete = useCallback(async (ride: Ride) => {
     Alert.alert(
       "Complete Trip",
       "Mark this trip as completed?",
@@ -463,22 +468,14 @@ export default function ActivityScreen() {
           text: "Yes, Complete",
           style: "default",
           onPress: async () => {
-            setCompletingId(rideId);
+            setCompletingId(ride.id);
             try {
-              const { data, error } = await supabase.functions.invoke<{
-                xp_earned: number;
-                co2_saved: number;
-                distance_km: number;
-                new_level: number;
-                leveled_up: boolean;
-                already_completed?: boolean;
-              }>("complete-trip", {
-                body: { ride_id: rideId, end_trip: true },
-              });
-
-              if (error) throw error;
-              if (!data) throw new Error("No response from server");
-
+              const outcome = await completeTrip(ride.id, shouldEndRide(ride, userId));
+              if (!outcome.ok) {
+                showToast({ title: "Couldn't complete trip", message: outcome.message, type: "error" });
+                return;
+              }
+              const data = outcome.data;
               if (data.already_completed) {
                 showToast({ title: 'Already completed', message: 'This trip was already marked complete.', type: 'info' });
               } else {
@@ -487,15 +484,13 @@ export default function ActivityScreen() {
                   co2Saved: data.co2_saved,
                   distance: data.distance_km,
                   leveledUp: data.leveled_up,
-                  newLevel: data.new_level,
+                  newLevel: data.new_level ?? 0,
                 });
                 setShowCompletionModal(true);
               }
 
               // Refresh the list either way so status updates locally.
               loadRides();
-            } catch (error: any) {
-              showToast({ title: 'Could not complete trip', message: error.message ?? 'Please try again.', type: 'error' });
             } finally {
               setCompletingId(null);
             }
@@ -503,7 +498,7 @@ export default function ActivityScreen() {
         },
       ]
     );
-  }, [loadRides, showToast]);
+  }, [loadRides, showToast, userId]);
 
   /**
    * Render function for FlatList items
@@ -515,7 +510,7 @@ export default function ActivityScreen() {
           item={item}
           userId={userId}
           onPress={() => router.push(`/trip/${item.id}`)}
-          onComplete={() => completeTrip(item.id)}
+          onComplete={() => handleComplete(item)}
           onCancel={() => cancelRide(item.id)}
           completing={completingId === item.id}
           TC={TC}
@@ -530,7 +525,7 @@ export default function ActivityScreen() {
         />
       );
     }
-  }, [activeTab, userId, router, completeTrip, cancelRide, completingId, TC]);
+  }, [activeTab, userId, router, handleComplete, cancelRide, completingId, TC]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
@@ -572,11 +567,34 @@ export default function ActivityScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
+      ) : loadError && rides.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.emptyTitle, { color: TC.text }]}>Couldn&apos;t load your trips</Text>
+          <Text style={[styles.emptySubtitle, { color: TC.textSecondary }]}>
+            Check your connection and try again.
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyButton}
+            onPress={() => loadRides()}
+            accessibilityRole="button"
+          >
+            <Text style={styles.emptyButtonText}>Try again</Text>
+          </TouchableOpacity>
+        </View>
       ) : rides.length === 0 ? (
         /* Zero-history users still get the calendar — it's the clearest
            explanation of what this tab will fill up with (it used to be a
            ListHeaderComponent, so it never rendered for them). */
-        <ScrollView contentContainerStyle={styles.listContent}>
+        <ScrollView
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => loadRides({ pull: true })}
+              tintColor={COLORS.primary}
+            />
+          }
+        >
           {activeTab === "history" && (
             <CommuteCalendar rides={calendarRides} isDark={isDark} />
           )}
@@ -593,6 +611,13 @@ export default function ActivityScreen() {
           renderItem={renderCard}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => loadRides({ pull: true })}
+              tintColor={COLORS.primary}
+            />
+          }
           ListHeaderComponent={
             activeTab === "history" ? (
               <CommuteCalendar rides={calendarRides} isDark={isDark} />

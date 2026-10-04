@@ -11,6 +11,7 @@ import {
   Linking,
   Platform,
   ScrollView,
+  Share,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,6 +25,7 @@ import ChatModal from "../../components/ChatModal";
 import SOSSheet from "../../components/SOSSheet";
 import RatingSheet from "../../components/RatingSheet";
 import { useToast } from "../../contexts/ToastContext";
+import { completeTrip } from "../../lib/completeTrip";
 
 interface Ride {
   id: string;
@@ -42,6 +44,7 @@ interface Ride {
   transport_label?: string;
   co2_saved: number;
   created_at: string;
+  scheduled_at?: string | null;
 }
 
 interface Profile {
@@ -58,6 +61,8 @@ interface Profile {
 import { MAPBOX_TOKEN, IS_MAPBOX_TOKEN_VALID } from "../../lib/config";
 if (IS_MAPBOX_TOKEN_VALID) {
   Mapbox.setAccessToken(MAPBOX_TOKEN);
+  // Mapbox usage telemetry is off (privacy policy §5); maps work without it.
+  Mapbox.setTelemetryEnabled(false);
 }
 
 // Editorial reskin — active ride uses the brand + paper-ink system.
@@ -76,7 +81,11 @@ const COLORS = {
 };
 
 export default function TripScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, openChat, openRating } = useLocalSearchParams<{
+    id: string;
+    openChat?: string;
+    openRating?: string;
+  }>();
   const router = useRouter();
   const { showToast } = useToast();
   const mapRef = useRef<MapView>(null);
@@ -173,6 +182,16 @@ export default function TripScreen() {
     return () => clearTimeout(t);
   }, [isLoading, loadFailed]);
 
+  // Notification deep links (/trip/<id>?openChat=1 | openRating=1): open the
+  // requested sheet once, after the ride has loaded.
+  const openedFromParamsRef = useRef(false);
+  useEffect(() => {
+    if (openedFromParamsRef.current || isLoading || !ride) return;
+    openedFromParamsRef.current = true;
+    if (openChat === "1") setShowChatModal(true);
+    else if (openRating === "1") setShowRatingSheet(true);
+  }, [isLoading, ride, openChat, openRating]);
+
   const handleRetryLoad = () => {
     setLoadFailed(false);
     setIsLoading(true);
@@ -266,25 +285,24 @@ export default function TripScreen() {
   // completed. Passengers pass `false` so the driver still controls the ride
   // lifecycle while the passenger collects their own credit.
   //
-  // Returns the XP delta the server reports (matches the legacy contract
-  // — callers only ever used this to display "+N XP" in the toast).
-  const awardCurrentUserStats = async (endTripStatus: boolean): Promise<{ xp: number; co2: number }> => {
-    if (!ride || !currentUserId) return { xp: 0, co2: 0 };
+  // Returns the credited deltas, or null when nothing was credited (an error
+  // toast has already been shown) so callers never celebrate a failure.
+  const awardCurrentUserStats = async (
+    endTripStatus: boolean,
+  ): Promise<{ xp: number; co2: number } | null> => {
+    if (!ride || !currentUserId || !id) return null;
 
-    const { data, error } = await supabase.functions.invoke<{
-      xp_earned: number;
-      co2_saved?: number;
-      already_completed?: boolean;
-    }>("complete-trip", {
-      body: { ride_id: id, end_trip: endTripStatus },
-    });
-
-    if (error) {
-      showToast({ title: "Could not complete trip", message: error.message ?? "Please try again.", type: "error" });
-      return { xp: 0, co2: 0 };
+    const outcome = await completeTrip(id, endTripStatus);
+    if (!outcome.ok) {
+      showToast({ title: "Couldn't complete trip", message: outcome.message, type: "error" });
+      return null;
+    }
+    if (outcome.data.already_completed) {
+      showToast({ title: "Already counted", message: "This trip is already in your history.", type: "info" });
+      return null;
     }
     // co2_saved is the amount actually credited to THIS user (carpool = half).
-    return { xp: data?.xp_earned ?? 0, co2: data?.co2_saved ?? 0 };
+    return { xp: outcome.data.xp_earned ?? 0, co2: outcome.data.co2_saved ?? 0 };
   };
 
   // Driver / solo path — ends the ride and awards the current user's stats.
@@ -295,7 +313,9 @@ export default function TripScreen() {
     setShowArrivalModal(false);
     setIsNavigating(false);
 
-    const { xp: xpEarned, co2: co2Saved } = await awardCurrentUserStats(true);
+    const credited = await awardCurrentUserStats(true);
+    if (!credited) return;
+    const { xp: xpEarned, co2: co2Saved } = credited;
 
     showToast({ title: 'Trip Complete!', message: `You earned ${xpEarned} XP and saved ${co2Saved.toFixed(2)} kg CO₂!`, type: 'success' });
 
@@ -318,7 +338,9 @@ export default function TripScreen() {
     setShowArrivalModal(false);
     setIsNavigating(false);
 
-    const { xp: xpEarned, co2: co2Saved } = await awardCurrentUserStats(false);
+    const credited = await awardCurrentUserStats(false);
+    if (!credited) return;
+    const { xp: xpEarned, co2: co2Saved } = credited;
 
     showToast({
       title: "You've arrived!",
@@ -337,11 +359,18 @@ export default function TripScreen() {
         text: "Yes, Cancel",
         style: "destructive",
         onPress: async () => {
-          if (id) {
-            await supabase
-              .from("rides")
-              .update({ status: "cancelled" })
-              .eq("id", id);
+          if (!id) return;
+          const { error } = await supabase
+            .from("rides")
+            .update({ status: "cancelled" })
+            .eq("id", id);
+          if (error) {
+            showToast({
+              title: "Couldn't cancel",
+              message: "Check your connection and try again.",
+              type: "error",
+            });
+            return;
           }
           router.back();
         },
@@ -356,8 +385,46 @@ export default function TripScreen() {
     setShowSOSSheet(true);
   };
 
-  const handleShareRide = () => {
-    showToast({ title: 'Shared', message: 'Ride details shared with your emergency contacts.', type: 'success' });
+  // Opens the system share sheet with the ride details so the user can send
+  // them to someone they trust (there's no in-app contact list).
+  const handleShareRide = async () => {
+    if (!ride) return;
+    setShowSafetyModal(false);
+
+    const lines: string[] = ["I'm on a Clyzio commute."];
+    // A driver must not forward a passenger's private pickup address.
+    const mayShareOrigin = currentUserId === ride.rider_id || ride.share_origin_address !== false;
+    const from = mayShareOrigin ? ride.origin_address : undefined;
+    if (from || ride.dest_address) {
+      lines.push(`Route: ${from || "pickup"} → ${ride.dest_address || "destination"}`);
+    }
+    if (ride.scheduled_at) {
+      const when = new Date(ride.scheduled_at).toLocaleString([], {
+        weekday: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      lines.push(`Departure: ${when}`);
+    }
+    if (partner) {
+      const name = [partner.first_name, partner.last_name].filter(Boolean).join(" ");
+      const partnerDrives = ride.driver_id === partner.id;
+      if (name) lines.push(`${partnerDrives ? "Driver" : "Passenger"}: ${name}`);
+      const car = [partner.car_color, partner.car_make, partner.car_model].filter(Boolean).join(" ");
+      if (partnerDrives && (car || partner.car_plate)) {
+        lines.push(`Car: ${car}${partner.car_plate ? ` (${partner.car_plate})` : ""}`.trim());
+      }
+    }
+    if (currentLocation) {
+      const { latitude, longitude } = currentLocation.coords;
+      lines.push(`My location: https://maps.google.com/?q=${latitude.toFixed(5)},${longitude.toFixed(5)}`);
+    }
+
+    try {
+      await Share.share({ message: lines.join("\n") });
+    } catch {
+      showToast({ title: "Couldn't open sharing", message: "Please try again.", type: "error" });
+    }
   };
 
   if (isLoading) {
@@ -483,8 +550,8 @@ export default function TripScreen() {
           ref={mapRef}
           style={styles.map}
           styleURL={Mapbox.StyleURL.Dark}
-          logoEnabled={false}
-          attributionEnabled={true}
+          logoEnabled
+          attributionEnabled
         >
           <Camera
             ref={cameraRef}

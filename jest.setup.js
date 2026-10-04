@@ -7,6 +7,10 @@ jest.mock("@ungap/structured-clone", () => ({ default: (obj) => JSON.parse(JSON.
 
 jest.mock("react-native-reanimated", () => require("react-native-reanimated/mock"));
 
+// waitFor/findBy default to 1 s, which a cold full-screen render under load
+// can exceed — that was the suite's only source of flakiness.
+require("@testing-library/react-native").configure({ asyncUtilTimeout: 5000 });
+
 // Mock lib/supabase (relative to project root = clyzio/)
 jest.mock("./lib/supabase", () => ({
   supabase: {
@@ -121,6 +125,7 @@ jest.mock("@rnmapbox/maps", () => {
     __esModule: true,
     default: {
       setAccessToken: jest.fn(),
+      setTelemetryEnabled: jest.fn(),
       StyleURL: { Street: "street", Dark: "dark" },
     },
     MapView: MockMapView,

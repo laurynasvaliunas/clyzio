@@ -40,22 +40,31 @@ export async function hasPrimedPermissions(): Promise<boolean> {
 
 /**
  * First-run check: has this account completed the commute-baseline setup?
- * Reads the `profiles.commute_setup_done` flag. Tolerates the column being
- * absent (pre-migration) — returns `true` (i.e. "no gate") so the app never
- * blocks if the migration hasn't been applied yet.
+ * Reads the `profiles.commute_setup_done` flag.
+ *
+ * A network error used to count as "done", so a brand-new user on a flaky
+ * connection skipped setup and landed on a Map with no home or work. Now a
+ * failed read is retried once; only if it still fails (or the column is
+ * missing on an old schema, 42703) do we let the user through rather than
+ * block the app.
  */
 export async function hasCompletedCommuteSetup(userId: string): Promise<boolean> {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('commute_setup_done')
-      .eq('id', userId)
-      .single();
-    if (error) return true; // column missing / query error → don't gate
-    return (data as { commute_setup_done?: boolean } | null)?.commute_setup_done !== false;
-  } catch {
-    return true;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('commute_setup_done')
+        .eq('id', userId)
+        .maybeSingle();
+      if (!error) {
+        return (data as { commute_setup_done?: boolean } | null)?.commute_setup_done !== false;
+      }
+      if (error.code === '42703') return true; // column absent → no gate
+    } catch {
+      /* retry */
+    }
   }
+  return true; // never block launch on a persistent failure
 }
 
 /**

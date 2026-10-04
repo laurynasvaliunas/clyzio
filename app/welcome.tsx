@@ -159,8 +159,10 @@ export default function WelcomeScreen() {
     // Mark welcome as seen so the root layout doesn't re-route here on
     // future cold starts (even after sign-out + sign-in on the same device).
     try { await SecureStore.setItemAsync(WELCOME_SEEN_KEY, "1"); } catch { /* non-fatal */ }
-    // Send the user to the login/signup flow.
-    router.replace("/(auth)/login" as any);
+    // First launch on a device is almost always a new user, so open in
+    // sign-up mode (it used to greet them with "Welcome back / Sign in").
+    // Returning users switch with one tap.
+    router.replace({ pathname: "/(auth)/login", params: { mode: "signup" } } as any);
   };
 
   return (

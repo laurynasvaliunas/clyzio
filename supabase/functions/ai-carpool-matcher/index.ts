@@ -3,6 +3,7 @@ import { callClaude, parseClaudeJSON } from '../_shared/anthropic.ts';
 import { verifyAuth } from '../_shared/auth.ts';
 import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
 import { parseBody, AICarpoolMatcherSchema } from '../_shared/validate.ts';
+import { hasAiConsent, haversineKm } from '../_shared/aiConsent.ts';
 
 function buildSystemPrompt(baselineCO2: number, fuelType: string): string {
   return `You are Clyzio's AI Carpool Matcher. Your job is to rank and explain carpool compatibility between a user and candidate rides based on geographic proximity, timing, and route alignment.
@@ -11,7 +12,8 @@ Return ONLY valid JSON matching the exact schema provided. No markdown, no expla
 
 Rules:
 - compatibility_score is 0-100: 80+ = excellent match, 60-79 = good, 40-59 = fair, <40 = poor
-- Always reference the distance_to_origin_km when explaining matches
+- Candidates are anonymous and numbered. Refer to them only by their numbers' facts (distance, timing), never invent names
+- Always reference distance_to_pickup_km when explaining matches
 - co2_saving_kg should reflect actual saving for one person per trip vs driving alone (user drives a ${fuelType} car at ${baselineCO2} kg CO₂/km, DEFRA/EEA 2024)
 - Be honest: if no candidates are a good match, say so in best_match_summary
 - If there are no candidates at all, return an empty ranked_matches array
@@ -32,6 +34,30 @@ interface CarpoolResponse {
   ranked_matches: CarpoolMatch[];
   best_match_summary: string;
 }
+
+/** What the model returns: candidates by number only (no ids, no names). */
+interface AIRankedCandidate {
+  candidate: number;
+  compatibility_score: number;
+  co2_saving_kg: number;
+  reasoning: string;
+  estimated_detour_min: number;
+}
+
+interface Candidate {
+  ride_id: string;
+  user_id: string;
+  first_name: string | null;
+  origin_lat: number | null;
+  origin_long: number | null;
+  dest_lat: number | null;
+  dest_long: number | null;
+  distance_to_origin_km: number | null;
+  scheduled_at: string | null;
+  transport_mode: string | null;
+}
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -99,34 +125,67 @@ Deno.serve(async (req: Request) => {
       return respondJSON(emptyResponse);
     }
 
-    // Estimate straight-line trip distance
-    const tripDistanceKm = Math.sqrt(
-      Math.pow((dest_lat - origin_lat) * 111.0, 2) +
-      Math.pow((dest_long - origin_long) * 111.0 * Math.cos((origin_lat * Math.PI) / 180), 2)
-    );
+    const pool = candidates as Candidate[];
+    const departureMs = departure_time ? new Date(departure_time).getTime() : Date.now();
+    const tripDistanceKm = haversineKm(origin_lat, origin_long, dest_lat, dest_long);
+
+    // Data minimisation: the model sees derived numbers only. No coordinates,
+    // no names, no ids — neither the caller's nor (crucially) the other
+    // commuters', who never agreed to share anything with an AI provider.
+    const anonymised = pool.map((c, i) => ({
+      candidate: i + 1,
+      distance_to_pickup_km: c.distance_to_origin_km != null ? round1(c.distance_to_origin_km) : null,
+      destination_gap_km:
+        c.dest_lat != null && c.dest_long != null
+          ? round1(haversineKm(dest_lat, dest_long, c.dest_lat, c.dest_long))
+          : null,
+      departure_gap_min: c.scheduled_at
+        ? Math.round((new Date(c.scheduled_at).getTime() - departureMs) / 60000)
+        : null,
+      transport_mode: c.transport_mode,
+    }));
+
+    const toMatch = (c: Candidate, ai?: AIRankedCandidate): CarpoolMatch => ({
+      ride_id: c.ride_id,
+      user_first_name: c.first_name ?? '',
+      to_user_id: c.user_id,
+      compatibility_score: ai?.compatibility_score ?? Math.max(0, Math.round(100 - (c.distance_to_origin_km ?? 5) * 15)),
+      co2_saving_kg: ai?.co2_saving_kg ?? round1(tripDistanceKm * baselineCO2 * 0.5),
+      reasoning: ai?.reasoning ?? `${round1(c.distance_to_origin_km ?? 0)} km from your start.`,
+      estimated_detour_min: ai?.estimated_detour_min ?? Math.round((c.distance_to_origin_km ?? 0) * 3),
+    });
+
+    // Without AI consent, rank by distance only — matching still works, it
+    // just isn't explained by the model.
+    if (!(await hasAiConsent(supabase, userId))) {
+      const byDistance = [...pool].sort(
+        (a, b) => (a.distance_to_origin_km ?? 99) - (b.distance_to_origin_km ?? 99),
+      );
+      return respondJSON({
+        ranked_matches: byDistance.map((c) => toMatch(c)),
+        best_match_summary: 'Closest commuters to your start point.',
+      } satisfies CarpoolResponse);
+    }
 
     const userMessage = `A user needs a ${role} for a trip:
-- From: (${origin_lat}, ${origin_long})
-- To: (${dest_lat}, ${dest_long})
 - Departure: ${departure_time ?? 'now'}
 - Trip distance (straight-line): ${tripDistanceKm.toFixed(1)} km
 - Max detour willing: ${max_detour_km} km
 - User's car: ${fuelType} (${baselineCO2} kg CO₂/km baseline)
 
-Candidate matches found (sorted by distance to pickup):
-${JSON.stringify(candidates, null, 2)}
+Anonymous candidates (distance_to_pickup_km = how far their start is from the user's start; destination_gap_km = how far apart the two destinations are; departure_gap_min = their departure minus the user's):
+${JSON.stringify(anonymised, null, 2)}
 
 Rank these candidates by carpool compatibility. Consider:
 1. Distance to pickup (closer = better)
-2. Route alignment (are they going the same general direction?)
+2. Destination gap (smaller = same direction)
 3. Timing compatibility
 
 Return JSON matching this schema exactly:
 {
   "ranked_matches": [
     {
-      "ride_id": "string",
-      "user_first_name": "string",
+      "candidate": number,
       "compatibility_score": number,
       "co2_saving_kg": number,
       "reasoning": "string. 1 sentence, specific about distance/direction.",
@@ -143,18 +202,14 @@ Return JSON matching this schema exactly:
       maxTokens: 768,
     });
 
-    const parsed = parseClaudeJSON<CarpoolResponse>(text);
+    const aiParsed = parseClaudeJSON<{ ranked_matches: AIRankedCandidate[]; best_match_summary: string }>(text);
 
-    // Enrich each ranked match with the target user's ID from the DB candidates
-    const candidateUserMap = new Map<string, string>(
-      candidates.map((c: { ride_id: string; user_id: string }) => [c.ride_id, c.user_id])
-    );
+    // Map the model's candidate numbers back to real rides server-side.
     const enriched: CarpoolResponse = {
-      ...parsed,
-      ranked_matches: parsed.ranked_matches.map((m) => ({
-        ...m,
-        to_user_id: candidateUserMap.get(m.ride_id),
-      })),
+      best_match_summary: aiParsed.best_match_summary,
+      ranked_matches: (aiParsed.ranked_matches ?? [])
+        .filter((m) => Number.isInteger(m.candidate) && m.candidate >= 1 && m.candidate <= pool.length)
+        .map((m) => toMatch(pool[m.candidate - 1], m)),
     };
 
     // Log to ai_suggestions

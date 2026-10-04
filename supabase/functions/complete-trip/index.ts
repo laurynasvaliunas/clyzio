@@ -32,6 +32,15 @@ const TRIPS_PER_LEVEL = 3;
 const XP_PER_LEVEL = XP_PER_TRIP * TRIPS_PER_LEVEL; // 300
 const MAX_LEVEL = 10;
 
+// ─── Anti-farming limits ──────────────────────────────────────────────────────
+// A ride may be completed from shortly before its scheduled time (people leave
+// early) but not for a trip planned hours ahead.
+const EARLY_START_GRACE_MS = 30 * 60 * 1000;
+// Credited completions per user per rolling 24h. A commute is 2 legs a day;
+// 6 leaves room for errands without letting a script mint unbounded XP.
+const MAX_COMPLETIONS_PER_DAY = 6;
+const COMPLETABLE_STATUSES = new Set(['scheduled', 'requested', 'active', 'completed']);
+
 function getLevel(xp: number): number {
   const safe = Math.max(0, Math.floor(xp || 0));
   return Math.min(MAX_LEVEL, Math.floor(safe / XP_PER_LEVEL) + 1);
@@ -75,8 +84,7 @@ Deno.serve(async (req) => {
     const { data: ride, error: rideErr } = await supabase
       .from('rides')
       .select(
-        'id, status, rider_id, driver_id, transport_mode, co2_saved, ' +
-        'origin_lat, origin_long, dest_lat, dest_long',
+        'id, status, scheduled_at, rider_id, driver_id, transport_mode, co2_saved, origin_lat, origin_long, dest_lat, dest_long',
       )
       .eq('id', ride_id)
       .maybeSingle();
@@ -85,6 +93,30 @@ Deno.serve(async (req) => {
     if (!ride) return respondError(404, 'not_found', 'ride_not_found');
     if (ride.rider_id !== userId && ride.driver_id !== userId) {
       return respondError(403, 'forbidden', 'not_a_participant');
+    }
+    // (1.2) Only a live ride earns credit. Cancelled rides and rides planned for
+    // later are refused before anything is claimed. A ride the driver already
+    // completed stays creditable so the passenger can still collect theirs.
+    if (!COMPLETABLE_STATUSES.has(ride.status)) {
+      return respondError(409, 'conflict', ride.status === 'cancelled' ? 'ride_cancelled' : 'ride_not_completable');
+    }
+    if (
+      ride.status !== 'completed' &&
+      ride.scheduled_at &&
+      new Date(ride.scheduled_at).getTime() - Date.now() > EARLY_START_GRACE_MS
+    ) {
+      return respondError(409, 'conflict', 'ride_not_started');
+    }
+    // (1.3) Rolling daily cap on credited completions.
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: recentCount, error: capErr } = await supabase
+      .from('ride_completions')
+      .select('ride_id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', since);
+    if (capErr) return respondInternalError('complete-trip', capErr, 'cap_check_failed');
+    if ((recentCount ?? 0) >= MAX_COMPLETIONS_PER_DAY) {
+      return respondError(429, 'rate_limited', 'daily_completion_limit');
     }
     // (1.5) Per-participant idempotency (migration 036): credit each participant
     // exactly once per ride, in any order. Claim a ride_completions row BEFORE
@@ -110,9 +142,12 @@ Deno.serve(async (req) => {
 
     // (2) Mark the ride completed when the caller ends the trip (driver/solo).
     // Passengers pass end_trip=false and just collect their own credit while the
-    // driver keeps control of the ride lifecycle.
+    // driver keeps control of the ride lifecycle. Enforced here too: on a
+    // carpool only the driver can end the ride, whatever the client sends.
     const completedAt = new Date().toISOString();
-    if (end_trip && ride.status !== 'completed') {
+    const isCarpool = !!(ride.driver_id && ride.rider_id);
+    const mayEndRide = !isCarpool || ride.driver_id === userId;
+    if (end_trip && mayEndRide && ride.status !== 'completed') {
       const { error: updErr } = await supabase
         .from('rides')
         .update({ status: 'completed', completed_at: completedAt })
@@ -129,7 +164,6 @@ Deno.serve(async (req) => {
     // Carpool CO₂ is a SHARED saving — split it 50/50 between driver and rider so
     // the pair's combined credit equals the trip's saving (no double-count). Solo
     // trips credit the full amount to the one participant.
-    const isCarpool = !!(ride.driver_id && ride.rider_id);
     const fullCo2 = Number(ride.co2_saved) || 0;
     const co2Saved = isCarpool ? Math.round((fullCo2 / 2) * 1000) / 1000 : fullCo2;
     const distanceKm =

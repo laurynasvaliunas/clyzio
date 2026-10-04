@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -67,6 +68,12 @@ export interface CarpoolSearchParams {
 // ─── Store ───────────────────────────────────────────────────────────────────
 
 interface AIState {
+  /**
+   * AI opt-in (profiles.ai_consent_at). null = not loaded yet. Nothing is sent
+   * to the AI provider until this is true (App Store 5.1.2(i)).
+   */
+  aiConsent: boolean | null;
+
   // Commute suggestions
   commuteResult: CommuteAIResult | null;
   isLoadingCommute: boolean;
@@ -83,6 +90,9 @@ interface AIState {
   _suggestionChannel: ReturnType<typeof supabase.channel> | null;
 
   // Actions
+  loadAiConsent: () => Promise<void>;
+  /** Record (true) or withdraw (false) consent. Throws if it can't be saved. */
+  setAiConsent: (granted: boolean) => Promise<void>;
   fetchCommuteSuggestions: (forceRefresh?: boolean) => Promise<void>;
   fetchCarpoolMatches: (params: CarpoolSearchParams) => Promise<void>;
   sendCarpoolSuggestion: (match: CarpoolMatch, departure_time?: string) => Promise<void>;
@@ -97,6 +107,7 @@ interface AIState {
 const CACHE_STALE_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 export const useAIStore = create<AIState>((set, get) => ({
+  aiConsent: null,
   commuteResult: null,
   isLoadingCommute: false,
   commuteError: null,
@@ -109,7 +120,38 @@ export const useAIStore = create<AIState>((set, get) => ({
   incomingSuggestions: [],
   _suggestionChannel: null,
 
+  loadAiConsent: async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("ai_consent_at")
+      .eq("id", user.id)
+      .maybeSingle();
+    // On a failed read keep it unknown; never assume consent.
+    if (error) return;
+    set({ aiConsent: !!(data as { ai_consent_at?: string | null } | null)?.ai_consent_at });
+  },
+
+  setAiConsent: async (granted: boolean) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Please sign in again.");
+    const { error } = await supabase
+      .from("profiles")
+      .update({ ai_consent_at: granted ? new Date().toISOString() : null } as never)
+      .eq("id", user.id);
+    if (error) throw new Error("Couldn't save your choice. Check your connection and try again.");
+    set({
+      aiConsent: granted,
+      // Withdrawing also drops what was generated with the old consent.
+      ...(granted ? {} : { commuteResult: null, commuteLastFetchedAt: null }),
+    });
+  },
+
   fetchCommuteSuggestions: async (forceRefresh = false) => {
+    if (get().aiConsent === null) await get().loadAiConsent();
+    if (get().aiConsent !== true) return;
+
     const { commuteLastFetchedAt, isLoadingCommute } = get();
 
     // Avoid duplicate in-flight requests
@@ -130,7 +172,17 @@ export const useAIStore = create<AIState>((set, get) => ({
         { body: { force_refresh: forceRefresh } }
       );
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        // Server says consent is missing (e.g. withdrawn on another device).
+        if (error instanceof FunctionsHttpError) {
+          const body = await error.context.json().catch(() => null);
+          if (body?.code === "ai_consent_required") {
+            set({ aiConsent: false, isLoadingCommute: false });
+            return;
+          }
+        }
+        throw new Error(error.message);
+      }
 
       set({
         commuteResult: data as CommuteAIResult,
@@ -161,13 +213,15 @@ export const useAIStore = create<AIState>((set, get) => ({
     }
   },
 
+  // Throws on failure so the caller never shows "Request Sent!" for a request
+  // that wasn't stored.
   sendCarpoolSuggestion: async (match: CarpoolMatch, departure_time?: string) => {
-    if (!match.to_user_id) return;
+    if (!match.to_user_id) throw new Error("This match is no longer available.");
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) throw new Error("Please sign in again.");
 
-    await supabase.from("carpool_suggestions").insert({
+    const { error } = await supabase.from("carpool_suggestions").insert({
       from_user_id: user.id,
       to_user_id: match.to_user_id,
       ride_id: match.ride_id,
@@ -178,6 +232,7 @@ export const useAIStore = create<AIState>((set, get) => ({
       suggested_departure: departure_time ?? null,
       status: "pending",
     });
+    if (error) throw new Error("Could not send the request. Check your connection and try again.");
   },
 
   respondToSuggestion: async (id: string, response: "accepted" | "declined") => {
@@ -187,20 +242,10 @@ export const useAIStore = create<AIState>((set, get) => ({
       .eq("id", id);
 
     if (!error) {
-      // When accepting, link the rider to the rides row so it appears in Activity → Upcoming
-      if (response === "accepted") {
-        const suggestion = get().incomingSuggestions.find((s) => s.id === id);
-        if (suggestion?.ride_id) {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await supabase
-              .from("rides")
-              .update({ rider_id: user.id, status: "accepted" })
-              .eq("id", suggestion.ride_id);
-          }
-        }
-      }
-
+      // NOTE: accepting no longer edits the rides row from the client. That
+      // write set the ACCEPTING user as the ride's passenger (wrong person) and
+      // is now rejected by guard_ride_client_writes (migration 041) — pairing
+      // two users into one ride is server-only (respond-to-match).
       set((state) => ({
         incomingSuggestions: state.incomingSuggestions.map((s) =>
           s.id === id ? { ...s, status: response } : s
@@ -268,6 +313,7 @@ export const useAIStore = create<AIState>((set, get) => ({
     const channel = get()._suggestionChannel;
     if (channel) supabase.removeChannel(channel);
     set({
+      aiConsent: null,
       commuteResult: null,
       isLoadingCommute: false,
       commuteError: null,

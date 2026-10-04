@@ -18,6 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Camera, User, ArrowRight } from "lucide-react-native";
 
 import { supabase } from "../../lib/supabase";
+import { friendlyError } from "../../lib/friendlyError";
 import { useToast } from "../../contexts/ToastContext";
 import SetupProgress from "../../components/SetupProgress";
 
@@ -138,7 +139,7 @@ export default function ProfileSetupScreen() {
       setAvatarUrl(url);
       await supabase.from("profiles").update({ avatar_url: url }).eq("id", userId);
     } catch (error: any) {
-      showToast({ title: "Upload Failed", message: error?.message ?? "Please try again.", type: "error" });
+      showToast({ title: "Upload Failed", message: friendlyError(error), type: "error" });
     } finally {
       setUploading(false);
     }
@@ -159,7 +160,7 @@ export default function ProfileSetupScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
       router.push("/setup/places" as any);
     } catch (err: any) {
-      showToast({ title: "Couldn't save", message: err?.message ?? "Please try again.", type: "error" });
+      showToast({ title: "Couldn't save", message: friendlyError(err), type: "error" });
     } finally {
       setSaving(false);
     }

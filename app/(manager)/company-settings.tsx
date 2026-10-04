@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Globe } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
+import { friendlyError } from "../../lib/friendlyError";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getPalette, brand, spacing } from "../../lib/theme/tokens";
 import { Text } from "../../components/ui";
@@ -85,7 +86,7 @@ export default function CompanySettingsScreen() {
         setCrossOrg(prev);
         showToast({
           title: "Couldn't update",
-          message: error.message,
+          message: friendlyError(error),
           type: "error",
         });
         return;

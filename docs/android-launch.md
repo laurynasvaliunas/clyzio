@@ -8,7 +8,7 @@ setup only you can do (Google/Play logins, signing keys).
 | Thing | Value |
 |---|---|
 | Android package name | `com.clyzio.app` |
-| App version / versionCode | `1.0.0` / `6` (auto-increments from now on) |
+| App version / versionCode | `1.0.0` / remote on EAS (seeded from 6; first new build is 7) |
 | EAS project id | `565dc638-6385-4dcf-885d-8abd3f0d9c30` |
 | EAS account / slug | `laurynas.valiunas` / `clyzio` |
 | Supabase project | `qvevbbqcrizfywqexlkw` |
@@ -128,14 +128,9 @@ If push doesn't arrive, it's almost always Step 1 or 2.
    - **Ads** — declare none (the app has none).
    - **Content rating** — fill the questionnaire (Everyone).
    - **Target audience** — 18+ is simplest for a commuting app.
-   - **Data safety** — declare honestly. Based on the current code you collect:
-     - *Location (approximate + precise)* — app functionality; **not** shared;
-       collected. Say it is **not** used for tracking/ads.
-     - *Personal info*: name, email address, phone (optional), photo — account
-       management + app functionality.
-     - *App activity*: your trips/commutes — app functionality.
-     - Data is **encrypted in transit**, and users **can request deletion**
-       in-app (Settings → Delete account) — you can tick both.
+   - **Data safety** — copy the exact answers from
+     [`docs/store-privacy-answers.md`](store-privacy-answers.md). The delete
+     account URL is `https://clyzio.com/delete-account` (Lovable Prompt 8).
    - **Privacy policy URL**: `https://clyzio.com/legal/privacy`
 4. **Store listing**: title, short + full description, feature graphic
    (1024×500), and at least 2 phone screenshots. Take screenshots from the
@@ -182,11 +177,17 @@ eas build --profile production --platform android
 eas submit --profile production --platform android
 ```
 
-`autoIncrement` is now on, so versionCode bumps itself on every build — you can
-resubmit after a rejection without editing anything.
+Build numbers are stored on EAS (`appVersionSource: "remote"` + `autoIncrement`),
+so every build gets a new versionCode — check with `eas build:version:get`.
 
-3. In Play Console, promote the release: **Internal testing** first (fastest
-   review, invite yourself), then **Production** once you're happy.
+> **The very first upload must be manual.** Google's API can't create the first
+> release of a new app: download the `.aab` from the EAS build page and upload
+> it in Play Console → Test and release → Internal testing. After that,
+> `eas submit` works and uploads to the **internal** track as a **draft**
+> (`eas.json`), which you then review and roll out.
+
+3. Promote: **Internal testing** → (new personal developer accounts must run a
+   **closed test with at least 12 testers for 14 days**) → **Production**.
 
 ---
 

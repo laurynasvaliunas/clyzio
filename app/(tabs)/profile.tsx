@@ -14,6 +14,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { LogOut, Leaf, Check, Settings, CalendarRange } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
+import { signOut } from "../../lib/signOut";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
 import { useToast } from "../../contexts/ToastContext";
@@ -44,7 +45,7 @@ const COLORS = {
  */
 function getEcoLevel(baseline: number | null) {
   if (baseline === null) return { label: "Not set", color: COLORS.textMuted };
-  if (baseline === 0) return { label: "Zero Hero! 🌟", color: COLORS.accent };
+  if (baseline === 0) return { label: "Zero Hero!", color: COLORS.accent };
   if (baseline < 0.04) return { label: "Eco Champion!", color: COLORS.accent };
   if (baseline < 0.08) return { label: "Green Warrior!", color: COLORS.primary };
   if (baseline < 0.12) return { label: "Good Progress!", color: COLORS.primary };
@@ -89,7 +90,7 @@ function ScoreCard({ baseline, scaleAnim, glowOpacity, ecoLevel }: ScoreCardProp
               {baseline.toFixed(3)}
             </Animated.Text>
             <Text style={styles.scoreUnit}>kg CO₂ per km</Text>
-            <View style={[styles.levelBadge, { backgroundColor: ecoLevel.color }]}>
+            <View style={styles.levelBadge}>
               <Text style={styles.levelText}>{ecoLevel.label}</Text>
             </View>
           </>
@@ -110,9 +111,17 @@ export default function ProfileScreen() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  // DATA-LOSS GUARD: the mix is only ever written after a confirmed load.
+  // Saving an unloaded (empty) mix used to wipe commuting_habits and null the
+  // baseline whenever the read failed.
+  const [mixLoaded, setMixLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [habits, setHabits] = useState<CommuteHabit[]>([]);
   const [baseline, setBaseline] = useState<number | null>(null);
+  // Last persisted mix, so a focus reload doesn't discard unsaved edits.
+  const habitsRef = useRef<CommuteHabit[]>(habits);
+  habitsRef.current = habits;
+  const savedHabitsRef = useRef<string | null>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
 
@@ -127,6 +136,10 @@ export default function ProfileScreen() {
    * Throws on failure so ProfileEditor reports it instead of showing success.
    */
   const persistCommuteMix = useCallback(async () => {
+    // The mix section is replaced by a retry card when it failed to load, so
+    // there is nothing the user could have meant to save here.
+    if (!mixLoaded) return;
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Please sign in first");
 
@@ -136,13 +149,14 @@ export default function ProfileScreen() {
       .eq("id", user.id);
 
     if (error) throw error;
-  }, [habits, baseline]);
+    savedHabitsRef.current = JSON.stringify(habits);
+  }, [habits, baseline, mixLoaded]);
 
   /**
    * Sign out user and redirect to login
    */
   const handleSignOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    await signOut();
     router.replace("/(auth)/login");
   }, [router]);
 
@@ -151,6 +165,14 @@ export default function ProfileScreen() {
    * ProfileEditor, so this only reads what this screen renders.
    */
   const loadData = useCallback(async () => {
+    // Focus reload: keep the user's unsaved mix edits instead of overwriting
+    // them with the stored copy.
+    if (
+      savedHabitsRef.current !== null &&
+      JSON.stringify(habitsRef.current) !== savedHabitsRef.current
+    ) {
+      return;
+    }
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -160,14 +182,17 @@ export default function ProfileScreen() {
           .eq("id", user.id)
           .maybeSingle();
 
-        if (error) {
+        if (error || !profile) {
           setLoadError(true);
-        } else if (profile) {
-          setLoadError(false);
-          if (Array.isArray(profile.commuting_habits)) {
-            setHabits(profile.commuting_habits as CommuteHabit[]);
-          }
+        } else {
+          const loaded = Array.isArray(profile.commuting_habits)
+            ? (profile.commuting_habits as CommuteHabit[])
+            : [];
+          setHabits(loaded);
+          savedHabitsRef.current = JSON.stringify(loaded);
           if (profile.baseline_co2 != null) setBaseline(profile.baseline_co2);
+          setLoadError(false);
+          setMixLoaded(true);
         }
       }
     } catch (error) {
@@ -256,13 +281,14 @@ export default function ProfileScreen() {
             onExtraSave={persistCommuteMix}
             extraSections={
               <>
-                {/* Score Card */}
-                <ScoreCard
-                  baseline={baseline}
-                  scaleAnim={scaleAnim}
-                  glowOpacity={glowOpacity}
-                  ecoLevel={ecoLevel}
-                />
+                {mixLoaded && (
+                  <ScoreCard
+                    baseline={baseline}
+                    scaleAnim={scaleAnim}
+                    glowOpacity={glowOpacity}
+                    ecoLevel={ecoLevel}
+                  />
+                )}
 
                 {/* Weekly commute mix */}
                 <View style={styles.section}>
@@ -272,11 +298,32 @@ export default function ProfileScreen() {
                       Average weekly commute mix
                     </Text>
                   </View>
-                  <Text style={[styles.sectionSubtitle, { color: TC.textSecondary }]}>
-                    Select modes and tap the days you use them — this sets your CO₂ baseline.
-                  </Text>
-
-                  <CommuteMixEditor habits={habits} onChange={setHabits} />
+                  {mixLoaded ? (
+                    <>
+                      <Text style={[styles.sectionSubtitle, { color: TC.textSecondary }]}>
+                        Select modes and tap the days you use them — this sets your CO₂ baseline.
+                      </Text>
+                      <CommuteMixEditor habits={habits} onChange={setHabits} />
+                    </>
+                  ) : (
+                    <View style={[styles.mixErrorCard, { backgroundColor: TC.surface }]}>
+                      <Text style={[styles.sectionSubtitle, { color: TC.textSecondary, marginBottom: 12 }]}>
+                        {loadError
+                          ? "Your commute mix couldn't load. Your saved mix is safe — saving the profile won't change it."
+                          : "Loading your commute mix…"}
+                      </Text>
+                      {loadError && (
+                        <TouchableOpacity
+                          style={styles.mixRetryBtn}
+                          onPress={loadData}
+                          accessibilityRole="button"
+                          accessibilityLabel="Retry loading your commute mix"
+                        >
+                          <Text style={styles.mixRetryText}>Try again</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
                 </View>
               </>
             }
@@ -349,7 +396,9 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   scoreUnit: { fontSize: 14, color: COLORS.white, opacity: 0.8 },
-  levelBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginTop: 12 },
+  // White pill on the teal card: dark-teal text on it is ~11:1 (it was teal
+  // text on a teal pill, ~1.4:1).
+  levelBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginTop: 12, backgroundColor: COLORS.white },
   levelText: { color: COLORS.dark, fontWeight: "700", fontSize: 14 },
   
   // ===== COMMUTE SECTION =====
@@ -362,6 +411,17 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: 16, marginBottom: 20 },
   sectionTitle: { fontWeight: "700", fontSize: 24, color: COLORS.dark },
   sectionSubtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 4, marginBottom: 16 },
+  mixErrorCard: { borderRadius: 16, padding: 16, marginTop: 8 },
+  mixRetryBtn: {
+    alignSelf: "flex-start",
+    minHeight: 44,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mixRetryText: { color: COLORS.white, fontWeight: "700", fontSize: 15 },
   modeCardsContainer: { paddingVertical: 8, gap: 12 },
   
   // ===== MODE CARDS =====

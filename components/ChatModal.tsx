@@ -10,6 +10,7 @@ import {
   Platform,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Send, X } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
@@ -115,13 +116,15 @@ export default function ChatModal({
       content: inputText.trim(),
     };
 
-    setInputText(""); // Clear input immediately
+    const draft = inputText;
+    setInputText(""); // Clear optimistically; restored below if the send fails
 
     const { error } = await supabase.from("messages").insert(newMessage);
 
     if (error) {
       console.error("Error sending message:", error);
-      alert("Failed to send message. Check RLS policies.");
+      setInputText((current) => current || draft);
+      Alert.alert("Message not sent", "Check your connection and try again.");
     }
   };
 
@@ -182,7 +185,7 @@ export default function ChatModal({
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerTitle}>Chat with {partnerName}</Text>
-            <Text style={styles.headerSubtitle}>End-to-end secure</Text>
+            <Text style={styles.headerSubtitle}>Visible only to people on this ride</Text>
           </View>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <X size={24} color={COLORS.gray700} />
@@ -225,7 +228,7 @@ export default function ChatModal({
             multiline
             maxLength={500}
           />
-          <TouchableOpacity
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Send message"
             style={[
               styles.sendBtn,
               !inputText.trim() && styles.sendBtnDisabled,

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "../utils/test-utils";
+import { fireEvent, render, screen, waitFor } from "../utils/test-utils";
 import { supabase } from "../../lib/supabase";
 import ProfileScreen from "../../app/(tabs)/profile";
 
@@ -70,4 +70,50 @@ describe("ProfileScreen", () => {
     // One save action only — the two competing buttons were a launch blocker.
     expect(screen.getByText("Save profile")).toBeTruthy();
   });
+
+  it("never writes the commute mix when it failed to load", async () => {
+    // Regression: Save used to write commuting_habits = [] and
+    // baseline_co2 = null whenever the mix read failed.
+    const updates: Record<string, unknown>[] = [];
+    (supabase.from as jest.Mock).mockImplementation(() => {
+      let columns = "";
+      const row = {
+        first_name: "Test", last_name: "User", phone: "", department: "",
+        avatar_url: null, car_make: "", car_model: "", car_color: "",
+        car_plate: "", car_fuel_type: "", home_address: "", home_lat: null,
+        home_long: null, work_address: "", work_lat: null, work_long: null,
+        is_public: false, share_pickup_address: true, vehicles: [],
+        primary_vehicle_id: null, company_id: null, department_id: null,
+      };
+      const chain: Record<string, unknown> = {};
+      Object.assign(chain, {
+        select: (cols: string) => { columns = cols; return chain; },
+        update: (payload: Record<string, unknown>) => { updates.push(payload); return chain; },
+        eq: () => chain,
+        order: () => chain,
+        maybeSingle: jest.fn().mockImplementation(() =>
+          Promise.resolve(
+            columns.includes("commuting_habits")
+              ? { data: null, error: { message: "offline" } }
+              : { data: row, error: null },
+          ),
+        ),
+      });
+      return chain;
+    });
+
+    render(<ProfileScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Your commute mix couldn.t load/)).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByText("Save profile"));
+
+    await waitFor(() => {
+      expect(updates.length).toBeGreaterThan(0);
+    });
+    expect(updates.some((u) => "commuting_habits" in u || "baseline_co2" in u)).toBe(false);
+  });
 });
+

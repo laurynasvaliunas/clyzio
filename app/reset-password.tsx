@@ -10,6 +10,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Lock, Eye, EyeOff, ShieldCheck, Check } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
+import { consumeRecoveryEvent, takeRecoveryUrl } from "../lib/recoveryLink";
 
 const COLORS = {
   primary: "#00565A",
@@ -55,12 +56,9 @@ export default function ResetPasswordScreen() {
 
   const establishSession = useCallback(async (url: string | null) => {
     try {
-      // If a recovery session already exists (e.g. supabase parsed it), use it.
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) { setPhase("ready"); return; }
-
-      if (!url) { setPhase("invalid"); return; }
-      const p = parseParams(url);
+      // The link's own tokens always win, so a reset link for account B
+      // replaces a signed-in session for account A instead of resetting A.
+      const p = url ? parseParams(url) : {};
       if (p.error_description) { setPhase("invalid"); return; }
 
       if (p.token_hash && p.type) {
@@ -77,16 +75,32 @@ export default function ResetPasswordScreen() {
         setPhase(error ? "invalid" : "ready");
         return;
       }
-      setPhase("invalid");
+      // No tokens in hand: only a session Supabase itself flagged as a
+      // recovery (PASSWORD_RECOVERY) counts — never an ordinary sign-in.
+      const { data: { session } } = await supabase.auth.getSession();
+      setPhase(session && consumeRecoveryEvent() ? "ready" : "invalid");
     } catch {
       setPhase("invalid");
     }
   }, []);
 
   useEffect(() => {
-    Linking.getInitialURL().then(establishSession);
-    const sub = Linking.addEventListener("url", (ev) => establishSession(ev.url));
-    return () => sub.remove();
+    // Warm start: the root layout stashed the link before this screen mounted.
+    // Cold start: it's also the initial URL.
+    const stashed = takeRecoveryUrl();
+    if (stashed) establishSession(stashed);
+    else Linking.getInitialURL().then(establishSession);
+    const sub = Linking.addEventListener("url", (ev) => {
+      takeRecoveryUrl(); // same link, already stashed by the root layout
+      establishSession(ev.url);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setPhase("ready");
+    });
+    return () => {
+      sub.remove();
+      subscription.unsubscribe();
+    };
   }, [establishSession]);
 
   const handleSave = async () => {
@@ -159,7 +173,7 @@ export default function ResetPasswordScreen() {
                   onChangeText={setPassword}
                   autoCapitalize="none"
                 />
-                <TouchableOpacity onPress={() => setShowPw(!showPw)} hitSlop={8}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={showPw ? "Hide password" : "Show password"} onPress={() => setShowPw(!showPw)} hitSlop={8}>
                   {showPw ? <EyeOff size={20} color={COLORS.gray} /> : <Eye size={20} color={COLORS.gray} />}
                 </TouchableOpacity>
               </View>

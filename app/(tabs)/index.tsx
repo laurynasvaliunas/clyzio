@@ -24,6 +24,7 @@ import CommuteHomeCard, { type PlanDay, type PlannedRideSummary } from "../../co
 import YesterdayImpactCard, { type YesterdayImpact } from "../../components/YesterdayImpactCard";
 import * as SecureStore from "expo-secure-store";
 import { supabase } from "../../lib/supabase";
+import { localISODate, tomorrowLocalISODate } from "../../lib/localDate";
 import { buildWebLink } from "../../lib/deepLinks";
 import { logger } from "../../lib/logger";
 import { useAIStore } from "../../store/useAIStore";
@@ -35,6 +36,8 @@ import { useToast } from "../../contexts/ToastContext";
 import { MAPBOX_TOKEN, IS_MAPBOX_TOKEN_VALID } from "../../lib/config";
 if (IS_MAPBOX_TOKEN_VALID) {
   Mapbox.setAccessToken(MAPBOX_TOKEN);
+  // Mapbox usage telemetry is off (privacy policy §5); maps work without it.
+  Mapbox.setTelemetryEnabled(false);
 }
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
@@ -67,12 +70,8 @@ interface IntentPeer {
   avatar_url: string | null;
 }
 
-/** Tomorrow as YYYY-MM-DD — mirrors useDailyCommuteStore.getTomorrowDate. */
-function tomorrowISODate(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().split("T")[0];
-}
+/** Tomorrow as a local YYYY-MM-DD — same helper as useDailyCommuteStore. */
+const tomorrowISODate = tomorrowLocalISODate;
 
 /** "HH:MM:SS" → "HH:MM" for display. */
 function formatIntentTime(t: string | null): string | null {
@@ -806,7 +805,7 @@ export default function MapScreen() {
       y.setDate(y.getDate() - 1);
       const yStart = new Date(y); yStart.setHours(0, 0, 0, 0);
       const yEnd = new Date(y); yEnd.setHours(23, 59, 59, 999);
-      const dayKey = `clyzio.impactSeen.${yStart.toISOString().slice(0, 10)}`;
+      const dayKey = `clyzio.impactSeen.${localISODate(yStart)}`;
 
       // Already dismissed for this date → don't show.
       const seen = await SecureStore.getItemAsync(dayKey).catch(() => null);
@@ -850,7 +849,7 @@ export default function MapScreen() {
   const dismissYesterdayImpact = useCallback(async () => {
     const y = new Date();
     y.setDate(y.getDate() - 1);
-    const dayKey = `clyzio.impactSeen.${new Date(y.setHours(0, 0, 0, 0)).toISOString().slice(0, 10)}`;
+    const dayKey = `clyzio.impactSeen.${localISODate(y)}`;
     await SecureStore.setItemAsync(dayKey, "1").catch(() => undefined);
     setYesterdayImpact(null);
   }, []);
@@ -1202,10 +1201,10 @@ export default function MapScreen() {
    */
   // Make the empty-state "invite a colleague" link reliably actionable. Always
   // opens the share sheet: a personal referral link when the user has a
-  // referral_code, otherwise a generic clyzio.app link (so it never silently
+  // referral_code, otherwise a generic clyzio.com link (so it never silently
   // no-ops if the code isn't populated). Errors surface as a toast.
   const handleInviteShare = useCallback(async () => {
-    let url = 'https://clyzio.app';
+    let url = 'https://clyzio.com';
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -1237,13 +1236,20 @@ export default function MapScreen() {
 
   const handleCancelSearch = useCallback(async () => {
     if (activeRideId) {
-      try {
-        await supabase
-          .from('rides')
-          .update({ status: 'cancelled' })
-          .eq('id', activeRideId);
-      } catch {
-        // Non-fatal — UI resets regardless; the ride will expire naturally.
+      // Rides don't expire on their own: if the cancel didn't land, keep the
+      // UI as-is so the user can retry instead of leaving a phantom
+      // "scheduled" ride in Activity.
+      const { error } = await supabase
+        .from('rides')
+        .update({ status: 'cancelled' })
+        .eq('id', activeRideId);
+      if (error) {
+        showToast({
+          title: "Couldn't cancel",
+          message: 'Check your connection and try again.',
+          type: 'error',
+        });
+        return;
       }
       setActiveRideId(null);
     }
@@ -1253,7 +1259,7 @@ export default function MapScreen() {
     setSelectedMatch(null);
     setActiveTrip(null);
     setIsViewingMap(false);
-  }, [activeRideId]);
+  }, [activeRideId, showToast]);
 
   /**
    * View map with matches - dismiss overlay but keep route and markers visible
@@ -1297,7 +1303,7 @@ export default function MapScreen() {
         setRequestStatus('idle');
         showToast({
           title: 'Add your commute first',
-          message: 'Set your home and work addresses in Settings to carpool.',
+          message: 'Add your home and work addresses in your Profile to carpool.',
           type: 'warning',
         });
         return;
@@ -1373,8 +1379,8 @@ export default function MapScreen() {
         ref={mapRef}
         style={styles.map}
         styleURL={isDark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street}
-        logoEnabled={false}
-        attributionEnabled={true}
+        logoEnabled
+        attributionEnabled
         onDidFinishLoadingMap={centerToUserLocation}
       >
         <Camera

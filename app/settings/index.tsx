@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import Constants from "expo-constants";
 import { useTheme, LIGHT_ONLY } from "../../contexts/ThemeContext";
 import { getThemeColors } from "../../lib/theme";
 import { useToast } from "../../contexts/ToastContext";
@@ -29,8 +30,12 @@ import {
   MapPin,
   Car,
   Users,
+  Sparkles,
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
+import { friendlyError } from "../../lib/friendlyError";
+import { signOut } from "../../lib/signOut";
+import { useAIStore } from "../../store/useAIStore";
 
 const COLORS = {
   textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
@@ -58,6 +63,22 @@ export default function SettingsScreen() {
   const [isSolo, setIsSolo] = useState(false);
   const [sharePublic, setSharePublic] = useState(false);
   const [shareSaving, setShareSaving] = useState(false);
+  // AI opt-in — withdrawing must be as easy as giving it (GDPR art. 7(3)).
+  const { aiConsent, loadAiConsent, setAiConsent } = useAIStore();
+  const [aiSaving, setAiSaving] = useState(false);
+  useEffect(() => {
+    if (aiConsent === null) loadAiConsent();
+  }, [aiConsent, loadAiConsent]);
+  const toggleAi = async (next: boolean) => {
+    setAiSaving(true);
+    try {
+      await setAiConsent(next);
+    } catch (e) {
+      Alert.alert("Couldn't update AI suggestions", e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setAiSaving(false);
+    }
+  };
 
   useEffect(() => {
     loadProfileFlags();
@@ -97,7 +118,7 @@ export default function SettingsScreen() {
       });
     } catch (e: any) {
       setSharePublic(!value);
-      showToast({ title: "Could not save", message: e?.message ?? "Please try again.", type: "error" });
+      showToast({ title: "Could not save", message: friendlyError(e), type: "error" });
     } finally {
       setShareSaving(false);
     }
@@ -122,7 +143,7 @@ export default function SettingsScreen() {
                 redirectTo: "clyzio://reset-password",
               });
               if (error) {
-                showToast({ title: 'Error', message: error.message, type: 'error' });
+                showToast({ title: "Couldn't send the email", message: friendlyError(error), type: 'error' });
               } else {
                 showToast({ title: 'Email Sent', message: 'Password reset email sent!', type: 'success' });
               }
@@ -174,7 +195,7 @@ export default function SettingsScreen() {
                       if (error) throw error;
                       if (data?.error) throw new Error(data.error);
 
-                      await supabase.auth.signOut();
+                      await signOut();
                       showToast({
                         title: "Account Deleted",
                         message: "Your account has been permanently deleted.",
@@ -183,10 +204,8 @@ export default function SettingsScreen() {
                       router.replace("/(auth)/login");
                     } catch (error: any) {
                       showToast({
-                        title: "Error",
-                        message:
-                          error?.message ??
-                          "Could not delete account. Please try again.",
+                        title: "Couldn't delete account",
+                        message: friendlyError(error, "Could not delete account. Please try again."),
                         type: "error",
                       });
                     }
@@ -204,7 +223,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: TC.surface, borderBottomColor: TC.border }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backButton} onPress={() => router.back()}>
           <ChevronLeft size={24} color={TC.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: TC.text }]}>Settings</Text>
@@ -305,6 +324,26 @@ export default function SettingsScreen() {
             <Text style={[styles.settingLabel, { color: TC.text }]}>Notifications</Text>
             <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
+
+          <View style={[styles.settingItem, { backgroundColor: TC.surface }]}>
+            <View style={[styles.iconBox, { backgroundColor: COLORS.primary + "20" }]}>
+              <Sparkles size={20} color={COLORS.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.settingLabel, { color: TC.text }]}>AI suggestions</Text>
+              <Text style={{ fontSize: 13, color: TC.textSecondary, marginTop: 2 }}>
+                Commute tips by Anthropic&apos;s Claude. No name, addresses or exact location are sent.
+              </Text>
+            </View>
+            <Switch
+              value={aiConsent === true}
+              onValueChange={toggleAi}
+              disabled={aiSaving || aiConsent === null}
+              trackColor={{ false: COLORS.grayLight, true: COLORS.primary + "88" }}
+              thumbColor={aiConsent ? COLORS.primary : COLORS.white}
+              accessibilityLabel="AI suggestions"
+            />
+          </View>
 
           {/* Appearance selector hidden for the light-only launch (LIGHT_ONLY
               in ThemeContext) — remove the guard to bring dark mode back. */}
@@ -412,7 +451,9 @@ export default function SettingsScreen() {
 
         {/* App Version */}
         <View style={styles.versionContainer}>
-          <Text style={[styles.versionText, { color: TC.textSecondary }]}>Clyzio v1.0.0</Text>
+          <Text style={[styles.versionText, { color: TC.textSecondary }]}>
+            Clyzio v{Constants.expoConfig?.version ?? "1.0.0"}
+          </Text>
           <Text style={[styles.versionSubtext, { color: TC.textSecondary }]}>Built for a greener commute</Text>
         </View>
       </ScrollView>

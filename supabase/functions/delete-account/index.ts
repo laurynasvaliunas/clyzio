@@ -59,6 +59,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // (1.5) Profile photos: storage objects don't cascade from auth.users, so
+    // avatars/<uid>/… outlived the account (the privacy policy promises the
+    // photo is deleted). Best-effort — never block the deletion on storage.
+    try {
+      const { data: objects } = await admin.storage.from('avatars').list(userId, { limit: 100 });
+      const paths = (objects ?? []).map((o: { name: string }) => `${userId}/${o.name}`);
+      if (paths.length > 0) await admin.storage.from('avatars').remove(paths);
+    } catch {/* ignore */}
+
     // (2) Revoke push token before we delete the profile.
     try { await admin.from('profiles').update({ expo_push_token: null }).eq('id', userId); }
     catch {/* ignore */}

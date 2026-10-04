@@ -6,7 +6,7 @@
  *   clyzio://profile/<id>     → opens a public profile
  *   clyzio://invite/<code>    → opens signup prefilled with a referral code
  *   clyzio://join/<token>     → company invite (also clyzio.com/join?token=…)
- *   https://clyzio.app/<…>    → universal link equivalent (same routes)
+ *   https://clyzio.com/<…>    → universal link equivalent (same routes)
  *
  * Keep this module pure: no React imports — it's consumed by
  * `app/_layout.tsx` which handles the `Linking` event and routes accordingly.

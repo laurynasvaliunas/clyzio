@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Building2, CheckCircle2, AlertCircle } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
+import { signOut } from "../lib/signOut";
 
 const COLORS = {
   primary: "#00565A",
@@ -121,7 +122,7 @@ export default function JoinScreen() {
             </Text>
             <TouchableOpacity
               style={styles.ctaBtn}
-              onPress={async () => { await supabase.auth.signOut(); router.replace("/(auth)/login"); }}
+              onPress={async () => { await signOut(); router.replace("/(auth)/login"); }}
               activeOpacity={0.85}
             >
               <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGradient}>
