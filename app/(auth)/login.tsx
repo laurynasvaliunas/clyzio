@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Mail, Lock, Eye, EyeOff, Leaf, Building2, Check } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
@@ -36,7 +37,6 @@ const COLORS = {
   white: "#FFFFFF",
   gray: "#8B989C",
   textSecondary: "#5A6A6F",
-  green: "#059669",
   border: "#EDF1F2",
 };
 
@@ -243,8 +243,9 @@ export default function LoginScreen() {
     !!emailDomain && emailDomain.includes(".") && !FREE_MAIL_DOMAINS.includes(emailDomain);
 
   return (
+    <SafeAreaView style={styles.container} edges={["top"]}>
     <KeyboardAvoidingView
-      style={styles.container}
+      style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
@@ -446,22 +447,16 @@ export default function LoginScreen() {
           </Text>
         </Text>
 
-        {/* Divider */}
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
         {/* Info card */}
         <View style={styles.infoCard}>
-          <Leaf size={22} color={COLORS.green} />
+          <Leaf size={22} color={COLORS.primary} />
           <Text style={styles.infoText}>
-            Use your work email to join your company's eco-team!
+            Use your work email to join your company's eco team!
           </Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -470,10 +465,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.white,
   },
+  flex: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 80,
+    // Content starts below the status bar (SafeAreaView), so 32 here lands
+    // where the old fixed 80 did on notched phones.
+    paddingTop: 32,
     paddingBottom: 40,
   },
 
@@ -637,22 +637,6 @@ const styles = StyleSheet.create({
   toggleLink: {
     color: COLORS.primary,
     fontWeight: "600",
-  },
-
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: COLORS.border,
-  },
-  dividerText: {
-    fontSize: 13,
-    color: COLORS.textMuted,
   },
 
   infoCard: {

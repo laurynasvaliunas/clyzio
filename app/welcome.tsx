@@ -8,7 +8,7 @@ import {
   Easing,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -52,6 +52,9 @@ export const WELCOME_SEEN_KEY = "clyzio.welcomeSeen.v1";
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  // Phones without a home indicator (iPhone SE) have no bottom inset, which
+  // left the CTA 12pt from the screen edge.
+  const { bottom: bottomInset } = useSafeAreaInsets();
 
   // Stage anims
   const bikeX = useRef(new Animated.Value(-120)).current;
@@ -243,8 +246,8 @@ export default function WelcomeScreen() {
         {/* CTA */}
         <Animated.View
           style={[
-            styles.ctaWrap,
             {
+              paddingBottom: bottomInset > 0 ? 12 : 24,
               opacity: ctaOpacity,
               transform: [{ translateY: ctaY }],
             },
@@ -322,9 +325,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
     textAlign: "center",
     color: COLORS.ink,
-  },
-  ctaWrap: {
-    paddingBottom: 12,
   },
   cta: {
     flexDirection: "row",

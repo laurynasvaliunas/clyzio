@@ -15,7 +15,6 @@ const COLORS = {
   gray: "#8B989C",
   textSecondary: "#5A6A6F",
   border: "#EDF1F2",
-  green: "#059669",
 };
 
 const LAST_UPDATED = "4 October 2026";
@@ -229,7 +228,7 @@ export default function PrivacyScreen() {
       >
         {/* Intro banner */}
         <LinearGradient
-          colors={[COLORS.green, "#047857"]}
+          colors={[COLORS.primary, COLORS.primaryDark]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.introBanner}
