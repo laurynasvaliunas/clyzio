@@ -2,7 +2,7 @@ import { ScrollView, Text, TouchableOpacity, View, StyleSheet } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, ShieldCheck } from "lucide-react-native";
 
 const COLORS = {
   textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
@@ -245,7 +245,7 @@ export default function PrivacyScreen() {
 
         {/* GDPR badge */}
         <View style={styles.gdprBadge}>
-          <Text style={styles.gdprIcon}>🇪🇺</Text>
+          <ShieldCheck size={28} color={COLORS.primary} />
           <View style={{ flex: 1 }}>
             <Text style={styles.gdprTitle}>GDPR Compliant</Text>
             <Text style={styles.gdprSub}>
@@ -347,7 +347,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  gdprIcon: { fontSize: 28 },
   gdprTitle: { fontSize: 14, fontWeight: "700", color: COLORS.dark, marginBottom: 3 },
   gdprSub: { fontSize: 12, color: COLORS.textSecondary, lineHeight: 18 },
 

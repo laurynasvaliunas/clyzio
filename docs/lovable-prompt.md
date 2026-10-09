@@ -278,6 +278,66 @@ a security audit. These are all web-side changes.
 > `.from('trip_intent_matches')` and `functions.invoke(` call and confirm each
 > one fits these rules. Tell me which ones you changed.
 
+## Prompt 11 — Fixes after the 9 October 2026 check
+
+> I checked clyzio.com against prompts 1, 7, 8, 9 and 10. Most of it is right —
+> thank you. Please fix these remaining items:
+>
+> **1. Dashboard → Settings → Team is broken (most important).** It calls
+> `supabase.rpc("get_company_employees", { admin_user_id })`, but that function
+> was deliberately removed from the database in a security fix (it leaked
+> employee data for any company ID). Do **not** recreate it. Instead read the
+> members directly; the existing row-level security already lets managers read
+> profiles in their own company:
+> ```ts
+> supabase.from("profiles")
+>   .select("id, first_name, last_name, email, avatar_url, department_id, is_manager, created_at")
+>   .eq("company_id", companyId)
+>   .order("first_name")
+> ```
+> Non-managers get an empty list — show "Only managers can see the team list"
+> instead of an error.
+>
+> **2. Delete-account sign-in should come back to the page.** "Sign in to
+> delete" on `/delete-account` links to `/auth`, and after signing in the auth
+> page always sends people to `/dashboard`. Link to
+> `/auth?redirect=/delete-account` instead, and after sign-in (including via
+> `/auth/callback`) go to `redirect` when it is present. Only accept values that
+> start with a single `/` (reject `//…` and full URLs) so it can't be used as an
+> open redirect. Default stays `/dashboard`.
+>
+> **3. Privacy policy page (`/legal/privacy`):**
+> - The header still says "Version 1.0 · 24 March 2026" above "Last updated: 4
+>   October 2026 · Version 1.1". Show only "Version 1.1 · 4 October 2026".
+> - Replace the 🇪🇺 emoji in the "GDPR Compliant" box with the lucide
+>   `ShieldCheck` icon in brand teal (the app now does the same).
+> - Match the app word for word in these five places:
+>   - Section 2: "Password (stored as a cryptographic hash; we never store plaintext passwords)"
+>   - Section 2: "Vehicle details (make, model, fuel type; optional)"
+>   - Section 3: "…necessary to provide the core services of the App, including trip tracking, CO₂ calculations, carpool matching, and AI-powered suggestions."
+>   - Section 4: "Generating AI-powered commute suggestions tailored to your habits (only if you turn them on)"
+>   - Section 12: add before the address: "For any privacy-related questions, requests to exercise your rights, or concerns, please contact our data protection point of contact:"
+> - Section 5, Service Providers: the website itself loads Lovable's analytics
+>   (`/~flock.js`, `/__l5e/events…js`) and sets a `session-id` cookie. Add a
+>   bullet that accurately describes this — what it collects (pages viewed,
+>   referring site, browser type and language, session ID) and where it is
+>   stored — and add that location to Section 10 if it's outside the EU/UK.
+>   Tell me whether the `session-id` cookie can be turned off, because if it is
+>   used for analytics it may need a cookie-consent banner.
+>
+> **4. Design (prompt 9) leftovers:**
+> - 14 places use `text-[10px]`, which is below the 12px minimum: the dashboard
+>   stat labels ("kg CO₂", "Employees", "Avg/person"), timestamps, the "Loading
+>   employees…" hint and secondary lines. Raise them to 12px. The small
+>   uppercase badges ("Manager", "You", "Joined") may use 11px.
+> - The app-store buttons fake the official badges with 10px text ("Download on
+>   the", "GET IT ON"). Use the official Apple App Store and Google Play badge
+>   images instead.
+> - The floating ✦ "Ask about Scope 3" button has no accessible name. Add
+>   `aria-label="Ask about Scope 3"`.
+> - Leave the `"Car (Gasoline)": "my_car"` mapping alone: it is a lookup key for
+>   old stored trip data, not on-screen text.
+
 ## Do NOT change (mobile app depends on these)
 
 > Please treat the Supabase backend as read-only from the web app's
