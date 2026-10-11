@@ -63,6 +63,9 @@ export const SubmitTripIntentSchema = z.object({
   dest_long: lon.optional(),
   origin_address: z.string().optional(),
   dest_address: z.string().optional(),
+  // Employees only: open this ride/drive to commuters outside the company
+  // (migration 045). Ignored for independents.
+  open_to_independents: z.boolean().optional(),
 });
 
 export const DriverRespondSchema = z.object({

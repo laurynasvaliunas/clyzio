@@ -25,6 +25,8 @@ import {
   AlertCircle,
 } from "lucide-react-native";
 import { useDailyCommuteStore, TripIntentMatch } from "../store/useDailyCommuteStore";
+import OpenTripToggle from "../components/OpenTripToggle";
+import { supabase } from "../lib/supabase";
 import { useTheme } from "../contexts/ThemeContext";
 import { getThemeColors } from "../lib/theme";
 
@@ -108,13 +110,16 @@ function RoleSelectStep({ onSelect }: { onSelect: (role: "driver" | "passenger")
 function DriverDetailsStep({
   onSubmit,
   isLoading,
+  hasCompany,
 }: {
-  onSubmit: (capacity: number, departureTime: string) => void;
+  onSubmit: (capacity: number, departureTime: string, openToIndependents: boolean) => void;
   isLoading: boolean;
+  hasCompany: boolean;
 }) {
   const [capacity, setCapacity] = useState(1);
   const [hour, setHour] = useState("08");
   const [minute, setMinute] = useState("00");
+  const [openToIndependents, setOpenToIndependents] = useState(false);
 
   const handleSubmit = () => {
     const h = parseInt(hour);
@@ -122,7 +127,7 @@ function DriverDetailsStep({
       Alert.alert("Invalid Time", "Departure must be between 06:00 and 09:00.");
       return;
     }
-    onSubmit(capacity, `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`);
+    onSubmit(capacity, `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`, openToIndependents);
   };
 
   return (
@@ -175,6 +180,8 @@ function DriverDetailsStep({
         </View>
         <Text style={styles.fieldHint}>Between 06:00 and 09:00</Text>
       </View>
+
+      {hasCompany && <OpenTripToggle value={openToIndependents} onChange={setOpenToIndependents} />}
 
       <TouchableOpacity
         style={[styles.primaryBtn, isLoading && { opacity: 0.7 }]}
@@ -243,14 +250,25 @@ function SubmittedStep({ role, onSeeOptions }: { role: "driver" | "passenger"; o
 
 // ─── Step: Driver Review ──────────────────────────────────────────────────────
 
+/** Employees see this on matches with commuters outside their company (045). */
+function OutsideCompanyPill() {
+  return (
+    <View style={styles.outsidePill}>
+      <Text style={styles.outsidePillText}>Outside your company</Text>
+    </View>
+  );
+}
+
 function DriverReviewStep({
   matches,
   onConfirm,
   isLoading,
+  hasCompany,
 }: {
   matches: TripIntentMatch[];
   onConfirm: (acceptedIds: string[], declinedIds: string[]) => void;
   isLoading: boolean;
+  hasCompany: boolean;
 }) {
   // Symmetric approval: the driver reviews any open match they haven't yet
   // approved (regardless of whether the passenger has approved already).
@@ -295,6 +313,7 @@ function DriverReviewStep({
                 <Text style={styles.matchName}>
                   {match.passenger_profile?.first_name ?? "Passenger"}
                 </Text>
+                {hasCompany && match.peer_is_colleague === false && <OutsideCompanyPill />}
                 <Text style={styles.matchDetail}>
                   {match.ai_compatibility_score?.toFixed(0) ?? "—"}% match · {match.pickup_address?.split(",")[0] ?? "Pickup TBD"}
                 </Text>
@@ -502,15 +521,18 @@ function DriverConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
 function PassengerDetailsStep({
   onSubmit,
   isLoading,
+  hasCompany,
 }: {
-  onSubmit: (leavingTime: string) => void;
+  onSubmit: (leavingTime: string, openToIndependents: boolean) => void;
   isLoading: boolean;
+  hasCompany: boolean;
 }) {
   const [hour, setHour] = useState("08");
   const [minute, setMinute] = useState("00");
+  const [openToIndependents, setOpenToIndependents] = useState(false);
 
   const handleSubmit = () => {
-    onSubmit(`${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`);
+    onSubmit(`${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`, openToIndependents);
   };
 
   return (
@@ -544,6 +566,8 @@ function PassengerDetailsStep({
         </View>
       </View>
 
+      {hasCompany && <OpenTripToggle value={openToIndependents} onChange={setOpenToIndependents} />}
+
       <TouchableOpacity
         style={[styles.primaryBtn, isLoading && { opacity: 0.7 }]}
         onPress={handleSubmit}
@@ -566,10 +590,12 @@ function PassengerReviewStep({
   matches,
   onRespond,
   isLoading,
+  hasCompany,
 }: {
   matches: TripIntentMatch[];
   onRespond: (matchId: string, accepted: boolean) => void;
   isLoading: boolean;
+  hasCompany: boolean;
 }) {
   // Symmetric approval: the passenger reviews any open match they haven't yet
   // approved (whether or not the driver has approved already).
@@ -600,6 +626,7 @@ function PassengerReviewStep({
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.matchName}>{match.driver_profile?.first_name ?? "Driver"}</Text>
+            {hasCompany && match.peer_is_colleague === false && <OutsideCompanyPill />}
             <Text style={styles.matchDetail}>
               Departs {match.proposed_departure ?? "—"} · {match.ai_compatibility_score?.toFixed(0) ?? "—"}% match
             </Text>
@@ -709,6 +736,17 @@ export default function DailyCommuteScreen() {
     reset,
   } = useDailyCommuteStore();
 
+  // Employees get the per-trip "open to commuters outside my company" switch.
+  const [hasCompany, setHasCompany] = useState(false);
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("company_id").eq("id", user.id).maybeSingle();
+      setHasCompany(data?.company_id != null);
+    })().catch(() => undefined);
+  }, []);
+
   // Withdrawing = declining through respond-to-match, which tells the other
   // side. (There was no way to take back an approval before.)
   const [withdrawing, setWithdrawing] = useState(false);
@@ -746,19 +784,28 @@ export default function DailyCommuteScreen() {
     setStep(role === "driver" ? "driver_details" : "passenger_details");
   };
 
-  const handleDriverDetailsSubmit = async (capacity: number, departureTime: string) => {
+  const handleDriverDetailsSubmit = async (capacity: number, departureTime: string, openToIndependents: boolean) => {
     try {
-      await submitIntent({ role: "driver", passenger_capacity: capacity, departure_time: departureTime });
+      await submitIntent({
+        role: "driver",
+        passenger_capacity: capacity,
+        departure_time: departureTime,
+        open_to_independents: openToIndependents,
+      });
     } catch {
       Alert.alert("Error", "Could not submit your intent. Check your profile has home/work addresses set.");
     }
   };
 
-  const handlePassengerDetailsSubmit = async (leavingTime: string) => {
+  const handlePassengerDetailsSubmit = async (leavingTime: string, openToIndependents: boolean) => {
     try {
       // Passenger now gives a LEAVING time so the matcher can compare both
       // sides' departure times within ±15 min (see daily-commute-matcher).
-      await submitIntent({ role: "passenger", departure_time: leavingTime });
+      await submitIntent({
+        role: "passenger",
+        departure_time: leavingTime,
+        open_to_independents: openToIndependents,
+      });
     } catch {
       Alert.alert("Error", "Could not submit your intent. Check your profile has home/work addresses set.");
     }
@@ -835,11 +882,11 @@ export default function DailyCommuteScreen() {
       {/* Steps */}
       {step === "role_select" && <RoleSelectStep onSelect={handleRoleSelect} />}
       {step === "driver_details" && (
-        <DriverDetailsStep onSubmit={handleDriverDetailsSubmit} isLoading={isLoading} />
+        <DriverDetailsStep onSubmit={handleDriverDetailsSubmit} isLoading={isLoading} hasCompany={hasCompany} />
       )}
       {step === "driver_submitted" && <SubmittedStep role="driver" onSeeOptions={() => router.replace("/(tabs)")} />}
       {step === "driver_review" && (
-        <DriverReviewStep matches={matches} onConfirm={handleDriverReviewConfirm} isLoading={isLoading} />
+        <DriverReviewStep matches={matches} onConfirm={handleDriverReviewConfirm} isLoading={isLoading} hasCompany={hasCompany} />
       )}
       {step === "driver_detour" && (
         <DriverDetourStep
@@ -853,11 +900,11 @@ export default function DailyCommuteScreen() {
       )}
       {step === "driver_confirmed" && <DriverConfirmedStep matches={matches} />}
       {step === "passenger_details" && (
-        <PassengerDetailsStep onSubmit={handlePassengerDetailsSubmit} isLoading={isLoading} />
+        <PassengerDetailsStep onSubmit={handlePassengerDetailsSubmit} isLoading={isLoading} hasCompany={hasCompany} />
       )}
       {step === "passenger_submitted" && <SubmittedStep role="passenger" onSeeOptions={() => router.replace("/(tabs)")} />}
       {step === "passenger_review" && (
-        <PassengerReviewStep matches={matches} onRespond={handlePassengerRespond} isLoading={isLoading} />
+        <PassengerReviewStep matches={matches} onRespond={handlePassengerRespond} isLoading={isLoading} hasCompany={hasCompany} />
       )}
       {step === "passenger_waiting" && (
         <PassengerWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} />
@@ -1124,6 +1171,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: COLORS.primaryDark,
+  },
+  outsidePill: {
+    alignSelf: "flex-start",
+    backgroundColor: COLORS.light,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginTop: 4,
+  },
+  outsidePillText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: COLORS.primary,
   },
   matchDetail: {
     fontSize: 13,

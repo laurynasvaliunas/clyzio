@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { tomorrowLocalISODate } from "../lib/localDate";
 
@@ -68,6 +69,8 @@ export interface TripIntentMatch {
   // profiles embed is RLS-blocked for non-same-company peers).
   passenger_profile?: { first_name: string | null; last_name?: string | null; avatar_url?: string | null; home_lat?: number; home_long?: number } | null;
   driver_profile?: { first_name: string | null; last_name?: string | null; avatar_url?: string | null } | null;
+  // The other person is in the viewer's company (get_public_profiles, 045).
+  peer_is_colleague?: boolean;
 }
 
 // ─── Store interface ──────────────────────────────────────────────────────────
@@ -99,6 +102,8 @@ interface DailyCommuteState {
     dest_long?: number;
     origin_address?: string;
     dest_address?: string;
+    // Employees only: open this trip to commuters outside the company (045).
+    open_to_independents?: boolean;
   }) => Promise<void>;
   respondAsDriver: (params: {
     accepted_ids: string[];
@@ -191,6 +196,7 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
         for (const m of activeMatches) {
           const peer = byId.get(isDriver ? m.passenger_user_id : m.driver_user_id);
           if (!peer) continue;
+          if (typeof peer.is_colleague === "boolean") m.peer_is_colleague = peer.is_colleague;
           const display = { first_name: peer.first_name, last_name: peer.last_name, avatar_url: peer.avatar_url };
           if (isDriver) m.passenger_profile = { ...(m.passenger_profile ?? {}), ...display };
           else m.driver_profile = { ...(m.driver_profile ?? {}), ...display };
@@ -307,7 +313,15 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
       const { error } = await supabase.functions.invoke("request-carpool", {
         body: { target_user_id: targetUserId, requester_role: requesterRole, trip_date: tripDate },
       });
-      if (error) throw error;
+      if (error) {
+        // Surface the function's code (trip_not_open, …_missing_home_or_work)
+        // instead of the generic "non-2xx status code" message.
+        if (error instanceof FunctionsHttpError) {
+          const body = await error.context.json().catch(() => null);
+          if (body?.code) throw new Error(body.code);
+        }
+        throw error;
+      }
       await get().checkExistingIntent();
       set({ isLoading: false });
     } catch (err) {

@@ -780,8 +780,16 @@ export default function ProfileEditor({
         <Text style={styles.sectionTitle}>Privacy</Text>
         <View style={styles.toggleRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.toggleLabel}>Share rides with others</Text>
-            <Text style={styles.toggleSub}>Let colleagues and other Clyzio users see your planned rides on the map and offer carpools. You can turn this off anytime.</Text>
+            {/* is_public means different things per user type (migration 045):
+                independents' matching opt-in; employees' cross-company opt-in. */}
+            <Text style={styles.toggleLabel}>
+              {companyId ? "Visible to other companies" : "Match with other independent commuters"}
+            </Text>
+            <Text style={styles.toggleSub}>
+              {companyId
+                ? "Colleagues always see your planned rides. This also shows them to other companies that allow it."
+                : "They see your first name, photo, rough home area and trip times. Employees who open a trip to people outside their company can match with you too."}
+            </Text>
           </View>
           <Switch
             value={profile.is_public}

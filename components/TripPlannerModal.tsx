@@ -45,6 +45,7 @@ import { useToast } from "../contexts/ToastContext";
 import { computeLocalModes, getFuelBaseCO2, getVehicleCO2, getPrimaryVehicle } from "../lib/commuteUtils";
 import { Vehicle, parseVehicles } from "../lib/vehicles";
 import { useDailyCommuteStore } from "../store/useDailyCommuteStore";
+import OpenTripToggle from "./OpenTripToggle";
 
 import { MAPBOX_TOKEN } from "../lib/config";
 const { height } = Dimensions.get("window");
@@ -227,6 +228,9 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
   // Carpool (Driver/Rider) inline form state.
   const [capacity, setCapacity] = useState(1);          // driver seats
   const [isSubmittingCarpool, setIsSubmittingCarpool] = useState(false);
+  // Employees can open this trip to commuters outside their company (045).
+  const [hasCompany, setHasCompany] = useState(false);
+  const [openToIndependents, setOpenToIndependents] = useState(false);
 
   // Branch B — public-transit options (Google Directions via transit-routes fn)
   type TransitOption = {
@@ -298,7 +302,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       // single-column read so "My Car" CO₂ is still accurate for review.
       let resp = await supabase
         .from("profiles")
-        .select("car_fuel_type, vehicles, primary_vehicle_id, share_pickup_address")
+        .select("car_fuel_type, vehicles, primary_vehicle_id, share_pickup_address, company_id")
         .eq("id", user.id)
         .single();
       if (resp.error) {
@@ -313,6 +317,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       const vehicles = parseVehicles((data as any).vehicles);
       setGarage(vehicles);
       setSharePickup((data as any).share_pickup_address ?? true);
+      setHasCompany((data as any).company_id != null);
       const primary = getPrimaryVehicle(vehicles, (data as any).primary_vehicle_id);
       if (primary) {
         setSelectedVehicleId(primary.id);
@@ -652,6 +657,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         dest_long: destCoords.lng,
         origin_address: originDescription,
         dest_address: destDescription,
+        open_to_independents: openToIndependents,
       });
       showToast({
         title: role === "driver" ? "Ride offered!" : "Looking for a match",
@@ -930,6 +936,10 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                           </TouchableOpacity>
                         </View>
                       </View>
+                    )}
+
+                    {hasCompany && (
+                      <OpenTripToggle value={openToIndependents} onChange={setOpenToIndependents} />
                     )}
 
                     <Text style={styles.carpoolHint}>

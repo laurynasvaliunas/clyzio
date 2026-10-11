@@ -21,6 +21,7 @@ Deno.serve(async (req) => {
   const {
     role, passenger_capacity, departure_time, required_arrival_time, trip_date,
     origin_lat, origin_long, dest_lat, dest_long, origin_address, dest_address,
+    open_to_independents,
   } = parsed.data;
 
   // When the planner supplies a TYPED origin + destination, those are the
@@ -68,8 +69,21 @@ Deno.serve(async (req) => {
       .eq('trip_date', targetDate)
       .maybeSingle();
 
+    // Employees may open this trip to commuters outside their company
+    // (migration 045). Independents need no flag, so it stays false for them.
+    let openToIndependents = false;
+    if (open_to_independents) {
+      const { data: me } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', userId)
+        .single();
+      openToIndependents = me?.company_id != null;
+    }
+
     const basePayload = {
       role,
+      open_to_independents: openToIndependents,
       passenger_capacity: role === 'driver' ? (passenger_capacity ?? null) : null,
       // departure_time is the LEAVING time for BOTH roles — the matcher pairs
       // driver & passenger whose leaving times are within ±15 min.

@@ -17,8 +17,8 @@ const COLORS = {
   border: "#EDF1F2",
 };
 
-const LAST_UPDATED = "4 October 2026";
-const VERSION = "1.1";
+const LAST_UPDATED = "11 October 2026";
+const VERSION = "1.2";
 
 const SECTIONS = [
   {
@@ -103,7 +103,7 @@ In some cases we may need to process your data to comply with applicable legal o
     body: `We do not sell your personal data. We share it only with the recipients below.
 
 Other Clyzio Users
-To make carpooling work, people you can be matched with (normally colleagues at your company) can see your first name, profile photo, an approximate home area (never your exact address) and your planned trip times. Once you both agree to a carpool, your partner also sees your pickup point (unless you hide your pickup address) and, if you drive, your car details. You control your visibility in Profile → Privacy.
+To make carpooling work, people you can be matched with (colleagues at your company, or other independent commuters if you don't belong to a company or you open a trip to people outside it) can see your first name, profile photo, an approximate home area (never your exact address) and your planned trip times. Once you both agree to a carpool, your partner also sees your pickup point (unless you hide your pickup address) and, if you drive, your car details. You control your visibility in Profile → Privacy.
 
 Your Employer (Corporate Users Only)
 If you register with a corporate email address and your employer is enrolled in Clyzio, aggregated sustainability statistics (total CO₂ saved, trips completed, transport modes) may be visible to authorised managers in the Clyzio manager dashboard. Exact trip routes and timestamps are not directly shared with your employer.

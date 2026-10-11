@@ -7,12 +7,13 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { Home, Briefcase, ArrowRight } from "lucide-react-native";
+import { Home, Briefcase, ArrowRight, Users } from "lucide-react-native";
 import ModeIcon from "../../components/ModeIcon";
 
 import { supabase } from "../../lib/supabase";
@@ -62,6 +63,11 @@ export default function DoneScreen() {
   const [workAddress, setWorkAddress] = useState<string>("");
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  // Users without a company choose here whether other independent commuters
+  // (and employees who open a trip to them) can match with them. Saved to
+  // profiles.is_public, which is_peer_visible honours (migration 045).
+  const [isIndependent, setIsIndependent] = useState(false);
+  const [matchIndependents, setMatchIndependents] = useState(true);
 
   // Entry animation
   const pinScale = useState(() => new Animated.Value(0.6))[0];
@@ -78,10 +84,11 @@ export default function DoneScreen() {
         }
         const { data: profile } = await supabase
           .from("profiles")
-          .select("home_address, home_lat, home_long, work_address, work_lat, work_long, vehicles")
+          .select("home_address, home_lat, home_long, work_address, work_lat, work_long, vehicles, company_id")
           .eq("id", user.id)
           .single();
         if (profile) {
+          setIsIndependent(profile.company_id == null);
           setHomeAddress(profile.home_address ?? "");
           setWorkAddress(profile.work_address ?? "");
           setVehicles(parseVehicles((profile as any).vehicles));
@@ -127,7 +134,10 @@ export default function DoneScreen() {
         // one is genuinely tolerable, the resolver handles it.
         const { error } = await supabase
           .from("profiles")
-          .update({ commute_setup_done: true } as never)
+          .update({
+            commute_setup_done: true,
+            ...(isIndependent ? { is_public: matchIndependents } : {}),
+          } as never)
           .eq("id", user.id);
         if (error && error.code !== "42703") {
           setFinishing(false);
@@ -236,6 +246,23 @@ export default function DoneScreen() {
         )}
 
         <View style={styles.footer}>
+          {isIndependent && !loading && (
+            <View style={styles.matchCard}>
+              <Users size={22} color={COLORS.primary} />
+              <View style={styles.matchText}>
+                <Text style={styles.matchTitle}>Match with other independent commuters</Text>
+                <Text style={styles.matchBody}>
+                  They see your first name, photo, rough home area and trip times. Change this anytime in Profile → Privacy.
+                </Text>
+              </View>
+              <Switch
+                value={matchIndependents}
+                onValueChange={setMatchIndependents}
+                trackColor={{ false: COLORS.divider, true: COLORS.primary }}
+                accessibilityLabel="Match with other independent commuters"
+              />
+            </View>
+          )}
           <TouchableOpacity
             style={styles.cta}
             onPress={handleFinish}
@@ -397,6 +424,31 @@ const styles = StyleSheet.create({
   footer: {
     paddingTop: 12,
     paddingBottom: 8,
+    gap: 12,
+  },
+  matchCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.divider,
+    padding: 14,
+  },
+  matchText: {
+    flex: 1,
+    gap: 2,
+  },
+  matchTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.ink,
+  },
+  matchBody: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: COLORS.inkSoft,
   },
   cta: {
     flexDirection: "row",

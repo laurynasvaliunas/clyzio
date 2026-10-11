@@ -338,6 +338,50 @@ a security audit. These are all web-side changes.
 > - Leave the `"Car (Gasoline)": "my_car"` mapping alone: it is a lookup key for
 >   old stored trip data, not on-screen text.
 
+## Prompt 12 — Independent users (personal email) on the website
+
+> Clyzio now supports **independent users**: people who sign up with a personal
+> email (Gmail, Yahoo, …) or whose company isn't registered. In the shared
+> database they are profiles with `company_id IS NULL`. They use the **mobile
+> app**; the website dashboard stays for companies. Today the sign-in wrapper
+> on protected routes sends every signed-in user without a company to
+> `/onboarding/company`, so independents get stuck on "create your company".
+> Please:
+>
+> 1. **New page `/account`** (signed-in users only):
+>    - Heading "Your Clyzio account is ready".
+>    - Text: "Clyzio for individual commuters works in the mobile app. Sign in
+>      there with the same email and password."
+>    - The official App Store and Google Play badges, using the same store
+>      links as the rest of the site.
+>    - Links: Privacy policy (`/legal/privacy`), Delete account
+>      (`/delete-account`), and Sign out.
+>    - Only when the email domain is NOT a personal-mail domain (a company
+>      domain that isn't registered yet): a secondary link "Register your
+>      company" to `/onboarding/company`.
+> 2. **Routing:**
+>    - In the protected-route wrapper, when the signed-in profile has
+>      `company_id IS NULL`, redirect to `/account` instead of
+>      `/onboarding/company` (except on `/account` and `/onboarding/company`
+>      themselves).
+>    - After sign-in on `/auth` and `/auth/callback`, send independents to
+>      `/account` and company users to `/dashboard`. A valid `redirect`
+>      parameter (Prompt 11) still wins.
+>    - The mobile app's email-confirmation links also open clyzio.com, so a
+>      just-confirmed independent should land on `/account` too.
+> 3. **Cross-company toggle copy** (Dashboard → Settings,
+>    `allow_cross_org_visibility`): describe it as "Let employees match with
+>    employees of other companies that also allow this." It does **not** cover
+>    independent users; employees open individual trips to them in the app.
+> 4. **Privacy policy** (`/legal/privacy`), Section 5, *Other Clyzio Users*:
+>    replace "(normally colleagues at your company)" with "(colleagues at your
+>    company, or other independent commuters if you don't belong to a company
+>    or you open a trip to people outside it)". Show "Version 1.2 · 11 October
+>    2026" and "Last updated: 11 October 2026" (this replaces the version line
+>    from Prompt 11; keep only one).
+>
+> No database, RLS or edge-function changes are needed for this.
+
 ## Do NOT change (mobile app depends on these)
 
 > Please treat the Supabase backend as read-only from the web app's

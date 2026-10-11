@@ -5,7 +5,9 @@
  * The Map radar used to one-sidedly book the ride. Now tapping "Request" on a
  * nearby commuter:
  *   1. Ensures BOTH the caller and the target have a pending trip_intent for
- *      the date (synthesised from their profiles).
+ *      the date (synthesised from their profiles). For an independent +
+ *      employee pair the employee's intent must already exist and be open to
+ *      independents (migration 045); it is never synthesised.
  *   2. Creates a trip_intent_matches row with the INITIATOR pre-approved and
  *      the target not — status awaiting_other.
  *   3. Pushes the target to approve.
@@ -64,14 +66,48 @@ Deno.serve(async (req) => {
   const targetRole = callerIsDriver ? 'passenger' : 'driver';
 
   try {
-    const callerIntent = await ensureIntent(supabase, userId, callerRole, tripDate);
+    // Independent + employee is decided per trip (migration 045): the
+    // employee's own intent for that date must already exist, be open and have
+    // the right role — never synthesise or flip it on their behalf.
+    const { data: parties } = await supabase
+      .from('profiles')
+      .select('id, company_id')
+      .in('id', [userId, target_user_id]);
+    const hasCompany = (id: string) =>
+      (parties ?? []).some((p: { id: string; company_id: string | null }) => p.id === id && p.company_id != null);
+    const isMixed = hasCompany(userId) !== hasCompany(target_user_id);
+
+    const intentFor = async (id: string, role: 'driver' | 'passenger') => {
+      if (!(isMixed && hasCompany(id))) return ensureIntent(supabase, id, role, tripDate);
+      const { data: open } = await supabase
+        .from('trip_intents')
+        .select('id, user_id, role, home_lat, home_long, work_lat, work_long, trip_date')
+        .eq('user_id', id)
+        .eq('trip_date', tripDate)
+        .eq('role', role)
+        .eq('open_to_independents', true)
+        .in('status', ['pending', 'unmatched'])
+        .maybeSingle();
+      return open ?? 'not_open';
+    };
+
+    const callerIntent = await intentFor(userId, callerRole);
+    if (callerIntent === 'not_open') return respondError(403, 'forbidden', 'trip_not_open');
     if (!callerIntent) return respondError(400, 'bad_request', 'caller_missing_home_or_work');
 
-    const targetIntent = await ensureIntent(supabase, target_user_id, targetRole, tripDate);
+    const targetIntent = await intentFor(target_user_id, targetRole);
+    if (targetIntent === 'not_open') return respondError(403, 'forbidden', 'trip_not_open');
     if (!targetIntent) return respondError(400, 'bad_request', 'target_missing_home_or_work');
 
     const driverIntent = callerIsDriver ? callerIntent : targetIntent;
     const passengerIntent = callerIsDriver ? targetIntent : callerIntent;
+
+    const { data: canPair, error: pairErr } = await supabase.rpc('can_pair_intents', {
+      p_driver_intent: driverIntent.id,
+      p_passenger_intent: passengerIntent.id,
+    });
+    if (pairErr) return respondInternalError('request-carpool', pairErr, 'pair_check_failed');
+    if (canPair !== true) return respondError(403, 'forbidden', 'peer_not_visible');
 
     // Pickup = passenger's home (simple, reliable for a manual request).
     const pickupLat = passengerIntent.home_lat;

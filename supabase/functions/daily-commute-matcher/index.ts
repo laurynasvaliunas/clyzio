@@ -149,11 +149,14 @@ async function evaluatePair(
   passenger: any,
   tripDate: string,
 ): Promise<boolean> {
-  const { data: visible, error: visibleErr } = await supabase.rpc('is_peer_visible', {
-    p_caller: driver.user_id,
-    p_target: passenger.user_id,
+  // Trip-level rule (migration 045): colleagues, two public independents, or an
+  // independent + an employee whose own intent is open. Fail closed — a pair
+  // that can't be checked is not matched.
+  const { data: canPair, error: pairErr } = await supabase.rpc('can_pair_intents', {
+    p_driver_intent: driver.id,
+    p_passenger_intent: passenger.id,
   });
-  if (!visibleErr && visible === false) return false;
+  if (pairErr || canPair !== true) return false;
 
   // Hard ±15 min leaving-time gate: both sides give a departure (leaving) time;
   // pair only if they leave within 15 minutes of each other (e.g. rider 08:00

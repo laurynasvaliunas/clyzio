@@ -68,6 +68,8 @@ interface IntentPeer {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
+  /** Same company as the viewer (migration 045). Absent on older backends. */
+  is_colleague?: boolean;
 }
 
 /** Tomorrow as a local YYYY-MM-DD — same helper as useDailyCommuteStore. */
@@ -377,11 +379,13 @@ function IntentPeerCard({
   onClose,
   onRequest,
   isLoading = false,
+  viewerHasCompany = false,
 }: {
   peer: IntentPeer;
   onClose: () => void;
   onRequest: () => void;
   isLoading?: boolean;
+  viewerHasCompany?: boolean;
 }) {
   const router = useRouter();
   const isDriver = peer.role === 'driver';
@@ -412,6 +416,11 @@ function IntentPeerCard({
               {time ? ` · ~${time}` : ''}
             </Text>
           </View>
+          {viewerHasCompany && peer.is_colleague === false && (
+            <View style={styles.outsideBadge}>
+              <Text style={styles.outsideBadgeText}>Outside your company</Text>
+            </View>
+          )}
           <Text style={styles.intentApproxNote}>Shown near their home area (approximate)</Text>
         </View>
         <TouchableOpacity
@@ -479,6 +488,8 @@ export default function MapScreen() {
 
   // ✅ PROFILE STATE
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  // Employees see an "Outside your company" label on independents' trips.
+  const [hasCompany, setHasCompany] = useState(false);
   const [userName, setUserName] = useState("");
 
   // ✅ STAGE 2 (customer-journey PDF) — home/work places, day toggle, plan card
@@ -648,11 +659,12 @@ export default function MapScreen() {
       if (!user) return;
       const { data } = await supabase
         .from('profiles')
-        .select('first_name, last_name, avatar_url, home_lat, home_long, home_address, work_lat, work_long, work_address')
+        .select('first_name, last_name, avatar_url, home_lat, home_long, home_address, work_lat, work_long, work_address, company_id')
         .eq('id', user.id)
         .single();
       if (data) {
         setUserAvatar(data.avatar_url ?? null);
+        setHasCompany(data.company_id != null);
         const name = [data.first_name, data.last_name].filter(Boolean).join(' ');
         setUserName(name);
         setPlaces({
@@ -924,11 +936,14 @@ export default function MapScreen() {
     } catch (err: any) {
       const code = String(err?.message ?? err ?? "");
       const missingPlaces = /missing_home_or_work/i.test(code);
+      const notOpen = /trip_not_open/i.test(code);
       showToast({
         title: "Couldn't send request",
         message: missingPlaces
           ? "Set your home and work in Profile first — we need them to plan the pickup."
-          : "Please try again.",
+          : notOpen
+            ? "That trip isn't open to commuters outside the company."
+            : "Please try again.",
         type: "error",
       });
     } finally {
@@ -1742,6 +1757,7 @@ export default function MapScreen() {
           onClose={() => setSelectedIntentPeer(null)}
           onRequest={() => handleRequestIntentPeer(selectedIntentPeer)}
           isLoading={intentRequestBusy}
+          viewerHasCompany={hasCompany}
         />
       )}
 
@@ -2072,6 +2088,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textMuted,
     marginTop: 6,
+  },
+  outsideBadge: {
+    backgroundColor: COLORS.primary + "14",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    marginTop: 6,
+  },
+  outsideBadgeText: {
+    fontSize: 11,
+    color: COLORS.primary,
+    fontWeight: "600",
   },
 
   // ===== MATCH CARD STYLES (Bottom sheet) =====
