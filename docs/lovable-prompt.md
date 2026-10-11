@@ -307,8 +307,9 @@ a security audit. These are all web-side changes.
 > open redirect. Default stays `/dashboard`.
 >
 > **3. Privacy policy page (`/legal/privacy`):**
-> - The header still says "Version 1.0 · 24 March 2026" above "Last updated: 4
->   October 2026 · Version 1.1". Show only "Version 1.1 · 4 October 2026".
+> - The header shows two version lines ("Version 1.0 · 24 March 2026" and
+>   "Last updated: 4 October 2026 · Version 1.1"). Keep only one; Prompt 12
+>   sets its value.
 > - Replace the 🇪🇺 emoji in the "GDPR Compliant" box with the lucide
 >   `ShieldCheck` icon in brand teal (the app now does the same).
 > - Match the app word for word in these five places:
