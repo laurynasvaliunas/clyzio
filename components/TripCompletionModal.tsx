@@ -161,7 +161,7 @@ export default function TripCompletionModal({
             end={{ x: 1, y: 1 }}
           >
             {/* Close Button */}
-            <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
+            <TouchableOpacity hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }} style={styles.closeBtn} onPress={handleClose}>
               <X size={24} color={COLORS.white} />
             </TouchableOpacity>
 

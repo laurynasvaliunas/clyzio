@@ -335,14 +335,18 @@ export default function SettingsScreen() {
                 Commute tips by Anthropic&apos;s Claude. No name, addresses or exact location are sent.
               </Text>
             </View>
-            <Switch
-              value={aiConsent === true}
-              onValueChange={toggleAi}
-              disabled={aiSaving || aiConsent === null}
-              trackColor={{ false: COLORS.grayLight, true: COLORS.primary + "88" }}
-              thumbColor={aiConsent ? COLORS.primary : COLORS.white}
-              accessibilityLabel="AI suggestions"
-            />
+            {/* Stretch + centre: the switch sat on the title line while the
+                icon was centred on the (taller, 3-line) row. */}
+            <View style={{ alignSelf: "stretch", justifyContent: "center", marginLeft: 12 }}>
+              <Switch
+                value={aiConsent === true}
+                onValueChange={toggleAi}
+                disabled={aiSaving || aiConsent === null}
+                trackColor={{ false: COLORS.grayLight, true: COLORS.primary + "88" }}
+                thumbColor={aiConsent ? COLORS.primary : COLORS.white}
+                accessibilityLabel="AI suggestions"
+              />
+            </View>
           </View>
 
           {/* Appearance selector hidden for the light-only launch (LIGHT_ONLY
@@ -498,7 +502,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 14,

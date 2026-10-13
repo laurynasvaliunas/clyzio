@@ -743,7 +743,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
             style={modeReady ? styles.scrollFill : undefined}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 100 }}
+            contentContainerStyle={{ paddingBottom: 120 }}
           >
             {/* ── Role selector (top) — Solo, Driver, Rider are all handled
                  inline in this sheet. ── */}
@@ -915,7 +915,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                       <View style={styles.seatsRow}>
                         <Text style={styles.fieldLabelSm}>Seats for passengers</Text>
                         <View style={styles.stepper}>
-                          <TouchableOpacity accessibilityRole="button" accessibilityLabel="One fewer seat"
+                          <TouchableOpacity hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel="One fewer seat"
                             style={styles.stepperBtn}
                             onPress={() => {
                               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -925,7 +925,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                             <Minus size={18} color={COLORS.primary} />
                           </TouchableOpacity>
                           <Text style={styles.stepperValue}>{capacity}</Text>
-                          <TouchableOpacity accessibilityRole="button" accessibilityLabel="One more seat"
+                          <TouchableOpacity hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel="One more seat"
                             style={styles.stepperBtn}
                             onPress={() => {
                               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1489,11 +1489,17 @@ const styles = StyleSheet.create({
   },
 
   // Submit button pinned to bottom of sheet
+  // Pinned footer: an opaque bar so the scrolling options pass behind it
+  // instead of showing through the button (was a bare button at bottom: 32).
   submitBtn: {
     position: "absolute",
-    bottom: 32,
-    left: 24,
-    right: 24,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 32,
+    backgroundColor: "white",
   },
 
   // Button
@@ -1509,10 +1515,9 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   btnDisabled: {
-    backgroundColor: COLORS.gray,
+    backgroundColor: COLORS.gray, // solid — 0.5 opacity let the list show through
     shadowOpacity: 0,
     shadowOffset: { width: 0, height: 2 },
-    opacity: 0.5,
   },
   btnText: {
     color: "white",

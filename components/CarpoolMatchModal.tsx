@@ -137,7 +137,7 @@ export default function CarpoolMatchModal({
             <Users size={20} color={COLORS.primary} />
             <Text style={styles.headerTitle}>AI Carpool Matches</Text>
           </View>
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <TouchableOpacity hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }} style={styles.closeBtn} onPress={onClose}>
             <X size={20} color={COLORS.dark} />
           </TouchableOpacity>
         </View>

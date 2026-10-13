@@ -118,10 +118,22 @@ export default function CommuteHomeCard({
               <ModeIcon mode={plan.modeId} size={26} color={COLORS.cyan} />
             </View>
             <View style={styles.planInfo}>
-              <Text style={[styles.planEyebrow, { color: inkSoft }]}>
+              {/* One line each on narrow phones: shrink slightly rather than
+                  wrap the eyebrow or truncate "Carpool · 13.6…" (iPhone SE). */}
+              <Text
+                style={[styles.planEyebrow, { color: inkSoft }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
                 {dayPossessive} commute
               </Text>
-              <Text style={[styles.planMode, { color: ink }]} numberOfLines={1}>
+              <Text
+                style={[styles.planMode, { color: ink }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
                 {plan.modeLabel}
                 {plan.distanceKm != null ? `  ·  ${plan.distanceKm.toFixed(1)} km` : ""}
               </Text>

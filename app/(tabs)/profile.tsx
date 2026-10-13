@@ -16,7 +16,7 @@ import { LogOut, Leaf, Check, Settings, CalendarRange } from "lucide-react-nativ
 import { supabase } from "../../lib/supabase";
 import { signOut } from "../../lib/signOut";
 import { useTheme } from "../../contexts/ThemeContext";
-import { getThemeColors } from "../../lib/theme";
+import { getThemeColors, TAB_SCREEN_BOTTOM_PADDING } from "../../lib/theme";
 import { useToast } from "../../contexts/ToastContext";
 import ProfileEditor from "../../components/ProfileEditor";
 import CommuteMixEditor, {
@@ -303,7 +303,7 @@ export default function ProfileScreen() {
                       <Text style={[styles.sectionSubtitle, { color: TC.textSecondary }]}>
                         Select modes and tap the days you use them — this sets your CO₂ baseline.
                       </Text>
-                      <CommuteMixEditor habits={habits} onChange={setHabits} />
+                      <CommuteMixEditor habits={habits} onChange={setHabits} bleed={16} />
                     </>
                   ) : (
                     <View style={[styles.mixErrorCard, { backgroundColor: TC.surface }]}>
@@ -336,7 +336,7 @@ export default function ProfileScreen() {
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: TAB_SCREEN_BOTTOM_PADDING }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
   },
@@ -374,7 +374,8 @@ const styles = StyleSheet.create({
   
 
   // ===== SCORE CARD =====
-  scoreCardContainer: { marginHorizontal: 16, marginBottom: 20, position: "relative" },
+  // Rendered inside ProfileEditor's 16 pt wrapper — no extra inset (was 32 pt).
+  scoreCardContainer: { marginBottom: 20, position: "relative" },
   scoreGlow: {
     position: "absolute",
     top: 10,
@@ -408,8 +409,9 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 4,
   },
-  section: { paddingHorizontal: 16, marginBottom: 20 },
-  sectionTitle: { fontWeight: "700", fontSize: 24, color: COLORS.dark },
+  // Same edge and title size as ProfileEditor's sections ("Personal Details"…).
+  section: { marginBottom: 20 },
+  sectionTitle: { fontWeight: "700", fontSize: 16, color: COLORS.dark },
   sectionSubtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 4, marginBottom: 16 },
   mixErrorCard: { borderRadius: 16, padding: 16, marginTop: 8 },
   mixRetryBtn: {
@@ -498,6 +500,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.red,
     paddingVertical: 14,
     marginHorizontal: 16,
+    marginTop: 12, // was flush against Save profile
   },
   signOutText: { color: COLORS.red, fontSize: 15, fontWeight: "600" },
 });

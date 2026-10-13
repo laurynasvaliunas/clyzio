@@ -157,7 +157,6 @@ export default function GarageEditor({ vehicles, primaryVehicleId, onChange, onS
               </View>
               <TouchableOpacity
                 onPress={() => setExpandedId(v.id)}
-                hitSlop={8}
                 accessibilityLabel="Edit vehicle"
                 style={styles.summaryIconBtn}
               >
@@ -165,7 +164,6 @@ export default function GarageEditor({ vehicles, primaryVehicleId, onChange, onS
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => removeVehicle(v.id)}
-                hitSlop={8}
                 accessibilityLabel="Remove vehicle"
                 style={styles.summaryIconBtn}
               >
@@ -348,7 +346,7 @@ export default function GarageEditor({ vehicles, primaryVehicleId, onChange, onS
       })}
 
       <TouchableOpacity style={styles.addBtn} onPress={addVehicle} activeOpacity={0.85}>
-        <Plus size={16} color={COLORS.dark} />
+        <Plus size={16} color={COLORS.white} />
         <Text style={styles.addBtnText}>Add a vehicle</Text>
       </TouchableOpacity>
 
@@ -401,7 +399,8 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   primaryPillText: { fontSize: 11, fontWeight: "700", color: COLORS.primary },
-  summaryIconBtn: { padding: 4 },
+  // Real 44 pt targets — the old 24 pt boxes + hitSlop overlapped each other.
+  summaryIconBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   saveBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -480,7 +479,7 @@ const styles = StyleSheet.create({
   addBtnText: {
     fontSize: 13,
     fontWeight: "700",
-    color: COLORS.dark,
+    color: COLORS.white, // was dark ink on the teal button — nearly invisible
   },
   hint: {
     fontSize: 12,

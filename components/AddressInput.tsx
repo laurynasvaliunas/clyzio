@@ -225,7 +225,7 @@ export default function AddressInput({
       </View>
 
       {showClearButton && onClear && query.length > 0 && (
-        <TouchableOpacity style={styles.clearBtn} onPress={handleClear}>
+        <TouchableOpacity hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={styles.clearBtn} onPress={handleClear}>
           <X size={16} color={COLORS.gray} />
         </TouchableOpacity>
       )}

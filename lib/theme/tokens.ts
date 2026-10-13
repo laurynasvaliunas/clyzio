@@ -142,6 +142,16 @@ export const getPalette = (isDark: boolean) =>
 
 // ─── Geometry ────────────────────────────────────────────────────────────────
 
+/**
+ * The bottom tab bar floats over the tab screens (position: absolute in
+ * app/(tabs)/_layout.tsx), so a tab screen's scroll content must end at least
+ * this far above the screen edge — otherwise its last items (e.g. Sign Out)
+ * sit behind the bar and can't be scrolled into view.
+ */
+export const TAB_BAR_HEIGHT = 88;
+/** Bottom padding for a tab screen's scroll content: clears the bar + 16 pt. */
+export const TAB_SCREEN_BOTTOM_PADDING = TAB_BAR_HEIGHT + 16;
+
 export const spacing = {
   0: 0,
   1: 4,

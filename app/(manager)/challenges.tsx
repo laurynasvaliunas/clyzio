@@ -83,7 +83,7 @@ export default function ChallengesScreen() {
           <ArrowLeft size={22} color={COLORS.dark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Company Challenges</Text>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="New challenge"
+        <TouchableOpacity hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel="New challenge"
           style={styles.addBtn}
           onPress={() => setShowCreate(true)}
         >

@@ -110,7 +110,7 @@ export default function WeekSetupScreen() {
           CO₂ saving is measured against — you can change it anytime.
         </Text>
 
-        <CommuteMixEditor habits={habits} onChange={setHabits} />
+        <CommuteMixEditor habits={habits} onChange={setHabits} bleed={20} />
 
         {baseline !== null && (
           <View style={styles.baselineCard}>

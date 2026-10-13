@@ -310,7 +310,7 @@ function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = fal
             </Text>
           </View>
         </View>
-        <TouchableOpacity
+        <TouchableOpacity hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           onPress={onClose}
           style={styles.matchCloseBtn}
           disabled={isLoading}
@@ -423,7 +423,7 @@ function IntentPeerCard({
           )}
           <Text style={styles.intentApproxNote}>Shown near their home area (approximate)</Text>
         </View>
-        <TouchableOpacity
+        <TouchableOpacity hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           onPress={onClose}
           style={styles.matchCloseBtn}
           disabled={isLoading}
@@ -1396,6 +1396,7 @@ export default function MapScreen() {
         styleURL={isDark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street}
         logoEnabled
         attributionEnabled
+        scaleBarEnabled={false} // overlapped the logo + greeting header
         onDidFinishLoadingMap={centerToUserLocation}
       >
         <Camera

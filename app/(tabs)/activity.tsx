@@ -28,7 +28,7 @@ import TripCompletionModal from "../../components/TripCompletionModal";
 import ModeIcon from "../../components/ModeIcon";
 import CommuteCalendar, { type CalendarRide } from "../../components/CommuteCalendar";
 import { useTheme } from "../../contexts/ThemeContext";
-import { getThemeColors } from "../../lib/theme";
+import { getThemeColors, TAB_SCREEN_BOTTOM_PADDING } from "../../lib/theme";
 import { formatCO2 } from "../../lib/format";
 // Gamification math now lives server-side in the `complete-trip` edge fn.
 // Profile counters (xp_points / total_co2_saved / trips_completed / badges)
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
   },
@@ -694,9 +694,10 @@ const styles = StyleSheet.create({
     alignItems: "center", 
     justifyContent: "center" 
   },
-  listContent: { 
-    padding: 16, 
-    gap: 12 
+  listContent: {
+    padding: 16,
+    paddingBottom: TAB_SCREEN_BOTTOM_PADDING,
+    gap: 12
   },
   
   // ===== CARD SHARED =====
@@ -868,9 +869,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
+    minHeight: 48, // was ~41 pt — under the 44 pt minimum
     backgroundColor: COLORS.primary,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 24, // pill, like the app's other primary buttons
   },
   completeBtnLoading: {
     opacity: 0.7,

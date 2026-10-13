@@ -145,7 +145,7 @@ function DaySelector({
         {DAYS.map((day, index) => {
           const isActive = selectedDays[index];
           return (
-            <TouchableOpacity
+            <TouchableOpacity hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               key={index}
               style={[styles.dayBubble, isActive && styles.dayBubbleActive]}
               onPress={() => onToggleDay(index)}
@@ -169,9 +169,13 @@ function DaySelector({
 export default function CommuteMixEditor({
   habits,
   onChange,
+  bleed = 0,
 }: {
   habits: CommuteHabit[];
   onChange: (habits: CommuteHabit[]) => void;
+  /** The parent's horizontal padding: the mode carousel scrolls edge to edge
+   *  instead of being clipped mid-card at the padding. */
+  bleed?: number;
 }) {
   const [selectedModeId, setSelectedModeId] = useState<string | null>(null);
 
@@ -228,7 +232,8 @@ export default function CommuteMixEditor({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.modeCardsContainer}
+        style={{ marginHorizontal: -bleed }}
+        contentContainerStyle={[styles.modeCardsContainer, { paddingHorizontal: bleed }]}
       >
         {TRANSPORT_OPTIONS.map((mode) => (
           <ModeCard

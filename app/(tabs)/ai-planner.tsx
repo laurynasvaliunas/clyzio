@@ -38,7 +38,7 @@ import { MAPBOX_TOKEN } from "../../lib/config";
 import { supabase } from "../../lib/supabase";
 import { useAIStore, CommuteSuggestion } from "../../store/useAIStore";
 import { useTheme } from "../../contexts/ThemeContext";
-import { getThemeColors } from "../../lib/theme";
+import { getThemeColors, TAB_SCREEN_BOTTOM_PADDING } from "../../lib/theme";
 import { haversineKm, computeLocalModes, MODES, CAR_CO2, CAR_COST, WORKING_DAYS, LocalMode } from "../../lib/commuteUtils";
 import CarpoolMatchModal from "../../components/CarpoolMatchModal";
 
@@ -686,7 +686,7 @@ export default function AIPlannerScreen() {
             Commute coach
           </Text>
         </View>
-        <TouchableOpacity
+        <TouchableOpacity hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
           style={[styles.refreshBtn, { backgroundColor: TC.surface }]}
           onPress={handleRefresh}
           disabled={isLoadingCommute}
@@ -952,7 +952,7 @@ export default function AIPlannerScreen() {
           </View>
         )}
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: TAB_SCREEN_BOTTOM_PADDING }} />
       </ScrollView>
 
       {/* Carpool Match Modal */}

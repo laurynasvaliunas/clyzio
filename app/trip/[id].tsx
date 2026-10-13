@@ -552,6 +552,7 @@ export default function TripScreen() {
           styleURL={Mapbox.StyleURL.Dark}
           logoEnabled
           attributionEnabled
+          scaleBarEnabled={false} // sat beside the back button
         >
           <Camera
             ref={cameraRef}
@@ -611,7 +612,7 @@ export default function TripScreen() {
         </MapView>
 
         {/* Back Button Overlay */}
-        <TouchableOpacity
+        <TouchableOpacity hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
           style={[styles.backButtonOverlay, { top: insets.top + 10 }]}
           onPress={() => router.back()}
           accessibilityRole="button"
@@ -1136,10 +1137,13 @@ const styles = StyleSheet.create({
   },
   endTripBtn: {
     marginTop: 16,
+    marginBottom: 16, // was flush against the partner card below
+    minHeight: 48,
     backgroundColor: COLORS.primary,
-    paddingVertical: 15,
-    borderRadius: 14,
+    paddingVertical: 14,
+    borderRadius: 28,
     alignItems: "center",
+    justifyContent: "center",
   },
   endTripBtnText: {
     color: COLORS.white,

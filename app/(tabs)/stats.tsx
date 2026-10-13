@@ -36,7 +36,7 @@ import {
 import { supabase } from "../../lib/supabase";
 import CostSavingsCard from "../../components/CostSavingsCard";
 import { useTheme } from "../../contexts/ThemeContext";
-import { getThemeColors } from "../../lib/theme";
+import { getThemeColors, TAB_SCREEN_BOTTOM_PADDING } from "../../lib/theme";
 import { getLevelInfo, XP_PER_TRIP, TRIPS_PER_LEVEL, MAX_LEVEL, LEVEL_TITLES } from "../../lib/gamification";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
@@ -974,7 +974,7 @@ export default function StatsScreen() {
           </>
         )}
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: TAB_SCREEN_BOTTOM_PADDING }} />
       </ScrollView>
 
       {/* Badge Modal */}
@@ -1018,7 +1018,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   scroll: { flex: 1 },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
-  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+  header: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
   headerTitle: { fontSize: 40, fontWeight: "700", lineHeight: 48, letterSpacing: -0.8, color: COLORS.dark },
   headerSubtitle: { fontSize: 14, color: COLORS.textMuted, marginTop: 4 },
   

@@ -138,14 +138,14 @@ function DriverDetailsStep({
       <View style={styles.fieldCard}>
         <Text style={styles.fieldLabel}>Passengers you can take</Text>
         <View style={styles.stepper}>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="One fewer passenger"
+          <TouchableOpacity hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel="One fewer passenger"
             style={styles.stepperBtn}
             onPress={() => setCapacity(c => Math.max(0, c - 1))}
           >
             <Minus size={18} color={COLORS.primary} />
           </TouchableOpacity>
           <Text style={styles.stepperValue}>{capacity}</Text>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="One more passenger"
+          <TouchableOpacity hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel="One more passenger"
             style={styles.stepperBtn}
             onPress={() => setCapacity(c => Math.min(9, c + 1))}
           >
@@ -1322,9 +1322,11 @@ const styles = StyleSheet.create({
   // ── Primary button ──
   primaryBtn: {
     minHeight: 56,
+    alignSelf: "stretch", // full width even inside centred steps (was text-width)
     backgroundColor: COLORS.primary,
     borderRadius: 28,
     paddingVertical: 16,
+    paddingHorizontal: 24,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 8,

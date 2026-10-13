@@ -3,6 +3,7 @@ import { View, Platform } from "react-native";
 import { BlurView } from "expo-blur";
 import { Map, Calendar, BarChart3, User } from "lucide-react-native";
 import { useTheme } from "../../contexts/ThemeContext";
+import { TAB_BAR_HEIGHT } from "../../lib/theme";
 
 // Editorial reskin — tab tints on the paper-ink system.
 const COLORS = {
@@ -26,7 +27,7 @@ export default function TabsLayout() {
           elevation: 0,
           shadowOpacity: 0,
           shadowOffset: { width: 0, height: 2 },
-          height: 88,
+          height: TAB_BAR_HEIGHT,
           paddingBottom: 28,
           paddingTop: 12,
         },
