@@ -8,7 +8,7 @@ setup only you can do (Google/Play logins, signing keys).
 | Thing | Value |
 |---|---|
 | Android package name | `com.clyzio.app` |
-| App version / versionCode | `1.0.0` / remote on EAS (seeded from 6; first new build is 7) |
+| App version / versionCode | `1.0.0` / remote on EAS (set to 6 on 2026-10-13; next build is 7) |
 | EAS project id | `565dc638-6385-4dcf-885d-8abd3f0d9c30` |
 | EAS account / slug | `laurynas.valiunas` / `clyzio` |
 | Supabase project | `qvevbbqcrizfywqexlkw` |
@@ -159,6 +159,10 @@ file is hosted at your domain root:
 
 Until this is live, shared `https://clyzio.com/ride/…` links open the website
 instead of the app. Nothing breaks — it just degrades.
+
+> **Status (2026-10-13):** clyzio.com serves `assetlinks.json` with **one**
+> fingerprint (`F9:49:F4:…:6D:98`). Add the Play app-signing fingerprint (Step 3B)
+> after the first upload, or App Links won't verify for Play installs.
 
 ## Step 7 — Production build + submit
 

@@ -33,10 +33,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: false,
     bundleIdentifier: 'com.clyzio.app',
-    // Build numbers live on EAS (eas.json appVersionSource: "remote", with
-    // autoIncrement). This value only seeds the remote counter the first time;
-    // check/set it with `eas build:version:get` / `eas build:version:set`.
-    buildNumber: '6',
+    // No buildNumber here: build numbers live on EAS (eas.json
+    // appVersionSource: "remote", with autoIncrement) — check/set them with
+    // `eas build:version:get` / `eas build:version:set`. Xcode uploads bump
+    // App Store Connect too (build 37 on 2026-10-13), so keep the remote
+    // counter at or above the highest build ASC has seen.
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
         'Clyzio uses your location to show your position on the map, plan routes, and match you with nearby commuters.',
@@ -76,8 +77,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     edgeToEdgeEnabled: true,
     package: 'com.clyzio.app',
-    // Seed only — the real versionCode is the remote EAS counter (see ios.buildNumber).
-    versionCode: 6,
+    // No versionCode here — it's the remote EAS counter (see the ios comment).
     // FCM wiring — REQUIRED for Android push (carpool requests, match
     // approvals, nudges are all push-driven). The file comes from the
     // Firebase console (project settings → Android app → google-services.json).
@@ -102,11 +102,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     // expo-image-picker's plugin injects CAMERA + RECORD_AUDIO into the
     // manifest for video-capture support we don't use; expo-location can
-    // inject background location. Block all three explicitly.
+    // inject background location. The Expo template adds the legacy storage
+    // pair + SYSTEM_ALERT_WINDOW (dev-menu overlay); the avatar picker is the
+    // system Photo Picker, which needs no storage permission. Block them all.
     blockedPermissions: [
       'android.permission.RECORD_AUDIO',
       'android.permission.CAMERA',
       'android.permission.ACCESS_BACKGROUND_LOCATION',
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.WRITE_EXTERNAL_STORAGE',
+      'android.permission.SYSTEM_ALERT_WINDOW',
     ],
     // Android App Links — the counterpart to iOS associatedDomains above.
     // REQUIRES https://clyzio.com/.well-known/assetlinks.json to be live with

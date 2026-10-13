@@ -1,6 +1,6 @@
 # Store privacy forms — what to answer
 
-Matches the app as of October 2026 (privacy policy v1.1). If a feature changes
+Matches the app as of 13 October 2026 (privacy policy v1.2, app and web). If a feature changes
 what data leaves the app, update this file, the in-app policy
 (`app/legal/privacy.tsx`) and the web policy together.
 
@@ -9,6 +9,7 @@ Facts these answers rest on:
 - Processors: Supabase (UK), Sentry (EU), Mapbox, Google Directions, Expo/APNs/FCM push, SMTP email, Anthropic (only after the in-app AI opt-in, minimised).
 - Sentry reports carry a pseudonymous user ID → diagnostics are **linked** to the user.
 - Deletion: in-app (Profile → Settings → Delete account) and web (`https://clyzio.com/delete-account`, see Lovable Prompt 8).
+- Carpool matching shows a matched user's first name, photo, pickup point and route to the other party. It happens only when the user requests or accepts a match, and independent users are visible outside their company only if they switch it on. That is **user-initiated sharing**, so Play doesn't count it as "Shared" and Apple doesn't count it as tracking.
 
 ---
 

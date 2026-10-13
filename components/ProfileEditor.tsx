@@ -313,12 +313,9 @@ export default function ProfileEditor({
   };
 
   const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      showToast({ title: 'Permission Required', message: 'Please allow access to your photo library.', type: 'warning' });
-      return;
-    }
-
+    // No permission request: the system picker (PHPicker / Android Photo
+    // Picker) runs out of process and needs none — and the storage
+    // permission it would need on Android ≤12 is blocked in app.config.ts.
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,

@@ -95,11 +95,7 @@ export default function ProfileSetupScreen() {
   // <uid>/avatar.<ext>, upsert, blob fallback for platforms where FormData
   // uploads fail).
   const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      showToast({ title: "Permission Required", message: "Please allow access to your photo library.", type: "warning" });
-      return;
-    }
+    // No permission request — see ProfileEditor.pickImage.
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
