@@ -10,6 +10,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { PERMISSIONS_PRIMED_KEY, nextRouteAfterAuth } from '../../lib/permissionsPriming';
 import { supabase } from '../../lib/supabase';
+import { registerAndSavePushToken } from '../../lib/pushToken';
 
 // After priming, continue the post-auth chain (→ first-run commute setup or Map).
 async function routeOnward(): Promise<string> {
@@ -140,6 +141,9 @@ export default function PermissionsScreen() {
             lightColor: '#00565A',
           });
         }
+        // Save the push token now — the sign-in registration ran before this
+        // permission existed, so without this no carpool push ever arrives.
+        if (status === 'granted') registerAndSavePushToken().catch(() => undefined);
       }
       advance(status);
     } catch {

@@ -4,7 +4,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   View,
   StatusBar,
-  Platform,
   StyleSheet,
   Animated,
   Easing,
@@ -12,7 +11,6 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Notifications from "expo-notifications";
-import * as Device from "expo-device";
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
@@ -22,7 +20,7 @@ import { WELCOME_SEEN_KEY } from "./welcome";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
 import { ToastProvider } from "../contexts/ToastContext";
 import { supabase } from "../lib/supabase";
-import { rememberDevicePushToken } from '../lib/signOut';
+import { registerAndSavePushToken } from '../lib/pushToken';
 import { markRecoveryEvent, redactUrl, stashRecoveryUrl } from '../lib/recoveryLink';
 import { checkAndSendAINotifications } from "../lib/aiNotifications";
 import { useAIStore } from "../store/useAIStore";
@@ -60,53 +58,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Register for push notifications
-async function registerForPushNotificationsAsync() {
-  let token;
-
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "default",
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#00565A",
-    });
-  }
-
-  if (Device.isDevice) {
-    // 1.1 — Don't prompt silently here. The priming screen (1.1) owns
-    // first-time consent so the user sees the *why* before the OS dialog.
-    // We only proceed if permission has already been granted (either by
-    // the priming flow or by a returning-user OS-level grant).
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    if (existingStatus !== "granted") {
-      if (__DEV__) {
-        console.log("Push permission not granted yet — token registration deferred to priming flow");
-      }
-      return;
-    }
-    
-    try {
-      // Resolve EAS projectId dynamically from app.config.ts — avoids drift if
-      // the project is ever rotated.
-      const projectId =
-        (Constants as any)?.expoConfig?.extra?.eas?.projectId ||
-        (Constants as any)?.easConfig?.projectId;
-      if (!projectId) {
-        if (__DEV__) { console.log("Push token skipped — missing EAS projectId"); }
-        return token;
-      }
-      token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-      if (__DEV__) { console.log("Push token registered"); }
-    } catch (_error) {
-      if (__DEV__) { console.log("Push token not available (expected in Expo Go)"); }
-    }
-  } else {
-    if (__DEV__) { console.log("Push notifications require a physical device"); }
-  }
-
-  return token;
-}
 
 // 1.6 — Splash skip-on-repeat. The full splash is gorgeous but ~3.3 s long;
 // past the first run it just delays daily users. We persist the app version
@@ -495,24 +446,10 @@ function RootLayoutContent() {
 
     let cancelled = false;
     (async () => {
-      try {
-        const token = await registerForPushNotificationsAsync();
-        if (cancelled) return;
-        setExpoPushToken(token);
-        rememberDevicePushToken(token ?? null);
-        if (!token) return;
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user || cancelled) return;
-        const { error } = await supabase
-          .from('profiles')
-          .update({ expo_push_token: token })
-          .eq('id', user.id);
-        if (error) {
-          captureError(error, { feature: 'push-token-register' });
-        }
-      } catch (err) {
-        captureError(err, { feature: 'push-token-register' });
-      }
+      // Also called by the permissions screen right after the user grants
+      // notifications (this effect has usually run before that).
+      const token = await registerAndSavePushToken();
+      if (!cancelled) setExpoPushToken(token);
     })();
 
     return () => {

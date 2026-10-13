@@ -5,6 +5,7 @@ import { verifyAuth } from '../_shared/auth.ts';
 import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
 import { parseBody, DailyCommuteMatcherSchema } from '../_shared/validate.ts';
 import { sendPush } from '../_shared/expoPush.ts';
+import { reverseGeocode, mapboxToken as getMapboxToken } from '../_shared/geocode.ts';
 
 // ─── Time helper ───────────────────────────────────────────────────────────────
 // Parse a "HH:MM" / "HH:MM:SS" TIME string to minutes-since-midnight, or null.
@@ -58,16 +59,6 @@ async function fetchMapboxRoute(
     const json = await res.json();
     return json.routes?.[0]?.geometry?.coordinates ?? [];
   } catch { return []; }
-}
-
-async function reverseGeocode(lon: number, lat: number, token: string): Promise<string> {
-  try {
-    const res = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${token}&limit=1`,
-    );
-    const json = await res.json();
-    return json.features?.[0]?.place_name ?? `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-  } catch { return `${lat.toFixed(4)}, ${lon.toFixed(4)}`; }
 }
 
 async function scoreMatch(
@@ -396,7 +387,7 @@ Deno.serve(async (req) => {
   if (!parsed.ok) return parsed.response;
 
   const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
-  const mapboxToken = Deno.env.get('MAPBOX_TOKEN') ?? Deno.env.get('EXPO_PUBLIC_MAPBOX_TOKEN') ?? '';
+  const mapboxToken = getMapboxToken();
 
   try {
     // Nudge mode: the 3:30 PM "plan tomorrow" reminder cohort.

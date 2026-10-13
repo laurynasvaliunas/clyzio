@@ -20,6 +20,7 @@ import { respondJSON, respondError, respondInternalError } from '../_shared/resp
 import { parseBody, RequestCarpoolSchema } from '../_shared/validate.ts';
 import { sendPush } from '../_shared/expoPush.ts';
 import { ensureIntent } from '../_shared/intents.ts';
+import { reverseGeocode, mapboxToken } from '../_shared/geocode.ts';
 
 function tomorrowISO(): string {
   const d = new Date();
@@ -109,9 +110,17 @@ Deno.serve(async (req) => {
     if (pairErr) return respondInternalError('request-carpool', pairErr, 'pair_check_failed');
     if (canPair !== true) return respondError(403, 'forbidden', 'peer_not_visible');
 
-    // Pickup = passenger's home (simple, reliable for a manual request).
+    // Pickup = passenger's home (simple, reliable for a manual request), with an
+    // address so the confirmed ride doesn't show a bare "Origin".
     const pickupLat = passengerIntent.home_lat;
     const pickupLong = passengerIntent.home_long;
+    const { data: passengerTrip } = await supabase
+      .from('trip_intents')
+      .select('origin_address')
+      .eq('id', passengerIntent.id)
+      .single();
+    const pickupAddress =
+      passengerTrip?.origin_address ?? (await reverseGeocode(pickupLong, pickupLat, mapboxToken()));
 
     // Insert the match with the initiator pre-approved. Dedupe on the
     // (driver_intent_id, passenger_intent_id) unique index (migration 016).
@@ -128,6 +137,7 @@ Deno.serve(async (req) => {
           ai_reasoning: 'Requested directly from the map.',
           pickup_lat: pickupLat,
           pickup_long: pickupLong,
+          pickup_address: pickupAddress,
           status: 'awaiting_other',
           driver_approved: callerIsDriver,
           passenger_approved: !callerIsDriver,
@@ -152,11 +162,12 @@ Deno.serve(async (req) => {
       .single();
     const callerName = callerProfile?.first_name ?? 'A colleague';
 
-    const { data: targetProfile } = await supabase
+    const { data: targetProfile, error: targetErr } = await supabase
       .from('profiles')
       .select('expo_push_token, notification_prefs')
       .eq('id', target_user_id)
       .single();
+    if (targetErr) console.error('[request-carpool] push profile read failed:', targetErr.message);
     const matchesPref = (targetProfile?.notification_prefs as { matches?: boolean } | null)?.matches ?? true;
     if (targetProfile?.expo_push_token && matchesPref) {
       await sendPush({

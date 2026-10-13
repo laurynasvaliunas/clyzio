@@ -19,6 +19,7 @@ import { verifyAuth } from '../_shared/auth.ts';
 import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
 import { parseBody, RespondToMatchSchema } from '../_shared/validate.ts';
 import { sendPush } from '../_shared/expoPush.ts';
+import { reverseGeocode, mapboxToken } from '../_shared/geocode.ts';
 
 interface MatchRow {
   id: string;
@@ -32,6 +33,10 @@ interface MatchRow {
   passenger_approved: boolean;
   pickup_lat: number | null;
   pickup_long: number | null;
+  pickup_address: string | null;
+  custom_pickup_lat: number | null;
+  custom_pickup_long: number | null;
+  detour_preference: string | null;
   proposed_departure: string | null;
   ride_id: string | null;
 }
@@ -51,11 +56,14 @@ function buildScheduledAt(tripDate: string, hhmm: string, tzOffsetMinutes?: numb
 
 // deno-lint-ignore no-explicit-any
 async function notify(supabase: any, userId: string, title: string, body: string) {
-  const { data: prof } = await supabase
+  const { data: prof, error } = await supabase
     .from('profiles')
     .select('expo_push_token, notification_prefs')
     .eq('id', userId)
     .single();
+  // A failed read used to skip the push silently (the column was missing on
+  // prod until migration 046) — make it visible in the function logs.
+  if (error) console.error('[respond-to-match] notify profile read failed:', error.message);
   const matchesPref = (prof?.notification_prefs as { matches?: boolean } | null)?.matches ?? true;
   if (prof?.expo_push_token && matchesPref) {
     await sendPush({ to: prof.expo_push_token, title, body, data: { screen: 'daily-commute' } });
@@ -89,7 +97,7 @@ Deno.serve(async (req) => {
   try {
     const { data: match, error: matchErr } = await supabase
       .from('trip_intent_matches')
-      .select('id, driver_user_id, passenger_user_id, driver_intent_id, passenger_intent_id, trip_date, status, driver_approved, passenger_approved, pickup_lat, pickup_long, proposed_departure, ride_id')
+      .select('id, driver_user_id, passenger_user_id, driver_intent_id, passenger_intent_id, trip_date, status, driver_approved, passenger_approved, pickup_lat, pickup_long, pickup_address, custom_pickup_lat, custom_pickup_long, detour_preference, proposed_departure, ride_id')
       .eq('id', match_id)
       .maybeSingle();
 
@@ -158,12 +166,28 @@ Deno.serve(async (req) => {
       return respondJSON({ ok: true, status: 'awaiting_other' });
     }
 
-    // Both approved now → create the ride + confirm.
-    const { data: driverProfile } = await supabase
-      .from('profiles')
-      .select('work_lat, work_long')
-      .eq('id', m.driver_user_id)
-      .single();
+    // Both approved now → create the ride + confirm. Origin = the pickup (the
+    // driver's custom point when they chose a fixed route); destination = the
+    // driver's trip endpoint (typed in the planner or their profile work). Both
+    // with addresses — the trip screen showed "Origin/Destination" without them.
+    const [{ data: driverIntent }, { data: passengerIntent }, { data: driverProfile }, { data: passengerProfile }] =
+      await Promise.all([
+        supabase.from('trip_intents').select('work_lat, work_long, dest_address').eq('id', m.driver_intent_id).single(),
+        supabase.from('trip_intents').select('origin_address').eq('id', m.passenger_intent_id).single(),
+        supabase.from('profiles').select('work_lat, work_long, work_address').eq('id', m.driver_user_id).single(),
+        supabase.from('profiles').select('share_pickup_address').eq('id', m.passenger_user_id).single(),
+      ]);
+
+    const detour = (approvalPatch.detour_preference as string | undefined) ?? m.detour_preference;
+    const customLat = (approvalPatch.custom_pickup_lat as number | undefined) ?? m.custom_pickup_lat;
+    const customLong = (approvalPatch.custom_pickup_long as number | undefined) ?? m.custom_pickup_long;
+    const useCustom = detour === 'fixed' && customLat != null && customLong != null;
+
+    const originLat = useCustom ? customLat : m.pickup_lat;
+    const originLong = useCustom ? customLong : m.pickup_long;
+    const originAddress = useCustom
+      ? await reverseGeocode(customLong as number, customLat as number, mapboxToken())
+      : (m.pickup_address ?? passengerIntent?.origin_address ?? null);
 
     const { data: rideData, error: rideErr } = await supabase
       .from('rides')
@@ -171,10 +195,13 @@ Deno.serve(async (req) => {
         driver_id: m.driver_user_id,
         rider_id: m.passenger_user_id,
         status: 'scheduled',
-        origin_lat: m.pickup_lat ?? 0,
-        origin_long: m.pickup_long ?? 0,
-        dest_lat: driverProfile?.work_lat ?? 0,
-        dest_long: driverProfile?.work_long ?? 0,
+        origin_lat: originLat ?? 0,
+        origin_long: originLong ?? 0,
+        origin_address: originAddress,
+        dest_lat: driverIntent?.work_lat ?? driverProfile?.work_lat ?? 0,
+        dest_long: driverIntent?.work_long ?? driverProfile?.work_long ?? 0,
+        dest_address: driverIntent?.dest_address ?? driverProfile?.work_address ?? null,
+        share_origin_address: passengerProfile?.share_pickup_address ?? true,
         scheduled_at: buildScheduledAt(m.trip_date, m.proposed_departure ?? '08:00', tz_offset_minutes),
         transport_mode: 'carpool',
         transport_label: 'Carpool',
