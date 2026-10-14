@@ -26,6 +26,8 @@ import * as SecureStore from "expo-secure-store";
 import { supabase } from "../../lib/supabase";
 import { localISODate, tomorrowLocalISODate } from "../../lib/localDate";
 import { buildWebLink } from "../../lib/deepLinks";
+import { cancelRide } from "../../lib/cancelRide";
+import { co2Share } from "../../lib/completeTrip";
 import { logger } from "../../lib/logger";
 import { useAIStore } from "../../store/useAIStore";
 import { useDailyCommuteStore } from "../../store/useDailyCommuteStore";
@@ -734,7 +736,7 @@ export default function MapScreen() {
 
       const { data } = await supabase
         .from('rides')
-        .select('transport_mode, transport_label, distance_km, co2_saved, scheduled_at, status')
+        .select('transport_mode, transport_label, distance_km, co2_saved, scheduled_at, status, driver_id, rider_id')
         .or(`driver_id.eq.${user.id},rider_id.eq.${user.id}`)
         .in('status', ['scheduled', 'requested', 'active'])
         .gte('scheduled_at', dayStart.toISOString())
@@ -748,7 +750,7 @@ export default function MapScreen() {
           modeId: ride.transport_mode ?? null,
           modeLabel: ride.transport_label || ride.transport_mode || "Planned trip",
           distanceKm: ride.distance_km ?? null,
-          co2SavedKg: ride.co2_saved ?? null,
+          co2SavedKg: ride.co2_saved == null ? null : co2Share(ride), // carpool: your half
         });
       } else {
         setPlannedRide(null);
@@ -825,7 +827,7 @@ export default function MapScreen() {
 
       const { data } = await supabase
         .from('rides')
-        .select('transport_mode, distance_km, co2_saved, completed_at, status')
+        .select('transport_mode, distance_km, co2_saved, completed_at, status, driver_id, rider_id')
         .or(`driver_id.eq.${user.id},rider_id.eq.${user.id}`)
         .eq('status', 'completed')
         .gte('completed_at', yStart.toISOString())
@@ -837,7 +839,7 @@ export default function MapScreen() {
       if (!ride) { setYesterdayImpact(null); return; }
 
       const distanceKm = Number(ride.distance_km) || 0;
-      const co2SavedKg = Number(ride.co2_saved) || 0;
+      const co2SavedKg = co2Share(ride); // carpool: this user's half
       // Car-equivalent for the comparison bar. Prefer distance × petrol factor;
       // fall back to the saved amount so the bar never renders broken when
       // distance wasn't recorded.
@@ -1254,16 +1256,9 @@ export default function MapScreen() {
       // Rides don't expire on their own: if the cancel didn't land, keep the
       // UI as-is so the user can retry instead of leaving a phantom
       // "scheduled" ride in Activity.
-      const { error } = await supabase
-        .from('rides')
-        .update({ status: 'cancelled' })
-        .eq('id', activeRideId);
-      if (error) {
-        showToast({
-          title: "Couldn't cancel",
-          message: 'Check your connection and try again.',
-          type: 'error',
-        });
+      const outcome = await cancelRide(activeRideId);
+      if (!outcome.ok) {
+        showToast({ title: "Couldn't cancel", message: outcome.message, type: 'error' });
         return;
       }
       setActiveRideId(null);

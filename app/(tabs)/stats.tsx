@@ -38,6 +38,7 @@ import CostSavingsCard from "../../components/CostSavingsCard";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors, TAB_SCREEN_BOTTOM_PADDING } from "../../lib/theme";
 import { getLevelInfo, XP_PER_TRIP, TRIPS_PER_LEVEL, MAX_LEVEL, LEVEL_TITLES } from "../../lib/gamification";
+import { co2Share } from "../../lib/completeTrip";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
@@ -346,7 +347,7 @@ export default function StatsScreen() {
       // co2 / distance) for the period summary + commute calendar.
       const { data: ridesData } = await supabase
         .from("rides")
-        .select("transport_mode, transport_label, co2_saved, distance_km, completed_at")
+        .select("transport_mode, transport_label, co2_saved, distance_km, completed_at, driver_id, rider_id")
         .or(`rider_id.eq.${user.id},driver_id.eq.${user.id}`)
         .eq("status", "completed");
 
@@ -354,7 +355,9 @@ export default function StatsScreen() {
         (ridesData ?? []).map((r: any) => ({
           completed_at: r.completed_at ?? null,
           transport_mode: r.transport_mode ?? null,
-          co2_saved: r.co2_saved ?? null,
+          // This user's credited share (carpool = half), so the period summary
+          // agrees with the all-time total from complete-trip.
+          co2_saved: r.co2_saved == null ? null : co2Share(r),
           distance_km: r.distance_km ?? null,
         })),
       );

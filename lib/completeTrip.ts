@@ -39,6 +39,20 @@ export function shouldEndRide(
 }
 
 /**
+ * The CO₂ a ride credits ONE participant: complete-trip splits a carpool's
+ * saving 50/50 between driver and passenger. Use it wherever a ride's saving
+ * is shown as "yours", so lists and totals match what was credited.
+ */
+export function co2Share(ride: {
+  driver_id?: string | null;
+  rider_id?: string | null;
+  co2_saved?: number | null;
+}): number {
+  const full = Number(ride.co2_saved) || 0;
+  return ride.driver_id && ride.rider_id ? full / 2 : full;
+}
+
+/**
  * Calls complete-trip and turns every failure into a user-facing sentence,
  * so callers never celebrate a completion that didn't happen.
  */

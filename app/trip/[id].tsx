@@ -25,7 +25,8 @@ import ChatModal from "../../components/ChatModal";
 import SOSSheet from "../../components/SOSSheet";
 import RatingSheet from "../../components/RatingSheet";
 import { useToast } from "../../contexts/ToastContext";
-import { completeTrip } from "../../lib/completeTrip";
+import { completeTrip, co2Share } from "../../lib/completeTrip";
+import { cancelRide } from "../../lib/cancelRide";
 
 interface Ride {
   id: string;
@@ -360,16 +361,10 @@ export default function TripScreen() {
         style: "destructive",
         onPress: async () => {
           if (!id) return;
-          const { error } = await supabase
-            .from("rides")
-            .update({ status: "cancelled" })
-            .eq("id", id);
-          if (error) {
-            showToast({
-              title: "Couldn't cancel",
-              message: "Check your connection and try again.",
-              type: "error",
-            });
+          // cancel-ride also releases a confirmed carpool and tells the partner.
+          const outcome = await cancelRide(id);
+          if (!outcome.ok) {
+            showToast({ title: "Couldn't cancel", message: outcome.message, type: "error" });
             return;
           }
           router.back();
@@ -700,7 +695,7 @@ export default function TripScreen() {
             <View style={[styles.co2Badge, { flexDirection: "row", justifyContent: "center", gap: 6 }]}>
               <Leaf size={16} color={COLORS.primary} />
               <Text style={styles.co2BadgeText}>
-                Saving {(isSoloTrip ? ride.co2_saved : ride.co2_saved / 2).toFixed(2)} kg CO₂{isSoloTrip ? "" : " (your share)"}
+                Saving {co2Share(ride).toFixed(2)} kg CO₂{isSoloTrip ? "" : " (your share)"}
               </Text>
             </View>
           </View>
@@ -747,8 +742,8 @@ export default function TripScreen() {
               </Text>
               {ride.status === "completed" && (
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>CO₂ Saved:</Text>
-                  <Text style={styles.summaryValue}>{ride.co2_saved.toFixed(2)} kg</Text>
+                  <Text style={styles.summaryLabel}>{isSoloTrip ? "CO₂ Saved:" : "Your CO₂ share:"}</Text>
+                  <Text style={styles.summaryValue}>{co2Share(ride).toFixed(2)} kg</Text>
                 </View>
               )}
               <TouchableOpacity style={styles.backToActivityBtn} onPress={() => router.push("/(tabs)/activity")}>
@@ -873,7 +868,7 @@ export default function TripScreen() {
             <Text style={styles.arrivalTitle}>You&apos;ve arrived</Text>
             <Text style={styles.arrivalSubtitle}>
               {isSoloTrip || isDriver
-                ? `CO₂ Saved: ${ride.co2_saved.toFixed(2)} kg`
+                ? `CO₂ Saved: ${co2Share(ride).toFixed(2)} kg${isSoloTrip ? "" : " (your share)"}`
                 : `Don't forget to rate ${partnerName.split(' ')[0] || 'your driver'}.`}
             </Text>
             <View style={styles.arrivalIcon}>

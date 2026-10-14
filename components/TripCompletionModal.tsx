@@ -47,7 +47,10 @@ function StatCard({ icon, value, label }: StatCardProps) {
   return (
     <View style={styles.statCard}>
       <View style={styles.statIcon}>{icon}</View>
-      <Text style={styles.statValue}>{value}</Text>
+      {/* One line, shrinking if needed: "+100" wrapped to "+10 / 0" on iPhone SE. */}
+      <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+        {value}
+      </Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );

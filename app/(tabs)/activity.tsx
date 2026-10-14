@@ -34,7 +34,8 @@ import { formatCO2 } from "../../lib/format";
 // Profile counters (xp_points / total_co2_saved / trips_completed / badges)
 // are protected against direct client writes by migration 018.
 import { useToast } from "../../contexts/ToastContext";
-import { completeTrip, shouldEndRide } from "../../lib/completeTrip";
+import { completeTrip, shouldEndRide, co2Share } from "../../lib/completeTrip";
+import { cancelRide } from "../../lib/cancelRide";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -145,10 +146,10 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel, completing 
           <Clock size={14} color={TC.textSecondary} />
           <Text style={[styles.timeText, { color: TC.textSecondary }]}>{time}</Text>
         </View>
-        {!!item.co2_saved && item.co2_saved > 0 && (
+        {co2Share(item) > 0 && (
           <View style={styles.co2Chip}>
             <Leaf size={14} color={COLORS.green} />
-            <Text style={styles.co2ChipText}>–{formatCO2(item.co2_saved)} kg</Text>
+            <Text style={styles.co2ChipText}>–{formatCO2(co2Share(item))} kg</Text>
           </View>
         )}
         <View style={{ flex: 1 }} />
@@ -252,10 +253,10 @@ function HistoryCard({ item, onPress, TC }: HistoryCardProps) {
         </View>
 
         <View style={styles.historyRight}>
-          {item.co2_saved && item.co2_saved > 0 && !isCancelled ? (
+          {co2Share(item) > 0 && !isCancelled ? (
             <View style={styles.co2Badge}>
               <Leaf size={13} color={COLORS.green} />
-              <Text style={styles.co2Text}>–{formatCO2(item.co2_saved)} kg</Text>
+              <Text style={styles.co2Text}>–{formatCO2(co2Share(item))} kg</Text>
             </View>
           ) : (
             <ChevronRight size={20} color={TC.textSecondary} />
@@ -405,7 +406,7 @@ export default function ActivityScreen() {
   /**
    * Cancel a ride
    */
-  const cancelRide = useCallback(async (rideId: string) => {
+  const confirmCancel = useCallback(async (rideId: string) => {
     Alert.alert(
       "Cancel Ride",
       "Are you sure you want to cancel this ride?",
@@ -415,22 +416,18 @@ export default function ActivityScreen() {
           text: "Yes, Cancel",
           style: "destructive",
           onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from("rides")
-                .update({ status: "cancelled" })
-                .eq("id", rideId);
-
-              if (error) throw error;
-              loadRides();
-            } catch {
-              showToast({ title: "Couldn't cancel", message: 'Check your connection and try again.', type: 'error' });
+            // cancel-ride also releases a confirmed carpool and tells the partner.
+            const outcome = await cancelRide(rideId);
+            if (!outcome.ok) {
+              showToast({ title: "Couldn't cancel", message: outcome.message, type: "error" });
+              return;
             }
+            loadRides();
           },
         },
       ]
     );
-  }, [loadRides]);
+  }, [loadRides, showToast]);
 
   /**
    * Complete a trip
@@ -498,7 +495,7 @@ export default function ActivityScreen() {
           userId={userId}
           onPress={() => router.push(`/trip/${item.id}`)}
           onComplete={() => handleComplete(item)}
-          onCancel={() => cancelRide(item.id)}
+          onCancel={() => confirmCancel(item.id)}
           completing={completingId === item.id}
           TC={TC}
         />
@@ -512,7 +509,7 @@ export default function ActivityScreen() {
         />
       );
     }
-  }, [activeTab, userId, router, handleComplete, cancelRide, completingId, TC]);
+  }, [activeTab, userId, router, handleComplete, confirmCancel, completingId, TC]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>

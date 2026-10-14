@@ -125,6 +125,10 @@ export const CompleteTripSchema = z.object({
   end_trip: z.boolean().default(true),
 });
 
+export const CancelRideSchema = z.object({
+  ride_id: uuid,
+});
+
 // Symmetric carpool approval (migration 021). One function handles both roles.
 export const RespondToMatchSchema = z.object({
   match_id: uuid,
