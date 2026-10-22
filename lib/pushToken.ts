@@ -28,7 +28,7 @@ async function getPushTokenIfPermitted(): Promise<string | undefined> {
 
   const { status } = await Notifications.getPermissionsAsync();
   if (status !== "granted") {
-    if (__DEV__) { console.log("Push permission not granted yet — token registration deferred to priming flow"); }
+    if (__DEV__) { console.log("Push permission not granted yet - token registration deferred to priming flow"); }
     return undefined;
   }
 
@@ -38,7 +38,7 @@ async function getPushTokenIfPermitted(): Promise<string | undefined> {
     (Constants as any)?.expoConfig?.extra?.eas?.projectId ||
     (Constants as any)?.easConfig?.projectId;
   if (!projectId) {
-    if (__DEV__) { console.log("Push token skipped — missing EAS projectId"); }
+    if (__DEV__) { console.log("Push token skipped - missing EAS projectId"); }
     return undefined;
   }
 

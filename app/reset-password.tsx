@@ -124,7 +124,7 @@ export default function ResetPasswordScreen() {
         showToast({ title: "Could not reset", message: error.message, type: "error" });
         return;
       }
-      showToast({ title: "Password updated", message: "You're all set — welcome back!", type: "success" });
+      showToast({ title: "Password updated", message: "You're all set - welcome back!", type: "success" });
       router.replace("/(tabs)");
     } catch (e: any) {
       showToast({ title: "Error", message: e?.message ?? "Something went wrong", type: "error" });

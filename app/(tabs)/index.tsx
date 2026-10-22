@@ -942,7 +942,7 @@ export default function MapScreen() {
       showToast({
         title: "Couldn't send request",
         message: missingPlaces
-          ? "Set your home and work in Profile first — we need them to plan the pickup."
+          ? "Set your home and work in Profile first - we need them to plan the pickup."
           : notOpen
             ? "That trip isn't open to commuters outside the company."
             : "Please try again.",
@@ -1350,7 +1350,7 @@ export default function MapScreen() {
       const name = selectedMatch?.profiles?.first_name ?? 'This colleague';
       showToast({
         title: "Couldn't send request",
-        message: `${name} may not have set their commute yet — try another colleague.`,
+        message: `${name} may not have set their commute yet - try another colleague.`,
         type: "error",
       });
     }
@@ -1630,7 +1630,7 @@ export default function MapScreen() {
             const otherName = isDriver
               ? (awaitingOther[0].passenger_profile?.first_name ?? "passenger")
               : (awaitingOther[0].driver_profile?.first_name ?? "driver");
-            label = "You're in — waiting for them";
+            label = "You're in - waiting for them";
             sublabel = `Waiting for ${otherName} to approve`;
             icon = <Users size={14} color="#fff" />;
           } else if (intent.status === "pending") {

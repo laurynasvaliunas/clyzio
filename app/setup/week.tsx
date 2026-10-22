@@ -112,7 +112,7 @@ export default function WeekSetupScreen() {
         </Text>
         <Text style={styles.subheading}>
           Pick the modes you use and tap the days. This sets the baseline every
-          CO₂ saving is measured against — you can change it anytime.
+          CO₂ saving is measured against - you can change it anytime.
         </Text>
 
         <CommuteMixEditor habits={habits} onChange={setHabits} bleed={20} />

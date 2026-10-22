@@ -62,7 +62,7 @@ const supabaseAnonKey =
   '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials missing — check .env file');
+  console.warn('Supabase credentials missing - check .env file');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

@@ -107,18 +107,18 @@ export function demoNotify(d: {
   type: string; name?: string; email: string; company?: string; employees?: string; message?: string;
 }): Rendered {
   return {
-    subject: `New ${d.type === "contact" ? "contact" : "demo"} request — ${d.company || d.email}`,
+    subject: `New ${d.type === "contact" ? "contact" : "demo"} request - ${d.company || d.email}`,
     html: renderEmail({
       title: "New lead",
       emoji: "📨",
       heading: `New ${d.type === "contact" ? "contact" : "demo / pilot"} request`,
       intro: `A new ${esc(d.type)} request came in from the website.`,
       bodyExtraHtml: `<table role="presentation" width="100%" style="font-size:14px;color:#0F172A;border-collapse:collapse;">
-        <tr><td style="padding:6px 0;color:#90A4AE;width:120px;">Name</td><td>${esc(d.name || "—")}</td></tr>
+        <tr><td style="padding:6px 0;color:#90A4AE;width:120px;">Name</td><td>${esc(d.name || "-")}</td></tr>
         <tr><td style="padding:6px 0;color:#90A4AE;">Email</td><td>${esc(d.email)}</td></tr>
-        <tr><td style="padding:6px 0;color:#90A4AE;">Company</td><td>${esc(d.company || "—")}</td></tr>
-        <tr><td style="padding:6px 0;color:#90A4AE;">Employees</td><td>${esc(d.employees || "—")}</td></tr>
-        <tr><td style="padding:6px 0;color:#90A4AE;vertical-align:top;">Message</td><td>${esc(d.message || "—")}</td></tr>
+        <tr><td style="padding:6px 0;color:#90A4AE;">Company</td><td>${esc(d.company || "-")}</td></tr>
+        <tr><td style="padding:6px 0;color:#90A4AE;">Employees</td><td>${esc(d.employees || "-")}</td></tr>
+        <tr><td style="padding:6px 0;color:#90A4AE;vertical-align:top;">Message</td><td>${esc(d.message || "-")}</td></tr>
       </table>`,
     }),
   };
@@ -131,7 +131,7 @@ export function inviteEmail(d: { company: string; joinUrl: string; inviterName?:
       title: "You're invited to Clyzio",
       emoji: "🚶",
       heading: `Join ${esc(d.company)} on Clyzio`,
-      intro: `${d.inviterName ? `${esc(d.inviterName)} invited you` : "You've been invited"} to join <strong>${esc(d.company)}</strong>'s commuting team on Clyzio — log greener commutes, find carpools, and help hit your company's sustainability goals.`,
+      intro: `${d.inviterName ? `${esc(d.inviterName)} invited you` : "You've been invited"} to join <strong>${esc(d.company)}</strong>'s commuting team on Clyzio - log greener commutes, find carpools, and help hit your company's sustainability goals.`,
       ctaText: "Accept invitation",
       ctaUrl: d.joinUrl,
       footerNote: `This invitation expires in 14 days. If you weren't expecting it, you can ignore this email.`,
@@ -141,7 +141,7 @@ export function inviteEmail(d: { company: string; joinUrl: string; inviterName?:
 
 export function esgReadyEmail(d: { company: string; period: string; reportUrl: string }): Rendered {
   return {
-    subject: `Your Clyzio ESG report is ready — ${d.period}`,
+    subject: `Your Clyzio ESG report is ready - ${d.period}`,
     html: renderEmail({
       title: "Your ESG report is ready",
       emoji: "📊",

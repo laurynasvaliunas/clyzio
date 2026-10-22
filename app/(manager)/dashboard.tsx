@@ -140,7 +140,7 @@ export default function ManagerDashboardScreen() {
           <View style={styles.statCard}>
             <Leaf size={20} color={COLORS.green} />
             <Text style={styles.statValue}>
-              {companyStats ? `${companyStats.total_co2_saved.toFixed(0)} kg` : "—"}
+              {companyStats ? `${companyStats.total_co2_saved.toFixed(0)} kg` : "-"}
             </Text>
             <Text style={styles.statLabel}>CO₂ Saved</Text>
           </View>
@@ -149,14 +149,14 @@ export default function ManagerDashboardScreen() {
             <Text style={styles.statValue}>
               {companyStats
                 ? `${companyStats.active_users}/${companyStats.employee_count}`
-                : "—"}
+                : "-"}
             </Text>
             <Text style={styles.statLabel}>Active Users</Text>
           </View>
           <View style={styles.statCard}>
             <Trophy size={20} color={COLORS.accent} />
             <Text style={styles.statValue}>
-              {companyStats ? companyStats.total_trips : "—"}
+              {companyStats ? companyStats.total_trips : "-"}
             </Text>
             <Text style={styles.statLabel}>Total Trips</Text>
           </View>

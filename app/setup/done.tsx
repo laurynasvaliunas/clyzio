@@ -146,7 +146,7 @@ export default function DoneScreen() {
           setFinishing(false);
           showToast({
             title: "Couldn't finish setup",
-            message: "Check your connection and tap again — your answers are saved.",
+            message: "Check your connection and tap again - your answers are saved.",
             type: "error",
           });
           return;
@@ -158,7 +158,7 @@ export default function DoneScreen() {
       setFinishing(false);
       showToast({
         title: "Couldn't finish setup",
-        message: "Check your connection and tap again — your answers are saved.",
+        message: "Check your connection and tap again - your answers are saved.",
         type: "error",
       });
     }
@@ -234,7 +234,7 @@ export default function DoneScreen() {
             <Animated.View style={[styles.vehicles, { opacity: detailsOpacity }]}>
               {vehicles.length === 0 ? (
                 <Text style={styles.vehiclesEmpty}>
-                  No vehicles — you're going zero-emission by default.
+                  No vehicles - you're going zero-emission by default.
                 </Text>
               ) : (
                 <>

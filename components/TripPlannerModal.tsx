@@ -764,7 +764,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                     activeOpacity={0.85}
                     accessibilityRole="button"
                     accessibilityState={{ selected: active }}
-                    accessibilityLabel={`${label} — ${sub}`}
+                    accessibilityLabel={`${label} - ${sub}`}
                   >
                     <Icon size={24} color={tint} />
                     <Text style={[styles.roleSelectorLabel, { color: tint }]}>{label}</Text>
@@ -963,7 +963,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                       } else if (m.co2 === 0) {
                         co2Display = "Zero Emissions";
                       } else if (routeDistance === 0) {
-                        co2Display = "—";
+                        co2Display = "-";
                       } else if (totalCO2Kg < 1) {
                         co2Display = `${totalCO2Grams.toFixed(0)} g CO₂`;
                       } else {
@@ -1049,7 +1049,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                       })
                     ) : transitFetched ? (
                       <Text style={styles.disclaimerText}>
-                        No transit routes found — we'll estimate with an average.
+                        No transit routes found - we'll estimate with an average.
                       </Text>
                     ) : null}
                   </View>

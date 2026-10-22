@@ -21,7 +21,7 @@ if (!IS_MAPBOX_TOKEN_VALID) {
   // In development: warn loudly so the developer notices missing .env.
   // eslint-disable-next-line no-console
   console.warn(
-    '[config] EXPO_PUBLIC_MAPBOX_TOKEN missing or malformed — maps will fall back to a placeholder UI. ' +
+    '[config] EXPO_PUBLIC_MAPBOX_TOKEN missing or malformed - maps will fall back to a placeholder UI. ' +
       'Set EXPO_PUBLIC_MAPBOX_TOKEN to a valid pk.* token in your .env or EAS secrets.'
   );
 }

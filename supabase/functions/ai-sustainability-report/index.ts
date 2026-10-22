@@ -6,14 +6,15 @@ import { parseBody, AISustainabilityReportSchema } from '../_shared/validate.ts'
 
 const SYSTEM_PROMPT = `You are Clyzio's ESG Intelligence Engine. You analyze corporate commuting data and produce actionable sustainability insights for HR and sustainability managers.
 
-Return ONLY valid JSON matching the exact schema provided — no markdown, no explanation.
+Return ONLY valid JSON matching the exact schema provided - no markdown, no explanation.
 
 Your analysis must be:
 - Data-driven: reference specific numbers from the input data
 - Action-oriented: every insight leads to a concrete recommendation
 - Business-framed: connect CO2 savings to cost savings, employee retention, and ESG ratings
 - Benchmarked: use general industry knowledge to contextualize the company's performance
-- Realistic: expected_impact_kg_co2 should be achievable within the timeframe`;
+- Realistic: expected_impact_kg_co2 should be achievable within the timeframe
+- Punctuation: always use a plain hyphen "-" if you need a dash. NEVER use an em-dash "—" or en-dash "–"; they read as AI-generated. Prefer two short sentences separated by a period over one long sentence joined by a dash.`;
 
 type TimePeriod = 'week' | 'month' | 'quarter' | 'year';
 
@@ -117,7 +118,7 @@ Deno.serve(async (req: Request) => {
 
 Generate a comprehensive ESG sustainability report. Return JSON matching this schema exactly:
 {
-  "executive_summary": "string — 2-3 sentences for exec presentation",
+  "executive_summary": "string - 2-3 sentences for exec presentation",
   "green_commute_score": number,
   "score_trend": "improving|stable|declining",
   "co2_equivalent": {
@@ -129,9 +130,9 @@ Generate a comprehensive ESG sustainability report. Return JSON matching this sc
   "top_insights": [
     {
       "title": "string",
-      "description": "string — data-driven, 1-2 sentences",
+      "description": "string - data-driven, 1-2 sentences",
       "priority": "high|medium|low",
-      "metric": "string — the key number (e.g. '23% of employees')"
+      "metric": "string - the key number (e.g. '23% of employees')"
     }
   ],
   "department_rankings": [
@@ -144,18 +145,18 @@ Generate a comprehensive ESG sustainability report. Return JSON matching this sc
   ],
   "recommendations": [
     {
-      "action": "string — specific, actionable",
+      "action": "string - specific, actionable",
       "expected_impact_kg_co2": number,
       "timeframe": "string (e.g. '3 months')",
       "effort": "low|medium|high",
       "esg_pillar": "E|S|G"
     }
   ],
-  "esg_narrative": "string — 2-3 paragraph narrative suitable for an ESG report or investor update",
+  "esg_narrative": "string - 2-3 paragraph narrative suitable for an ESG report or investor update",
   "next_challenge_suggestion": {
     "title": "string",
     "challenge_type": "co2_reduction|carpool_days|green_trips|distance",
-    "rationale": "string — why this challenge makes sense for this company right now",
+    "rationale": "string - why this challenge makes sense for this company right now",
     "target_value": number,
     "reward_xp": number
   }

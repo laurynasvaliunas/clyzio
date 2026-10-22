@@ -315,7 +315,7 @@ export default function ProfileScreen() {
                   {mixLoaded ? (
                     <>
                       <Text style={[styles.sectionSubtitle, { color: TC.textSecondary }]}>
-                        Select modes and tap the days you use them — this sets your CO₂ baseline.
+                        Select modes and tap the days you use them - this sets your CO₂ baseline.
                       </Text>
                       <CommuteMixEditor habits={habits} onChange={setHabits} bleed={16} />
                     </>
@@ -323,7 +323,7 @@ export default function ProfileScreen() {
                     <View style={[styles.mixErrorCard, { backgroundColor: TC.surface }]}>
                       <Text style={[styles.sectionSubtitle, { color: TC.textSecondary, marginBottom: 12 }]}>
                         {loadError
-                          ? "Your commute mix couldn't load. Your saved mix is safe — saving the profile won't change it."
+                          ? "Your commute mix couldn't load. Your saved mix is safe - saving the profile won't change it."
                           : "Loading your commute mix…"}
                       </Text>
                       {loadError && (

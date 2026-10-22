@@ -250,7 +250,7 @@ export default function SettingsScreen() {
             style={[styles.settingItem, { backgroundColor: TC.surface }]}
             onPress={handleEditProfile}
             accessibilityRole="button"
-            accessibilityLabel="My Places — edit your home and work addresses"
+            accessibilityLabel="My Places - edit your home and work addresses"
           >
             <View style={[styles.iconBox, { backgroundColor: COLORS.primary + "20" }]}>
               <MapPin size={20} color={COLORS.primary} />
@@ -263,7 +263,7 @@ export default function SettingsScreen() {
             style={[styles.settingItem, { backgroundColor: TC.surface }]}
             onPress={handleEditProfile}
             accessibilityRole="button"
-            accessibilityLabel="My Garage — add or edit your vehicles"
+            accessibilityLabel="My Garage - add or edit your vehicles"
           >
             <View style={[styles.iconBox, { backgroundColor: COLORS.green + "20" }]}>
               <Car size={20} color={COLORS.green} />

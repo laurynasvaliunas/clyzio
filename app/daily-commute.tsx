@@ -226,7 +226,7 @@ function SubmittedStep({ role, onSeeOptions }: { role: "driver" | "passenger"; o
         <Text style={styles.stepTitle}>You're registered</Text>
         <Text style={styles.stepDescription}>
           No {counterpart} match yet for tomorrow. We'll notify you the moment
-          someone matches — or pick another way to get there.
+          someone matches - or pick another way to get there.
         </Text>
         {onSeeOptions && (
           <TouchableOpacity style={styles.greenOptionsBtn} onPress={onSeeOptions}>
@@ -321,7 +321,7 @@ function DriverReviewStep({
                 </Text>
                 {hasCompany && match.peer_is_colleague === false && <OutsideCompanyPill />}
                 <Text style={styles.matchDetail}>
-                  {match.ai_compatibility_score?.toFixed(0) ?? "—"}% match · {match.pickup_address?.split(",")[0] ?? "Pickup TBD"}
+                  {match.ai_compatibility_score?.toFixed(0) ?? "-"}% match · {match.pickup_address?.split(",")[0] ?? "Pickup TBD"}
                 </Text>
                 {!!match.ai_reasoning && (
                   <Text style={styles.matchReasoning} numberOfLines={2}>{match.ai_reasoning}</Text>
@@ -439,7 +439,7 @@ function DriverWaitingStep({ matches, onWithdraw, busy }: WaitingStepProps) {
   return (
     <View style={styles.centeredStep}>
       <ActivityIndicator size="large" color={COLORS.primary} style={{ marginBottom: 20 }} />
-      <Text style={styles.stepTitle}>You're in — waiting for them</Text>
+      <Text style={styles.stepTitle}>You're in - waiting for them</Text>
       <Text style={styles.stepDescription}>
         You approved {waiting.length} passenger{waiting.length !== 1 ? "s" : ""}. Waiting for them to approve too.
       </Text>
@@ -466,7 +466,7 @@ function PassengerWaitingStep({ matches, onWithdraw, busy }: WaitingStepProps) {
   return (
     <View style={styles.centeredStep}>
       <ActivityIndicator size="large" color={COLORS.primary} style={{ marginBottom: 20 }} />
-      <Text style={styles.stepTitle}>You're in — waiting for them</Text>
+      <Text style={styles.stepTitle}>You're in - waiting for them</Text>
       <Text style={styles.stepDescription}>
         You approved the carpool with {driverName}. Waiting for them to approve too.
       </Text>
@@ -503,7 +503,7 @@ function DriverConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.confirmedName}>{match.passenger_profile?.first_name ?? "Passenger"}</Text>
               <Text style={styles.confirmedDetail}>
-                Pickup: {match.pickup_address?.split(",")[0] ?? "TBD"} · {formatClockTime(match.proposed_pickup_time) ?? "—"}
+                Pickup: {match.pickup_address?.split(",")[0] ?? "TBD"} · {formatClockTime(match.proposed_pickup_time) ?? "-"}
               </Text>
             </View>
           </View>
@@ -634,7 +634,7 @@ function PassengerReviewStep({
             <Text style={styles.matchName}>{match.driver_profile?.first_name ?? "Driver"}</Text>
             {hasCompany && match.peer_is_colleague === false && <OutsideCompanyPill />}
             <Text style={styles.matchDetail}>
-              Departs {formatClockTime(match.proposed_departure) ?? "—"} · {match.ai_compatibility_score?.toFixed(0) ?? "—"}% match
+              Departs {formatClockTime(match.proposed_departure) ?? "-"} · {match.ai_compatibility_score?.toFixed(0) ?? "-"}% match
             </Text>
             <Text style={styles.matchDetail}>
               Pickup: {match.pickup_address ?? "To be confirmed"}
@@ -694,7 +694,7 @@ function PassengerConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.confirmedName}>{confirmed.driver_profile?.first_name ?? "Driver"} picks you up</Text>
               <Text style={styles.confirmedDetail}>
-                At {confirmed.pickup_address?.split(",")[0] ?? "pickup point"} · {formatClockTime(confirmed.proposed_pickup_time ?? confirmed.proposed_departure) ?? "—"}
+                At {confirmed.pickup_address?.split(",")[0] ?? "pickup point"} · {formatClockTime(confirmed.proposed_pickup_time ?? confirmed.proposed_departure) ?? "-"}
               </Text>
             </View>
           </View>

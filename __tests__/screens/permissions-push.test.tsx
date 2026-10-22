@@ -22,7 +22,7 @@ async function pressThroughToNotifications(screen: ReturnType<typeof render>) {
   fireEvent.press(screen.getByRole("button", { name: /Continue to the/ }));
 }
 
-describe("Permissions screen — push token", () => {
+describe("Permissions screen - push token", () => {
   beforeEach(() => {
     register.mockClear();
     requestPermissions.mockClear();

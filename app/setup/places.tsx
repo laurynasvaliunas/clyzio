@@ -297,7 +297,7 @@ export default function PlacesScreen() {
         ) : (
           <View style={[styles.map, styles.mapFallback]}>
             <MapPin size={32} color={COLORS.inkSoft} />
-            <Text style={styles.mapFallbackText}>Map unavailable — search to set your places.</Text>
+            <Text style={styles.mapFallbackText}>Map unavailable - search to set your places.</Text>
           </View>
         )}
 

@@ -509,7 +509,7 @@ export default function StatsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: TC.text }]}>Your Impact</Text>
-          <Text style={[styles.headerSubtitle, { color: TC.textSecondary }]}>Every trip counts — here's the proof</Text>
+          <Text style={[styles.headerSubtitle, { color: TC.textSecondary }]}>Every trip counts - here's the proof</Text>
         </View>
 
         {/* Segmented Control */}
@@ -585,7 +585,7 @@ export default function StatsScreen() {
               Your impact starts with one trip
             </Text>
             <Text style={[styles.zeroBody, { color: TC.textSecondary }]}>
-              Plan a commute and complete it — you&apos;ll see your CO₂ saved,
+              Plan a commute and complete it - you&apos;ll see your CO₂ saved,
               your streak and your first badge right here.
             </Text>
             <TouchableOpacity
@@ -743,7 +743,7 @@ export default function StatsScreen() {
             </View>
             <Text style={[styles.impactMotivation, { color: TC.textSecondary }]}>
               {myCompanyRank > 0 && myCompanyRank <= 3
-                ? "You're leading the way — keep it up"
+                ? "You're leading the way - keep it up"
                 : `Every shared ride lifts ${companyTotals.company_name} higher. →`}
             </Text>
           </TouchableOpacity>
@@ -898,7 +898,7 @@ export default function StatsScreen() {
           <View style={styles.guideRow}>
             <TrendingUp size={16} color={COLORS.primary} style={styles.guideBullet} />
             <Text style={[styles.guideText, { color: TC.textSecondary }]}>
-              Every {TRIPS_PER_LEVEL} trips is a new level — {MAX_LEVEL} levels from {LEVEL_TITLES[0]} to {LEVEL_TITLES[MAX_LEVEL - 1]}.
+              Every {TRIPS_PER_LEVEL} trips is a new level - {MAX_LEVEL} levels from {LEVEL_TITLES[0]} to {LEVEL_TITLES[MAX_LEVEL - 1]}.
             </Text>
           </View>
           <View style={styles.guideRow}>

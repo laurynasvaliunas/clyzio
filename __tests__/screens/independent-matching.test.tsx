@@ -29,7 +29,7 @@ afterEach(() => {
   fromMock.mockImplementation(defaultFrom);
 });
 
-describe("Setup done — independent matching choice", () => {
+describe("Setup done - independent matching choice", () => {
   it("asks independents, preselected on, and saves is_public with setup", async () => {
     const update = mockProfile({ company_id: null });
     const { findByLabelText, getByLabelText } = render(<DoneScreen />);
@@ -64,7 +64,7 @@ describe("Setup done — independent matching choice", () => {
   });
 });
 
-describe("Daily commute — open a trip to commuters outside the company", () => {
+describe("Daily commute - open a trip to commuters outside the company", () => {
   const submitIntent = jest.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
