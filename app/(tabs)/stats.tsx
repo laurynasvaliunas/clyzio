@@ -39,7 +39,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors, TAB_SCREEN_BOTTOM_PADDING } from "../../lib/theme";
 import { getLevelInfo, XP_PER_TRIP, TRIPS_PER_LEVEL, MAX_LEVEL, LEVEL_TITLES } from "../../lib/gamification";
 import { co2Share } from "../../lib/completeTrip";
-import { EcoGlobe, DeptSkyline } from "../../components/three";
+import { DeptSkyline } from "../../components/three";
 import { AnimatedNumber, GlowBackdrop, TiltCard } from "../../components/ui";
 import { gradients } from "../../lib/theme/tokens";
 import { elevation as ELEVATION } from "../../lib/theme/tokens";
@@ -453,11 +453,6 @@ export default function StatsScreen() {
   const treesPlanted = useMemo(() => Math.floor(stats.total_co2_saved / CO2_PER_TREE), [stats.total_co2_saved]);
   const treeProgress = useMemo(() => (stats.total_co2_saved % CO2_PER_TREE) / CO2_PER_TREE, [stats.total_co2_saved]);
   const maxBar = useMemo(() => Math.max(stats.this_week_co2, stats.last_week_co2, 1), [stats.this_week_co2, stats.last_week_co2]);
-  // 3D globe: land starts fresh-green and grows lusher toward the 100 kg
-  // "Planet Protector" milestone; each tree equivalent plants three small
-  // trees (plus progress toward the next).
-  const globeGreenness = 0.35 + 0.65 * Math.min(1, stats.total_co2_saved / 100);
-  const globeTrees = treesPlanted * 3 + Math.floor(treeProgress * 3);
 
   // Period summary (week / month / all) computed client-side from completed
   // rides — distance, CO₂ saved, and trip count for the selected window.
@@ -604,15 +599,8 @@ export default function StatsScreen() {
           </View>
         )}
 
-        {/* Hero: a 3D planet that greens as you save CO₂, with the
-            headline number on a card that tilts under your finger. */}
+        {/* Hero: the headline number on a card that tilts under your finger. */}
         <View style={styles.heroContainer}>
-          <EcoGlobe
-            greenness={globeGreenness}
-            trees={globeTrees}
-            style={styles.globe}
-            accessibilityLabel={`Your planet, ${stats.total_co2_saved.toFixed(1)} kilograms of CO₂ saved`}
-          />
           <TiltCard radius={28} style={styles.heroTilt}>
           <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
             <View style={styles.heroTop}>
@@ -1227,10 +1215,8 @@ const styles = StyleSheet.create({
   badgeNameLocked: { color: COLORS.textMuted },
   
   // ===== HERO CO₂ CARD =====
-  heroContainer: { paddingHorizontal: 16, marginTop: 4 },
-  globe: { height: 250, marginHorizontal: -16 },
-  // The card rides up over the globe's base so the planet sits "on" it.
-  heroTilt: { marginTop: -46, borderRadius: 28, boxShadow: ELEVATION.light.e4 },
+  heroContainer: { paddingHorizontal: 16, marginTop: 12 },
+  heroTilt: { borderRadius: 28, boxShadow: ELEVATION.light.e4 },
   heroCard: {
     borderRadius: 28,
     padding: 24,
