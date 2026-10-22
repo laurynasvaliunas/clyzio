@@ -67,6 +67,9 @@ const COLORS = {
   red: "#DC2626",       // clay
 };
 
+/** One vertical gap between every stacked block in the sheet. */
+const GAP = 12;
+
 // Base transport modes — "my_car" co2 is patched at runtime from user's fuel type
 // One brand colour for every mode icon (the impact signal is the CO₂ dot,
 // not a rainbow of per-mode hues).
@@ -788,7 +791,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
 
             {/* Waypoint */}
             {showWaypointInput ? (
-              <View style={{ marginBottom: 12 }}>
+              <View>
                 <CustomAddressInput
                   placeholder="School / Kindergarten stop"
                   icon={<School size={20} color={COLORS.accent} />}
@@ -804,6 +807,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                     setWaypointDescription("");
                   }}
                   style={styles.removeWaypointBtn}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 >
                   <X size={16} color={COLORS.red} />
                   <Text style={styles.removeWaypointText}>Remove Stop</Text>
@@ -1197,8 +1201,8 @@ const styles = StyleSheet.create({
   },
 
   // Input Styles
-  inputContainer: { 
-    marginBottom: 16,
+  inputContainer: {
+    marginBottom: GAP,
     zIndex: 10,
   },
   inputRow: {
@@ -1243,7 +1247,7 @@ const styles = StyleSheet.create({
   roleSelector: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: 18,
+    marginBottom: GAP,
     backgroundColor: COLORS.lightGray,
     borderRadius: 16,
     padding: 5,
@@ -1274,8 +1278,8 @@ const styles = StyleSheet.create({
 
   // Carpool (Driver/Rider) inline form
   carpoolForm: {
-    paddingVertical: 8,
-    gap: 14,
+    paddingBottom: 8,
+    gap: GAP,
   },
   dtRow: {
     flexDirection: "row",
@@ -1342,7 +1346,7 @@ const styles = StyleSheet.create({
   },
 
   // Garage vehicle picker
-  vehiclePickerWrap: { marginTop: 14 },
+  vehiclePickerWrap: { marginTop: GAP },
   vehiclePickerLabel: {
     fontSize: 13,
     fontWeight: "600",
@@ -1372,7 +1376,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: COLORS.white,
     borderRadius: 16,
-    marginBottom: 8,
+    marginBottom: GAP,
     borderWidth: 2,
     borderColor: COLORS.lightGray,
   },
@@ -1414,7 +1418,6 @@ const styles = StyleSheet.create({
   },
   disclaimerRow: {
     paddingHorizontal: 4,
-    paddingTop: 4,
     paddingBottom: 8,
   },
   disclaimerText: {
@@ -1426,7 +1429,6 @@ const styles = StyleSheet.create({
 
   // Branch B — transit options
   transitWrap: {
-    paddingTop: 4,
     paddingBottom: 8,
     gap: 8,
   },
@@ -1523,8 +1525,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: COLORS.lightGray,
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 16,
+    marginBottom: GAP,
     gap: 8,
   },
   addWaypointText: {
@@ -1536,9 +1538,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
+    alignSelf: "center",
     gap: 6,
-    marginTop: 4,
+    marginBottom: GAP,
   },
   removeWaypointText: {
     fontSize: 13,
@@ -1550,7 +1552,7 @@ const styles = StyleSheet.create({
   modeSectionDivider: {
     height: 1,
     backgroundColor: "#EDF1F2",
-    marginVertical: 16,
+    marginBottom: GAP,
   },
 
   // Trip AI insight banner (top of Step 2)
@@ -1562,7 +1564,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    marginBottom: 14,
+    marginBottom: GAP,
   },
   tripInsightText: {
     flex: 1,
