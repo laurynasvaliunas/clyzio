@@ -18,6 +18,8 @@ import { Mail, Lock, Eye, EyeOff, Leaf, Building2, Check } from "lucide-react-na
 import { supabase } from "../../lib/supabase";
 import { useToast } from "../../contexts/ToastContext";
 import { nextRouteAfterAuth } from "../../lib/permissionsPriming";
+import { elevation as ELEVATION, depth } from "../../lib/theme/tokens";
+import { GlowBackdrop } from "../../components/ui";
 
 const FREE_MAIL_DOMAINS = [
   "gmail.com",
@@ -244,6 +246,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+    <GlowBackdrop variant="brand" style={styles.glow} />
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -483,14 +486,12 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   logoImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    shadowColor: "#00565A",
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
+    width: 84,
+    height: 84,
+    borderRadius: 24,
+    boxShadow: depth.emboss,
   },
+  glow: { bottom: undefined, height: 420 },
 
   heading: {
     fontSize: 30,
@@ -514,9 +515,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    boxShadow: ELEVATION.light.e1,
     paddingHorizontal: 14,
     marginBottom: 4,
   },
@@ -576,6 +578,7 @@ const styles = StyleSheet.create({
   checkboxChecked: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
+    boxShadow: depth.selected,
   },
   checkLabel: {
     flex: 1,
@@ -613,11 +616,14 @@ const styles = StyleSheet.create({
 
   ctaBtn: {
     borderRadius: 28,
-    overflow: "hidden",
     marginTop: 20,
     marginBottom: 16,
+    boxShadow: depth.ctaGlow,
   },
   ctaGradient: {
+    borderRadius: 28,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
     height: 56,
     alignItems: "center",
     justifyContent: "center",
@@ -643,7 +649,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.light,
-    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(0,86,90,0.14)",
+    borderRadius: 18,
     padding: 16,
     gap: 12,
   },

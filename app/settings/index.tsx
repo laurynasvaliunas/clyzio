@@ -36,6 +36,15 @@ import { supabase } from "../../lib/supabase";
 import { friendlyError } from "../../lib/friendlyError";
 import { signOut } from "../../lib/signOut";
 import { useAIStore } from "../../store/useAIStore";
+import { elevation as ELEVATION, motion } from "../../lib/theme/tokens";
+import Reanimated, { FadeInDown } from "react-native-reanimated";
+import { GlowBackdrop } from "../../components/ui";
+
+/** Sections settle in one after another (honours Reduce Motion). */
+const sectionEntering = (i: number) => FadeInDown.delay(i * motion.stagger).springify().damping(18);
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
   textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
@@ -221,6 +230,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
+      <GlowBackdrop variant="subtle" style={GLOW_TOP} />
       {/* Header */}
       <View style={[styles.header, { backgroundColor: TC.surface, borderBottomColor: TC.border }]}>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backButton} onPress={() => router.back()}>
@@ -233,7 +243,7 @@ export default function SettingsScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Commute Section (PDF F1) — My Places + My Garage. Both open Edit
             Profile, which holds the address fields and the garage editor. */}
-        <View style={styles.section}>
+        <Reanimated.View entering={sectionEntering(0)} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Commute</Text>
 
           <TouchableOpacity
@@ -261,10 +271,10 @@ export default function SettingsScreen() {
             <Text style={[styles.settingLabel, { color: TC.text }]}>My Garage</Text>
             <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
-        </View>
+        </Reanimated.View>
 
         {/* Account Section */}
-        <View style={styles.section}>
+        <Reanimated.View entering={sectionEntering(1)} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Account</Text>
 
           <TouchableOpacity style={[styles.settingItem, { backgroundColor: TC.surface }]} onPress={handleEditProfile}>
@@ -290,11 +300,11 @@ export default function SettingsScreen() {
             <Text style={[styles.settingLabel, { color: TC.text }]}>Export My Data</Text>
             <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
-        </View>
+        </Reanimated.View>
 
         {/* Manager Section — only shown to managers */}
         {isManager && (
-          <View style={styles.section}>
+          <Reanimated.View entering={sectionEntering(2)} style={styles.section}>
             <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Management</Text>
             <TouchableOpacity
               style={[styles.settingItem, { backgroundColor: TC.surface }]}
@@ -306,11 +316,11 @@ export default function SettingsScreen() {
               <Text style={[styles.settingLabel, { color: TC.text }]}>Sustainability Dashboard</Text>
               <ChevronRight size={20} color={TC.textSecondary} />
             </TouchableOpacity>
-          </View>
+          </Reanimated.View>
         )}
 
         {/* Preferences Section */}
-        <View style={styles.section}>
+        <Reanimated.View entering={sectionEntering(3)} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Preferences</Text>
 
           <TouchableOpacity
@@ -399,7 +409,7 @@ export default function SettingsScreen() {
             </View>
           </View>
           )}
-        </View>
+        </Reanimated.View>
 
         {/* The community/map-visibility toggle lives in the profile editor
             (Profile tab → Privacy). It used to be duplicated here, and the two
@@ -407,7 +417,7 @@ export default function SettingsScreen() {
             the profile silently reverted it. */}
 
         {/* Legal Section */}
-        <View style={styles.section}>
+        <Reanimated.View entering={sectionEntering(4)} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Legal</Text>
 
           <TouchableOpacity style={[styles.settingItem, { backgroundColor: TC.surface, borderColor: TC.border }]} onPress={handlePrivacyPolicy}>
@@ -433,10 +443,10 @@ export default function SettingsScreen() {
             <Text style={[styles.settingLabel, { color: TC.text }]}>Licenses</Text>
             <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
-        </View>
+        </Reanimated.View>
 
         {/* Danger Zone */}
-        <View style={styles.section}>
+        <Reanimated.View entering={sectionEntering(5)} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: COLORS.red }]}>Danger Zone</Text>
 
           <TouchableOpacity
@@ -451,7 +461,7 @@ export default function SettingsScreen() {
             </Text>
             <ChevronRight size={20} color={COLORS.red} />
           </TouchableOpacity>
-        </View>
+        </Reanimated.View>
 
         {/* App Version */}
         <View style={styles.versionContainer}>
@@ -520,11 +530,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     marginBottom: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    boxShadow: ELEVATION.light.e2,
   },
   iconBox: {
     width: 40,

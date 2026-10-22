@@ -2,6 +2,7 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 import { cancelRide } from "../../lib/cancelRide";
 import { co2Share, shouldEndRide } from "../../lib/completeTrip";
+import { formatClockTime } from "../../lib/format";
 
 /**
  * Cancel and complete rules shared by the trip screen, Activity and the Map.
@@ -68,5 +69,18 @@ describe("shouldEndRide", () => {
 
   it("lets the one participant end a solo trip", () => {
     expect(shouldEndRide({ driver_id: null, rider_id: "r" }, "r")).toBe(true);
+  });
+});
+
+describe("formatClockTime", () => {
+  it("drops the seconds from a Postgres time", () => {
+    expect(formatClockTime("08:00:00")).toBe("08:00");
+    expect(formatClockTime("7:05")).toBe("07:05");
+  });
+
+  it("returns null for nothing to show, so callers can fall back", () => {
+    expect(formatClockTime(null)).toBeNull();
+    expect(formatClockTime("")).toBeNull();
+    expect(formatClockTime("tomorrow")).toBeNull();
   });
 });

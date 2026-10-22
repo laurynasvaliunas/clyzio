@@ -6,6 +6,7 @@ import { buildWebLink } from "../lib/deepLinks";
 import { REFERRAL_XP } from "../lib/gamification";
 import { editorial, weights } from "../lib/theme/tokens";
 import { Eyebrow, Pill, Picto } from "./ui/editorial";
+import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 /**
  * Persistent "bring a colleague" nudge for the Impact screen.
@@ -119,11 +120,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     padding: 20,
     marginBottom: 16,
-    shadowColor: editorial.ink,
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    boxShadow: ELEVATION.light.e4,
   },
   headerRow: {
     flexDirection: "row",

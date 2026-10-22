@@ -1,8 +1,10 @@
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BlurView } from "expo-blur";
 import { Avatar, toneFromKey } from "./ui/editorial";
-import { editorial } from "../lib/theme/tokens";
+import { editorial, elevation, getGlass, getPalette } from "../lib/theme/tokens";
+import { useTheme } from "../contexts/ThemeContext";
 
 interface BrandHeaderProps {
   userName?: string;
@@ -20,6 +22,10 @@ export default function BrandHeader({ userName = "", userAvatar, dateLabel }: Br
   // Anchor below the iOS Dynamic Island / Android status bar so logo + avatar
   // are never overlapped by system UI.
   const insets = useSafeAreaInsets();
+  const { isDark } = useTheme();
+  const g = getGlass(isDark);
+  const p = getPalette(isDark);
+  const shadow = (isDark ? elevation.dark : elevation.light).e3;
   const initials = userName
     ? userName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
     : "U";
@@ -34,7 +40,7 @@ export default function BrandHeader({ userName = "", userAvatar, dateLabel }: Br
     >
       {/* Logo + date floats top-left */}
       <View style={styles.leftCluster}>
-        <View style={styles.logoWrapper}>
+        <View style={[styles.logoWrapper, { boxShadow: shadow }]}>
           <Image
             source={require("../assets/icon.png")}
             style={styles.logoImage}
@@ -43,13 +49,21 @@ export default function BrandHeader({ userName = "", userAvatar, dateLabel }: Br
           />
         </View>
         {dateLabel ? (
-          <View style={styles.dateChip}>
+          <View style={[styles.dateChip, { boxShadow: shadow }]}>
+            <View style={styles.chipClip}>
+              <BlurView intensity={g.intensity} tint={g.tint} style={StyleSheet.absoluteFill} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: g.fill }]} />
+            </View>
+            <View
+              pointerEvents="none"
+              style={[styles.chipClip, { borderWidth: StyleSheet.hairlineWidth, borderColor: g.stroke, borderTopColor: g.highlight }]}
+            />
             {firstName ? (
-              <Text style={styles.greeting} numberOfLines={1}>
+              <Text style={[styles.greeting, isDark && { color: "#7FD3D6" }]} numberOfLines={1}>
                 Hi {firstName}
               </Text>
             ) : null}
-            <Text style={styles.dateText} numberOfLines={1}>
+            <Text style={[styles.dateText, { color: p.text }]} numberOfLines={1}>
               {dateLabel}
             </Text>
           </View>
@@ -58,14 +72,14 @@ export default function BrandHeader({ userName = "", userAvatar, dateLabel }: Br
 
       {/* Avatar floats top-right */}
       <TouchableOpacity
-        style={styles.avatarBtn}
+        style={[styles.avatarBtn, { boxShadow: shadow }]}
         onPress={() => router.push("/(tabs)/profile")}
         activeOpacity={0.8}
         accessibilityRole="button"
         accessibilityLabel="Open your profile and settings"
       >
         {userAvatar ? (
-          <Image source={{ uri: userAvatar }} style={styles.avatarImage} />
+          <Image source={{ uri: userAvatar }} style={[styles.avatarImage, { borderColor: p.surface }]} />
         ) : (
           <Avatar
             initials={initials}
@@ -99,27 +113,22 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   logoWrapper: {
-    shadowColor: editorial.ink,
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
+    borderRadius: 12,
   },
   logoImage: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
   },
   dateChip: {
-    backgroundColor: "rgba(255,255,255,0.92)",
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    shadowColor: editorial.ink,
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  chipClip: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 16,
+    overflow: "hidden",
   },
   greeting: {
     fontSize: 11,
@@ -134,11 +143,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   avatarBtn: {
-    shadowColor: editorial.ink,
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    borderRadius: 23,
   },
   avatarImage: {
     width: 42,

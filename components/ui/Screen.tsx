@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, ViewStyle
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getPalette } from '../../lib/theme/tokens';
 import { useTheme } from '../../contexts/ThemeContext';
+import { GlowBackdrop, GlowBackdropProps } from './GlowBackdrop';
 
 export interface ScreenProps {
   children: React.ReactNode;
@@ -12,6 +13,8 @@ export interface ScreenProps {
   keyboardAvoiding?: boolean;
   style?: ViewStyle;
   contentContainerStyle?: ViewStyle;
+  /** Soft ambient light behind the content (GlowBackdrop variant). */
+  glow?: GlowBackdropProps['variant'];
 }
 
 /**
@@ -27,6 +30,7 @@ export function Screen({
   keyboardAvoiding = true,
   style,
   contentContainerStyle,
+  glow,
 }: ScreenProps) {
   const { isDark } = useTheme();
   const p = getPalette(isDark);
@@ -49,6 +53,7 @@ export function Screen({
 
   return (
     <SafeAreaView edges={edges} style={[styles.flex, { backgroundColor: p.background }, style]}>
+      {glow ? <GlowBackdrop variant={glow} /> : null}
       <Wrap
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}

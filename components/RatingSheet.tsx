@@ -7,20 +7,33 @@ import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { t } from '../lib/i18n';
 
-const TAGS = [
-  'rating.tag.punctual',
-  'rating.tag.friendly',
-  'rating.tag.clean',
-  'rating.tag.safe',
-  'rating.tag.smooth',
-  'rating.tag.chatty',
-] as const;
+// Chips depend on who is being rated: a driver rating their passenger used to
+// be offered "Safe driver" / "Clean car".
+const TAGS = {
+  driver: [
+    'rating.tag.punctual',
+    'rating.tag.friendly',
+    'rating.tag.clean',
+    'rating.tag.safe',
+    'rating.tag.smooth',
+    'rating.tag.chatty',
+  ],
+  passenger: [
+    'rating.tag.ready',
+    'rating.tag.friendly',
+    'rating.tag.respectful',
+    'rating.tag.tidy',
+    'rating.tag.chatty',
+  ],
+} as const;
 
 interface Props {
   visible: boolean;
   rideId: string;
   ratedId: string;
   partnerName: string;
+  /** Role of the person being rated — picks the chips. */
+  ratedRole: 'driver' | 'passenger';
   onClose: () => void;
   onSubmitted?: () => void;
 }
@@ -35,6 +48,7 @@ export default function RatingSheet({
   rideId,
   ratedId,
   partnerName,
+  ratedRole,
   onClose,
   onSubmitted,
 }: Props) {
@@ -55,6 +69,8 @@ export default function RatingSheet({
     }
     setSubmitting(true);
     try {
+      // rater_id defaults to the caller (migration 049) — it was never sent,
+      // so every rating used to fail its NOT NULL check.
       const { error } = await supabase.from('ratings').insert({
         ride_id: rideId,
         rated_id: ratedId,
@@ -62,11 +78,16 @@ export default function RatingSheet({
         tags,
         comment: comment.trim() || null,
       });
+      if (error?.code === '23505') {
+        Alert.alert('Already rated', "You've already rated this ride.");
+        onClose();
+        return;
+      }
       if (error) throw error;
       onSubmitted?.();
       onClose();
-    } catch (err: any) {
-      Alert.alert('Could not submit rating', err?.message ?? 'Please try again.');
+    } catch {
+      Alert.alert('Could not submit rating', 'Check your connection and try again.');
     } finally {
       setSubmitting(false);
     }
@@ -102,7 +123,7 @@ export default function RatingSheet({
           </View>
 
           <View style={styles.tags}>
-            {TAGS.map((k) => {
+            {TAGS[ratedRole].map((k) => {
               const active = tags.includes(k);
               return (
                 <Pressable key={k} onPress={() => toggleTag(k)} hitSlop={4}>

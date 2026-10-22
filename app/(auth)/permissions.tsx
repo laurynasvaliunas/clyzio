@@ -11,6 +11,11 @@ import { Platform } from 'react-native';
 import { PERMISSIONS_PRIMED_KEY, nextRouteAfterAuth } from '../../lib/permissionsPriming';
 import { supabase } from '../../lib/supabase';
 import { registerAndSavePushToken } from '../../lib/pushToken';
+import { elevation as ELEVATION } from "../../lib/theme/tokens";
+import { GlowBackdrop } from "../../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 // After priming, continue the post-auth chain (→ first-run commute setup or Map).
 async function routeOnward(): Promise<string> {
@@ -161,6 +166,7 @@ export default function PermissionsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <GlowBackdrop variant="brand" style={GLOW_TOP} />
       <LinearGradient colors={[COLORS.background, COLORS.white]} style={StyleSheet.absoluteFill} />
 
       {/* Header */}
@@ -301,11 +307,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 28,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    boxShadow: ELEVATION.light.e3,
   },
   cardIcon: {
     width: 72,
@@ -357,11 +359,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingVertical: 16,
     borderRadius: 28,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    boxShadow: ELEVATION.light.e3,
   },
   primaryBtnText: {
     color: COLORS.white,

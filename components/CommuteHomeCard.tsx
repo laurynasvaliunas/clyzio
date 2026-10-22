@@ -1,7 +1,11 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { ArrowRight, Pencil, Leaf } from "lucide-react-native";
 import ModeIcon from "./ModeIcon";
+import { elevation as ELEVATION, getGlass, gradients } from "../lib/theme/tokens";
+import { PressableScale } from "./ui";
 
 /**
  * CommuteHomeCard — Stage 2 of the customer-journey PDF.
@@ -63,10 +67,27 @@ export default function CommuteHomeCard({
   isDark = false,
   onHeightChange,
 }: Props) {
-  const surface = isDark ? COLORS.surfaceDark : COLORS.surface;
   const ink = isDark ? COLORS.inkDark : COLORS.ink;
   const inkSoft = isDark ? COLORS.inkSoftDark : COLORS.inkSoft;
   const track = isDark ? COLORS.trackDark : COLORS.track;
+
+  const g = getGlass(isDark);
+  // Frosted surface (over the 3D map) with a lit top edge.
+  const glassLayer = (radius: number) => (
+    <>
+      <View style={[StyleSheet.absoluteFill, { borderRadius: radius, overflow: "hidden" }]}>
+        <BlurView intensity={g.intensity + 20} tint={g.tint} style={StyleSheet.absoluteFill} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: g.fill }]} />
+      </View>
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          { borderRadius: radius, borderWidth: StyleSheet.hairlineWidth, borderColor: g.stroke, borderTopColor: g.highlight },
+        ]}
+      />
+    </>
+  );
 
   const dayWord = targetDay === "today" ? "Today" : "Tomorrow";
   const dayPossessive = targetDay === "today" ? "Today's" : "Tomorrow's";
@@ -84,7 +105,8 @@ export default function CommuteHomeCard({
       onLayout={(e) => onHeightChange?.(e.nativeEvent.layout.height)}
     >
       {/* Today / Tomorrow toggle */}
-      <View style={[styles.toggle, { backgroundColor: surface }]} accessibilityRole="tablist">
+      <View style={styles.toggle} accessibilityRole="tablist">
+        {glassLayer(999)}
         {(["today", "tomorrow"] as PlanDay[]).map((day) => {
           const active = day === targetDay;
           return (
@@ -110,7 +132,8 @@ export default function CommuteHomeCard({
       </View>
 
       {/* The card itself */}
-      <View style={[styles.card, { backgroundColor: surface }]}>
+      <View style={styles.card}>
+        {glassLayer(26)}
         {plan ? (
           // ── Planned state ───────────────────────────────────────────────
           <View style={styles.plannedRow}>
@@ -168,18 +191,24 @@ export default function CommuteHomeCard({
                 How are you getting to work?
               </Text>
             </View>
-            <TouchableOpacity
+            <PressableScale
               style={styles.planBtn}
               onPress={onPlanRide}
-              activeOpacity={0.9}
+              haptic
               accessibilityRole="button"
               accessibilityLabel={`Plan your ride for ${dayWord.toLowerCase()}`}
             >
+              <LinearGradient
+                colors={["#16323A", COLORS.ink]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[StyleSheet.absoluteFill, { borderRadius: 18 }]}
+              />
               <Text style={styles.planBtnText}>Plan your ride</Text>
-              <View style={styles.planBtnIcon}>
-                <ArrowRight size={18} color={COLORS.ink} />
-              </View>
-            </TouchableOpacity>
+              <LinearGradient colors={gradients.brand} style={styles.planBtnIcon}>
+                <ArrowRight size={18} color="#FFFFFF" />
+              </LinearGradient>
+            </PressableScale>
           </>
         )}
       </View>
@@ -205,11 +234,7 @@ const styles = StyleSheet.create({
     // Lift the toggle crisply off the map (was washed-out / translucent).
     borderWidth: 1,
     borderColor: "rgba(11,26,31,0.06)",
-    shadowColor: "#0B1A1F",
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
+    boxShadow: ELEVATION.light.e3,
   },
   toggleSeg: {
     paddingHorizontal: 22,
@@ -230,11 +255,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 26,
     padding: 18,
-    shadowColor: "#0B1A1F",
-    shadowOpacity: 0.22,
-    shadowRadius: 28,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 14,
+    boxShadow: ELEVATION.light.e4,
   },
 
   // Empty (no plan) state
@@ -263,6 +284,9 @@ const styles = StyleSheet.create({
     paddingLeft: 22,
     paddingRight: 6,
     height: 56,
+    boxShadow: "0px 2px 4px rgba(11,26,31,0.16), 0px 12px 26px rgba(11,26,31,0.24)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.10)",
   },
   planBtnText: {
     color: "#FFFFFF",
@@ -274,9 +298,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#00565A",
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: "inset 0px 1px 2px rgba(255,255,255,0.35), 0px 4px 10px rgba(0,86,90,0.45)",
   },
 
   // Planned state
@@ -290,6 +314,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 16,
     backgroundColor: "rgba(0,86,90,0.12)",
+    boxShadow: "inset 0px 2px 3px rgba(255,255,255,0.8), inset 0px -3px 6px rgba(0,86,90,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },

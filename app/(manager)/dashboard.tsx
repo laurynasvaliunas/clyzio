@@ -24,6 +24,12 @@ import {
   Building2,
 } from "lucide-react-native";
 import { useManagerStore } from "../../store/useManagerStore";
+import { elevation as ELEVATION } from "../../lib/theme/tokens";
+import { AnimatedNumber, GlowBackdrop, TiltCard } from "../../components/ui";
+import { DeptSkyline } from "../../components/three";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
   textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
@@ -45,7 +51,7 @@ function ScoreGauge({ score }: { score: number }) {
   const color = score >= 70 ? COLORS.green : score >= 40 ? COLORS.orange : COLORS.red;
   return (
     <View style={styles.gaugeBox}>
-      <Text style={[styles.gaugeScore, { color: COLORS.white }]}>{score}</Text>
+      <AnimatedNumber value={score} style={[styles.gaugeScore, { color: COLORS.white }]} />
       <Text style={[styles.gaugeLabel, { color: "rgba(255,255,255,0.8)" }]}>/100</Text>
     </View>
   );
@@ -82,6 +88,7 @@ export default function ManagerDashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <GlowBackdrop variant="brand" style={GLOW_TOP} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backBtn} onPress={() => router.back()}>
@@ -97,6 +104,7 @@ export default function ManagerDashboardScreen() {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Green Commute Score Hero */}
+        <TiltCard radius={24} style={styles.heroTilt}>
         <LinearGradient
           colors={[COLORS.primary, COLORS.primaryDark, COLORS.dark]}
           style={styles.heroCard}
@@ -125,6 +133,7 @@ export default function ManagerDashboardScreen() {
             </>
           )}
         </LinearGradient>
+        </TiltCard>
 
         {/* Quick Stats Row */}
         <View style={styles.statsRow}>
@@ -224,6 +233,12 @@ export default function ManagerDashboardScreen() {
               <Building2 size={18} color={COLORS.primary} />
               <Text style={styles.sectionTitle}>Department Rankings</Text>
             </View>
+            {/* 3D skyline: one tower per department, height = CO₂ saved. */}
+            <DeptSkyline
+              values={sustainabilityReport!.department_rankings!.slice(0, 8).map((d) => d.co2_saved)}
+              style={styles.skyline}
+              accessibilityLabel="Departments as towers, taller for more CO₂ saved"
+            />
             {sustainabilityReport!.department_rankings!.slice(0, 4).map((dept, i) => (
               <View key={i} style={styles.deptRow}>
                 <View style={styles.deptRank}>
@@ -336,10 +351,15 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, paddingHorizontal: 16 },
 
   // Hero
+  heroTilt: { borderRadius: 24, marginBottom: 16, boxShadow: ELEVATION.light.e4 },
   heroCard: {
     borderRadius: 24, padding: 28,
-    alignItems: "center", marginBottom: 16,
+    alignItems: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.16)",
+    borderTopColor: "rgba(255,255,255,0.32)",
   },
+  skyline: { height: 180, marginHorizontal: -16, marginBottom: 4 },
   heroCompany: { fontSize: 14, color: "rgba(255,255,255,0.7)", marginBottom: 4 },
   heroLabel: { fontSize: 13, color: "rgba(255,255,255,0.8)", marginBottom: 8 },
   gaugeBox: { alignItems: "center", flexDirection: "row", gap: 4 },
@@ -355,19 +375,24 @@ const styles = StyleSheet.create({
   // Stats row
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
   statCard: {
-    flex: 1, backgroundColor: COLORS.white, borderRadius: 20,
-    padding: 14, alignItems: "center", gap: 6,
-    shadowColor: COLORS.primary, shadowOpacity: 0.12,
-    shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    flex: 1,
+ backgroundColor: COLORS.white,
+ borderRadius: 20,
+    padding: 14,
+ alignItems: "center",
+ gap: 6,
+    boxShadow: ELEVATION.light.e2,
   },
   statValue: { fontSize: 15, fontWeight: "800", color: COLORS.dark },
   statLabel: { fontSize: 11, color: COLORS.textMuted, textAlign: "center" },
 
   // Section
   section: {
-    backgroundColor: COLORS.white, borderRadius: 20, padding: 18,
+    backgroundColor: COLORS.white,
+ borderRadius: 20,
+ padding: 18,
     marginBottom: 14,
-    shadowColor: "#000", shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
+    boxShadow: ELEVATION.light.e2,
   },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 },
   sectionTitle: { fontSize: 15, fontWeight: "700", color: COLORS.dark },

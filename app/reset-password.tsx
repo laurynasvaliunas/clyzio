@@ -11,6 +11,11 @@ import { Lock, Eye, EyeOff, ShieldCheck, Check } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
 import { consumeRecoveryEvent, takeRecoveryUrl } from "../lib/recoveryLink";
+import { depth } from "../lib/theme/tokens";
+import { GlowBackdrop } from "../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
   primary: "#00565A",
@@ -130,6 +135,7 @@ export default function ResetPasswordScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <GlowBackdrop variant="brand" style={GLOW_TOP} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.iconWrap}>
@@ -217,6 +223,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 72, height: 72, borderRadius: 20, alignSelf: "center",
     backgroundColor: "#E6F1F2", alignItems: "center", justifyContent: "center", marginBottom: 20,
+    boxShadow: depth.embossLight,
   },
   heading: { fontSize: 26, fontWeight: "700", color: COLORS.dark, textAlign: "center" },
   sub: { fontSize: 15, color: COLORS.textSecondary, textAlign: "center", lineHeight: 22, marginTop: 8, marginBottom: 8 },

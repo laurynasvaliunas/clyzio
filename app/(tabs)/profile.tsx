@@ -12,7 +12,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { LogOut, Leaf, Check, Settings, CalendarRange } from "lucide-react-native";
+import { LevelGem } from "../../components/three";
+import { GlowBackdrop } from "../../components/ui";
+import { LogOut, Check, Settings, CalendarRange } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import { signOut } from "../../lib/signOut";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -23,6 +25,7 @@ import CommuteMixEditor, {
   type CommuteHabit,
   computeBaseline,
 } from "../../components/CommuteMixEditor";
+import { elevation as ELEVATION } from "../../lib/theme/tokens";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
@@ -52,6 +55,15 @@ function getEcoLevel(baseline: number | null) {
   return { label: "Getting Started", color: COLORS.textMuted };
 }
 
+/** Gem tier for the 3D crown, from the same baseline bands as getEcoLevel. */
+function gemTier(baseline: number | null): number {
+  if (baseline === null || baseline >= 0.12) return 1;
+  if (baseline === 0) return 9;
+  if (baseline < 0.04) return 7;
+  if (baseline < 0.08) return 5;
+  return 4;
+}
+
 /**
  * ScoreCard - Displays CO₂ baseline score with glow effect
  */
@@ -73,7 +85,8 @@ function ScoreCard({ baseline, scaleAnim, glowOpacity, ecoLevel }: ScoreCardProp
         end={{ x: 1, y: 1 }}
         style={styles.scoreCard}
       >
-        <Leaf size={24} color={COLORS.white} style={{ opacity: 0.8 }} />
+        {/* A floating 3D gem whose colour climbs with the eco tier. */}
+        <LevelGem level={gemTier(baseline)} style={styles.scoreGem} />
         <Text style={styles.scoreLabel}>Your carbon baseline</Text>
         {baseline === null ? (
           <>
@@ -252,6 +265,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
+      <GlowBackdrop variant="brand" style={styles.screenGlow} />
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -345,6 +359,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   // ===== CONTAINER & SCROLL =====
   container: { flex: 1, backgroundColor: COLORS.background },
+  screenGlow: { bottom: undefined, height: 420 },
   scroll: { flex: 1 },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
   
@@ -361,33 +376,43 @@ const styles = StyleSheet.create({
   settingsButton: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(11,26,31,0.08)",
     backgroundColor: COLORS.white,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
+    boxShadow: ELEVATION.light.e2,
   },
   
 
   // ===== SCORE CARD =====
   // Rendered inside ProfileEditor's 16 pt wrapper — no extra inset (was 32 pt).
   scoreCardContainer: { marginBottom: 20, position: "relative" },
+  // Hidden behind the card; only its teal glow spills out (and pulses).
   scoreGlow: {
     position: "absolute",
-    top: 10,
-    left: 10,
-    right: 10,
-    bottom: -10,
+    top: 24,
+    left: 24,
+    right: 24,
+    bottom: 8,
     backgroundColor: COLORS.primary,
     borderRadius: 28,
     zIndex: -1,
+    boxShadow: "0px 18px 44px rgba(0,86,90,0.65)",
   },
-  scoreCard: { borderRadius: 24, padding: 24, alignItems: "center" },
-  scoreLabel: { fontSize: 14, color: COLORS.white, opacity: 0.9, marginTop: 8 },
+  scoreCard: {
+    borderRadius: 28,
+    padding: 24,
+    paddingTop: 8,
+    alignItems: "center",
+    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.16)",
+    borderTopColor: "rgba(255,255,255,0.32)",
+  },
+  scoreGem: { width: 150, height: 120 },
+  scoreLabel: { fontSize: 14, color: COLORS.white, opacity: 0.9, marginTop: 2 },
   scoreValue: { fontWeight: "800", fontSize: 72, lineHeight: 86, letterSpacing: -2, color: COLORS.white, marginVertical: 4 },
   scoreEmpty: {
     fontSize: 30,
@@ -399,7 +424,14 @@ const styles = StyleSheet.create({
   scoreUnit: { fontSize: 14, color: COLORS.white, opacity: 0.8 },
   // White pill on the teal card: dark-teal text on it is ~11:1 (it was teal
   // text on a teal pill, ~1.4:1).
-  levelBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginTop: 12, backgroundColor: COLORS.white },
+  levelBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 12,
+    backgroundColor: COLORS.white,
+    boxShadow: "0px 6px 16px rgba(0,0,0,0.18)",
+  },
   levelText: { color: COLORS.dark, fontWeight: "700", fontSize: 14 },
   
   // ===== COMMUTE SECTION =====
@@ -434,14 +466,10 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: "center",
     marginRight: 12,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 3,
     borderWidth: 2,
     borderColor: COLORS.transparent,
     position: "relative",
+    boxShadow: ELEVATION.light.e2,
   },
   modeCardSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primaryDark, shadowColor: COLORS.primary, shadowOpacity: 0.3, shadowOffset: { width: 0, height: 2 }, elevation: 8 },
   modeCardHasData: { borderColor: COLORS.primary },
@@ -461,11 +489,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginTop: 16,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 4,
+    boxShadow: ELEVATION.light.e2,
   },
   daySelectorTitle: { fontSize: 14, color: COLORS.dark, marginBottom: 16, textAlign: "center" },
   dayBubbles: { flexDirection: "row", justifyContent: "center", gap: 10 },

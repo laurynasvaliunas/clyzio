@@ -48,6 +48,7 @@ import { useDailyCommuteStore } from "../store/useDailyCommuteStore";
 import OpenTripToggle from "./OpenTripToggle";
 
 import { MAPBOX_TOKEN } from "../lib/config";
+import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
 const { height } = Dimensions.get("window");
 // Fixed sheet height once the mode section is visible, so toggling
 // Solo/Driver/Rider swaps inner content without resizing (and jumping) the sheet.
@@ -1146,11 +1147,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 32,
     maxHeight: height * 0.92,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 10,
+    boxShadow: ELEVATION.light.e3,
   },
   // Lets the body fill the fixed-height sheet (modeReady) and scroll, instead of
   // the content dictating the sheet height.
@@ -1226,13 +1223,9 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 12,
     padding: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 5,
     maxHeight: 200,
     zIndex: 1000,
+    boxShadow: ELEVATION.light.e2,
   },
   resultItem: {
     flexDirection: "row",
@@ -1267,11 +1260,7 @@ const styles = StyleSheet.create({
   },
   roleSelectorItemActive: {
     backgroundColor: COLORS.white,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    boxShadow: ELEVATION.light.e2,
   },
   roleSelectorLabel: {
     fontSize: 14,
@@ -1337,6 +1326,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + "14",
     borderWidth: 1,
     borderColor: COLORS.primary + "55",
+    boxShadow: depth.embossLight,
   },
   stepperValue: {
     fontSize: 20,
@@ -1371,6 +1361,7 @@ const styles = StyleSheet.create({
   vehicleChipActive: {
     borderColor: COLORS.primary,
     backgroundColor: COLORS.primary + "14",
+    boxShadow: depth.selected,
   },
   vehicleChipText: { fontSize: 13, color: COLORS.textMuted },
 
@@ -1388,6 +1379,7 @@ const styles = StyleSheet.create({
   modeItemActive: {
     borderColor: COLORS.primary,
     backgroundColor: COLORS.primary + "10",
+    boxShadow: depth.selected,
   },
   iconBox: {
     width: 48,
@@ -1462,6 +1454,7 @@ const styles = StyleSheet.create({
   transitRowActive: {
     borderColor: COLORS.primary,
     backgroundColor: COLORS.primary + "10",
+    boxShadow: depth.selected,
   },
   transitDot: {
     position: "relative",
@@ -1508,11 +1501,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: "center",
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    boxShadow: ELEVATION.light.e3,
   },
   btnDisabled: {
     backgroundColor: COLORS.gray, // solid — 0.5 opacity let the list show through

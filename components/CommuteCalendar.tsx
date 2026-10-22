@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 /**
  * CommuteCalendar — Stage 5 of the customer-journey PDF.
@@ -161,11 +162,7 @@ const styles = StyleSheet.create({
     // No horizontal margin: hosts already pad by 16 (Activity's list content),
     // and the extra margin double-inset the card to 32 vs 16 for trip cards.
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 3,
+    boxShadow: ELEVATION.light.e2,
   },
   title: { fontSize: 16, fontWeight: "700" },
   month: { fontSize: 12, marginTop: 2, marginBottom: 12 },

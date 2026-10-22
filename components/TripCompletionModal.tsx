@@ -8,8 +8,10 @@ import {
   Animated,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Trophy, Leaf, X, Zap, TrendingUp } from "lucide-react-native";
+import { MedalBurst } from "./three";
+import { Trophy, Leaf, X, TrendingUp } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 // Editorial reskin — brand + paper-ink palette.
 const COLORS = {
@@ -72,7 +74,6 @@ export default function TripCompletionModal({
   // Animation references
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const confettiAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
   /**
@@ -116,29 +117,13 @@ export default function TripCompletionModal({
         }),
       ]).start();
 
-      // Start rotating confetti animation (continuous loop)
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(confettiAnim, {
-            toValue: 1,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(confettiAnim, {
-            toValue: 0,
-            duration: 0,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
     } else {
       // Reset all animations when modal closes
       scaleAnim.setValue(0);
       fadeAnim.setValue(0);
       slideAnim.setValue(50);
-      confettiAnim.setValue(0);
     }
-  }, [visible, scaleAnim, fadeAnim, slideAnim, confettiAnim]);
+  }, [visible, scaleAnim, fadeAnim, slideAnim]);
 
   return (
     <Modal
@@ -168,28 +153,13 @@ export default function TripCompletionModal({
               <X size={24} color={COLORS.white} />
             </TouchableOpacity>
 
-            {/* Success Icon */}
-            <Animated.View
-              style={[
-                styles.iconContainer,
-                {
-                  transform: [
-                    {
-                      rotate: confettiAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ["0deg", "360deg"],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              {leveledUp ? (
-                <Trophy size={80} color={COLORS.accent} />
-              ) : (
-                <Zap size={80} color={COLORS.accent} />
-              )}
-            </Animated.View>
+            {/* 3D medal spins in with a confetti burst (remounts per visit). */}
+            {visible && (
+              <MedalBurst
+                style={styles.medal}
+                accessibilityLabel={leveledUp ? "Level-up medal" : "Trip completed medal"}
+              />
+            )}
 
             {/* Title */}
             <Text style={styles.title}>
@@ -251,6 +221,7 @@ export default function TripCompletionModal({
 }
 
 const styles = StyleSheet.create({
+  medal: { width: "100%", height: 180, marginTop: -8, marginBottom: 4 },
   // ===== MODAL CONTAINER =====
   overlay: {
     flex: 1,
@@ -376,12 +347,8 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     width: "100%",
     alignItems: "center",
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
     marginBottom: 16,
+    boxShadow: ELEVATION.light.e3,
   },
   actionBtnText: {
     fontSize: 18,

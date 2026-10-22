@@ -3,6 +3,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import ProfileEditor from "../../components/ProfileEditor";
+import { GlowBackdrop } from "../../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 /**
  * /settings/edit-profile — thin route wrapper around ProfileEditor.
@@ -28,6 +32,7 @@ export default function EditProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <GlowBackdrop variant="subtle" style={GLOW_TOP} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backButton} onPress={() => router.back()}>

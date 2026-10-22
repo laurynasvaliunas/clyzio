@@ -16,6 +16,7 @@ import {
   FUELED_VEHICLE_TYPES,
   makeVehicle,
 } from "../lib/vehicles";
+import { depth } from "../lib/theme/tokens";
 
 const COLORS = {
   textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
@@ -410,6 +411,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 999,
     backgroundColor: COLORS.primary,
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   saveBtnText: { fontSize: 13, fontWeight: "700", color: COLORS.dark },
   typeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
@@ -475,6 +479,9 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 999,
     backgroundColor: COLORS.primary,
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   addBtnText: {
     fontSize: 13,

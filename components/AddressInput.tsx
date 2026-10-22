@@ -12,6 +12,7 @@ import { X } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import { MAPBOX_TOKEN } from "../lib/config";
+import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 const COLORS = {
   primary: "#00565A",
@@ -183,11 +184,7 @@ export default function AddressInput({
               borderWidth: isFocused ? 2 : 1,
               borderColor,
               ...(isFocused && {
-                shadowColor: COLORS.primary,
-                shadowOpacity: 0.2,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 0 },
-                elevation: 4,
+                boxShadow: ELEVATION.light.e3,
               }),
             },
           ]}
@@ -263,11 +260,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 12,
     maxHeight: 250,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 8,
+    boxShadow: ELEVATION.light.e2,
   },
   suggestionRow: {
     paddingVertical: 12,

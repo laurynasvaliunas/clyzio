@@ -15,7 +15,7 @@ export interface BadgeProps {
 export function Badge({ label, tone = 'neutral', style }: BadgeProps) {
   const { bg, fg } = toneMap(tone);
   return (
-    <View style={[styles.pill, { backgroundColor: bg }, style]}>
+    <View style={[styles.pill, { backgroundColor: bg, borderColor: fg + '1F' }, style]}>
       <Text variant="label" style={{ color: fg }}>
         {label.toUpperCase()}
       </Text>
@@ -39,5 +39,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[1],
     paddingHorizontal: spacing[2] + 2,
     borderRadius: radii.full,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 });

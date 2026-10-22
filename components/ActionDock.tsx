@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { useTheme } from "../contexts/ThemeContext";
 import { Picto } from "./ui/editorial";
 import { editorial, typography } from "../lib/theme/tokens";
+import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 interface ActionDockProps {
   onPress: () => void;
@@ -50,12 +51,8 @@ const styles = StyleSheet.create({
     right: 16,
     height: 64,
     borderRadius: 28,
-    shadowColor: editorial.ink,
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 28,
-    elevation: 16,
     zIndex: 30,
+    boxShadow: ELEVATION.light.e4,
   },
   pill: {
     backgroundColor: editorial.ink,
@@ -93,10 +90,6 @@ const styles = StyleSheet.create({
     backgroundColor: editorial.cyan,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: editorial.cyan,
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 6,
+    boxShadow: ELEVATION.light.e3,
   },
 });

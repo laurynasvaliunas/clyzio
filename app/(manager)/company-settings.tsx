@@ -16,6 +16,11 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { getPalette, brand, spacing } from "../../lib/theme/tokens";
 import { Text } from "../../components/ui";
 import { useToast } from "../../contexts/ToastContext";
+import { depth } from "../../lib/theme/tokens";
+import { GlowBackdrop } from "../../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 /**
  * Admin (is_manager) screen for company-level toggles. Backed by the
@@ -104,6 +109,7 @@ export default function CompanySettingsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: p.background }}>
+      <GlowBackdrop variant="subtle" style={GLOW_TOP} />
       <View
         style={[
           styles.header,
@@ -212,5 +218,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
+    boxShadow: depth.emboss,
   },
 });

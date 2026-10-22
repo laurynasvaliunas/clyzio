@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Leaf, X, ArrowRight } from "lucide-react-native";
+import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 /**
  * YesterdayImpactCard — Stage 4 of the customer-journey PDF.
@@ -132,11 +133,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 18,
     gap: 12,
-    shadowColor: "#0B1A1F",
-    shadowOpacity: 0.18,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 12,
+    boxShadow: ELEVATION.light.e4,
   },
   dismiss: {
     position: "absolute",

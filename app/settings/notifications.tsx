@@ -9,6 +9,10 @@ import { supabase } from '../../lib/supabase';
 import { Text } from '../../components/ui';
 import { t } from '../../lib/i18n';
 import { useToast } from '../../contexts/ToastContext';
+import { GlowBackdrop } from "../../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 type Prefs = {
   matches: boolean;
@@ -94,6 +98,7 @@ export default function NotificationPrefsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: p.background }}>
+      <GlowBackdrop variant="subtle" style={GLOW_TOP} />
       <View style={[styles.header, { borderBottomColor: p.border, backgroundColor: p.surface }]}>
         <TouchableOpacity
           onPress={() => router.back()}

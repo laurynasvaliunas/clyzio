@@ -13,7 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
-import Mapbox, { MapView, Camera, PointAnnotation } from "@rnmapbox/maps";
+import Mapbox, { MapView, Camera, PointAnnotation , StyleImport } from "@rnmapbox/maps";
+import { MAP_STYLE_3D, standardConfig } from "../../lib/map3d";
 import { Home, Briefcase, X, Check, MapPin, ArrowRight, ArrowLeft } from "lucide-react-native";
 
 import { supabase } from "../../lib/supabase";
@@ -22,6 +23,11 @@ import { MAPBOX_TOKEN, IS_MAPBOX_TOKEN_VALID } from "../../lib/config";
 import { useToast } from "../../contexts/ToastContext";
 import AddressInput from "../../components/AddressInput";
 import SetupProgress from "../../components/SetupProgress";
+import { elevation as ELEVATION } from "../../lib/theme/tokens";
+import { GlowBackdrop } from "../../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 if (IS_MAPBOX_TOKEN_VALID) {
   Mapbox.setAccessToken(MAPBOX_TOKEN);
@@ -73,7 +79,9 @@ export default function PlacesScreen() {
 
   const [home, setHome] = useState<Pin>(null);
   const [work, setWork] = useState<Pin>(null);
-  const [detected, setDetected] = useState<Place | null>(null);     // current-location reverse-geocoded
+  const [detected, setDetected] = useState<Place | null>(null);
+  // Standard (3D) style failed to load → flat Street.
+  const [flatMap, setFlatMap] = useState(false);     // current-location reverse-geocoded
   const [promptVisible, setPromptVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   // Hide the (preview-only) map while the keyboard is up, so both address
@@ -227,6 +235,7 @@ export default function PlacesScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
+      <GlowBackdrop variant="subtle" style={GLOW_TOP} />
       <View style={styles.headerRow}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -253,12 +262,16 @@ export default function PlacesScreen() {
         {IS_MAPBOX_TOKEN_VALID ? (
           <MapView
             style={styles.map}
-            styleURL={Mapbox.StyleURL.Street}
+            // Same 3D city look as the Map tab, kept top-down (pitch 0) so
+            // pins land exactly where they're dropped.
+            styleURL={flatMap ? Mapbox.StyleURL.Street : MAP_STYLE_3D}
+            onMapLoadingError={() => setFlatMap(true)}
             logoEnabled
             attributionEnabled
             scaleBarEnabled={false}
             compassEnabled={false}
           >
+            {!flatMap && <StyleImport id="basemap" existing config={standardConfig("day")} />}
             <Camera
               ref={cameraRef}
               defaultSettings={{
@@ -268,14 +281,14 @@ export default function PlacesScreen() {
             />
             {hasCoords(home) && (
               <PointAnnotation id="home-pin" coordinate={[home.lng, home.lat]}>
-                <View style={[styles.pin, { backgroundColor: COLORS.homePin }]}>
+                <View collapsable={false} style={[styles.pin, { backgroundColor: COLORS.homePin }]}>
                   <Home size={16} color={COLORS.surface} />
                 </View>
               </PointAnnotation>
             )}
             {hasCoords(work) && (
               <PointAnnotation id="work-pin" coordinate={[work.lng, work.lat]}>
-                <View style={[styles.pin, { backgroundColor: COLORS.workPin }]}>
+                <View collapsable={false} style={[styles.pin, { backgroundColor: COLORS.workPin }]}>
                   <Briefcase size={16} color={COLORS.surface} />
                 </View>
               </PointAnnotation>
@@ -443,11 +456,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     borderColor: COLORS.surface,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
+    boxShadow: ELEVATION.light.e3,
   },
   prompt: {
     position: "absolute",
@@ -458,11 +467,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     gap: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    boxShadow: ELEVATION.light.e4,
   },
   promptHeader: {
     flexDirection: "row",

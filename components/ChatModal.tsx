@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Send, X } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
+import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
 
 // Editorial reskin — paper/ink palette.
 const COLORS = {
@@ -319,11 +320,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    boxShadow: ELEVATION.light.e1,
   },
   myBubble: {
     backgroundColor: COLORS.primary,
@@ -383,6 +380,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   sendBtnDisabled: {
     backgroundColor: "#EDF1F2",

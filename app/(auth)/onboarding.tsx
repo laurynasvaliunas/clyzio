@@ -15,6 +15,8 @@ import { supabase } from "../../lib/supabase";
 import { friendlyError } from "../../lib/friendlyError";
 import { nextRouteAfterAuth } from "../../lib/permissionsPriming";
 import { useToast } from "../../contexts/ToastContext";
+import { elevation as ELEVATION, depth } from "../../lib/theme/tokens";
+import { GlowBackdrop } from "../../components/ui";
 
 // Brand Colors
 const COLORS = {
@@ -223,6 +225,7 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <GlowBackdrop variant="brand" />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
@@ -331,11 +334,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 16,
-    elevation: 8,
+    boxShadow: depth.emboss,
   },
   welcomeText: { fontSize: 16, color: COLORS.textMuted, marginBottom: 4 },
   companyName: { fontSize: 32, fontWeight: "700", color: COLORS.dark, marginBottom: 12 },
@@ -364,19 +363,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
+    minHeight: 60,
     borderWidth: 2,
     borderColor: "transparent",
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
+    boxShadow: ELEVATION.light.e2,
   },
   departmentCardSelected: {
     borderColor: COLORS.primary,
     backgroundColor: COLORS.light,
+    boxShadow: depth.selected,
   },
   checkCircle: {
     width: 28,
@@ -391,21 +388,27 @@ const styles = StyleSheet.create({
   checkCircleSelected: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
+    boxShadow: depth.selected,
   },
   departmentName: { flex: 1, fontSize: 16, color: COLORS.dark },
   departmentNameSelected: { fontWeight: "600", color: COLORS.primaryDark },
   infoCard: {
-    backgroundColor: COLORS.accent + "20",
-    borderRadius: 16,
+    backgroundColor: COLORS.accent + "1A",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.accent + "40",
+    borderRadius: 18,
     padding: 18,
     marginBottom: 32,
   },
   infoTitle: { fontSize: 15, fontWeight: "700", color: COLORS.dark, marginBottom: 8 },
   infoText: { fontSize: 13, color: COLORS.dark, lineHeight: 20 },
   actions: { gap: 12 },
-  continueButton: { borderRadius: 16, overflow: "hidden" },
+  continueButton: { borderRadius: 18, boxShadow: depth.ctaGlow },
   continueButtonDisabled: { opacity: 0.6 },
   continueGradient: {
+    borderRadius: 18,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
     paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",

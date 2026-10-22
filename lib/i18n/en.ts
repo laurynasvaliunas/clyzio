@@ -34,6 +34,9 @@ export const en = {
   'rating.tag.safe': 'Safe driver',
   'rating.tag.smooth': 'Smooth ride',
   'rating.tag.chatty': 'Great conversation',
+  'rating.tag.ready': 'Ready at pickup',
+  'rating.tag.respectful': 'Respectful',
+  'rating.tag.tidy': 'Left the car tidy',
   'rating.comment.placeholder': 'Add a comment (optional)',
   'rating.submit': 'Submit rating',
 

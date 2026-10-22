@@ -39,6 +39,11 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors, TAB_SCREEN_BOTTOM_PADDING } from "../../lib/theme";
 import { getLevelInfo, XP_PER_TRIP, TRIPS_PER_LEVEL, MAX_LEVEL, LEVEL_TITLES } from "../../lib/gamification";
 import { co2Share } from "../../lib/completeTrip";
+import { EcoGlobe, DeptSkyline } from "../../components/three";
+import { AnimatedNumber, GlowBackdrop, TiltCard } from "../../components/ui";
+import { gradients } from "../../lib/theme/tokens";
+import { elevation as ELEVATION } from "../../lib/theme/tokens";
+import { depth } from "../../lib/theme/tokens";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
@@ -150,7 +155,12 @@ function BadgeItem({ badge, isUnlocked, onPress }: BadgeItemProps) {
       onPress={() => isUnlocked && onPress()}
       activeOpacity={isUnlocked ? 0.7 : 1}
     >
-      <View style={[styles.badgeCircle, isUnlocked && { backgroundColor: badge.color + "20" }]}>
+      <View
+        style={[
+          styles.badgeCircle,
+          isUnlocked && [styles.badgeCircleUnlocked, { backgroundColor: badge.color + "1F", borderColor: badge.color + "40" }],
+        ]}
+      >
         {isUnlocked ? (
           <IconComponent size={24} color={badge.color} />
         ) : (
@@ -443,6 +453,11 @@ export default function StatsScreen() {
   const treesPlanted = useMemo(() => Math.floor(stats.total_co2_saved / CO2_PER_TREE), [stats.total_co2_saved]);
   const treeProgress = useMemo(() => (stats.total_co2_saved % CO2_PER_TREE) / CO2_PER_TREE, [stats.total_co2_saved]);
   const maxBar = useMemo(() => Math.max(stats.this_week_co2, stats.last_week_co2, 1), [stats.this_week_co2, stats.last_week_co2]);
+  // 3D globe: land starts fresh-green and grows lusher toward the 100 kg
+  // "Planet Protector" milestone; each tree equivalent plants three small
+  // trees (plus progress toward the next).
+  const globeGreenness = 0.35 + 0.65 * Math.min(1, stats.total_co2_saved / 100);
+  const globeTrees = treesPlanted * 3 + Math.floor(treeProgress * 3);
 
   // Period summary (week / month / all) computed client-side from completed
   // rides — distance, CO₂ saved, and trip count for the selected window.
@@ -494,6 +509,7 @@ export default function StatsScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
+      <GlowBackdrop variant="eco" style={styles.screenGlow} />
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -588,17 +604,32 @@ export default function StatsScreen() {
           </View>
         )}
 
-        {/* Hero CO₂ Card */}
+        {/* Hero: a 3D planet that greens as you save CO₂, with the
+            headline number on a card that tilts under your finger. */}
         <View style={styles.heroContainer}>
-          <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.heroCard}>
+          <EcoGlobe
+            greenness={globeGreenness}
+            trees={globeTrees}
+            style={styles.globe}
+            accessibilityLabel={`Your planet, ${stats.total_co2_saved.toFixed(1)} kilograms of CO₂ saved`}
+          />
+          <TiltCard radius={28} style={styles.heroTilt}>
+          <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
             <View style={styles.heroTop}>
               <View style={styles.heroMetric}>
                 <Text style={styles.heroLabel}>Total CO₂ Saved</Text>
-                <Text style={styles.heroValue}>{stats.total_co2_saved.toFixed(1)}</Text>
+                <AnimatedNumber
+                  value={stats.total_co2_saved}
+                  decimals={1}
+                  style={styles.heroValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.5}
+                />
                 <Text style={styles.heroUnit}>kilograms</Text>
               </View>
               <Animated.View style={[styles.treeContainer, { transform: [{ scale: treeScale }] }]}>
-                <TreeDeciduous size={80} color={COLORS.white} />
+                <TreeDeciduous size={44} color={COLORS.white} />
               </Animated.View>
             </View>
 
@@ -608,28 +639,40 @@ export default function StatsScreen() {
                 <Text style={styles.treesValue}>{treesPlanted}</Text>
               </View>
               <View style={styles.treeProgressBarBg}>
-                <View style={[styles.treeProgressBarFill, { width: `${treeProgress * 100}%` }]} />
+                <LinearGradient
+                  colors={gradients.sun}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.treeProgressBarFill, { width: `${treeProgress * 100}%` }]}
+                />
               </View>
               <Text style={styles.progressText}>{((1 - treeProgress) * CO2_PER_TREE).toFixed(1)} kg to next tree</Text>
             </View>
           </LinearGradient>
+          </TiltCard>
         </View>
 
         {/* Stats Row */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: TC.surface }]}>
-            <Target size={22} color={COLORS.primary} />
-            <Text style={[styles.statValue, { color: TC.text }]}>{stats.total_trips}</Text>
+            <View style={[styles.statIcon, { backgroundColor: COLORS.primary + "14" }]}>
+              <Target size={20} color={COLORS.primary} />
+            </View>
+            <AnimatedNumber value={stats.total_trips} style={[styles.statValue, { color: TC.text }]} />
             <Text style={[styles.statLabel, { color: TC.textSecondary }]}>Trips</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: TC.surface }]}>
-            <TrendingUp size={22} color={COLORS.green} />
-            <Text style={[styles.statValue, { color: TC.text }]}>{stats.this_week_co2.toFixed(1)}</Text>
+            <View style={[styles.statIcon, { backgroundColor: COLORS.green + "14" }]}>
+              <TrendingUp size={20} color={COLORS.green} />
+            </View>
+            <AnimatedNumber value={stats.this_week_co2} decimals={1} style={[styles.statValue, { color: TC.text }]} />
             <Text style={[styles.statLabel, { color: TC.textSecondary }]}>This Week</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: TC.surface }]}>
-            <Zap size={22} color={COLORS.accent} />
-            <Text style={[styles.statValue, { color: TC.text }]}>{xpPoints}</Text>
+            <View style={[styles.statIcon, { backgroundColor: COLORS.accent + "1A" }]}>
+              <Zap size={20} color={COLORS.accentDark} />
+            </View>
+            <AnimatedNumber value={xpPoints} style={[styles.statValue, { color: TC.text }]} />
             <Text style={[styles.statLabel, { color: TC.textSecondary }]}>XP</Text>
           </View>
         </View>
@@ -956,6 +999,13 @@ export default function StatsScreen() {
                 <Text style={[styles.sectionTitle, { color: TC.text }]}>Department vs Department</Text>
               </View>
 
+              {companyBreakdown.length > 0 && (
+                <DeptSkyline
+                  values={companyBreakdown.map((d) => d.total_co2_saved)}
+                  style={styles.skyline}
+                  accessibilityLabel="Departments as towers, taller for more CO₂ saved"
+                />
+              )}
               {companyBreakdown.length === 0 ? (
                 <Text style={[styles.emptyText, { color: TC.textSecondary }]}>No department data available</Text>
               ) : (
@@ -1019,6 +1069,7 @@ export default function StatsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  screenGlow: { bottom: undefined, height: 560 },
   scroll: { flex: 1 },
   loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
@@ -1033,11 +1084,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     padding: 4,
     position: "relative",
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
+    boxShadow: ELEVATION.light.e2,
   },
   segmentIndicator: {
     position: "absolute",
@@ -1046,6 +1093,9 @@ const styles = StyleSheet.create({
     width: "33.33%",
     backgroundColor: COLORS.primary,
     borderRadius: 999,
+    boxShadow: "0px 4px 12px rgba(0,86,90,0.30)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   segmentBtn: {
     flex: 1,
@@ -1111,11 +1161,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginHorizontal: 16,
     marginTop: 16,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 3,
+    boxShadow: ELEVATION.light.e2,
   },
   breakdownItem: { marginBottom: 16 },
   breakdownHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
@@ -1132,11 +1178,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginHorizontal: 16,
     marginTop: 16,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 3,
+    boxShadow: ELEVATION.light.e2,
   },
   levelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   levelHint: { fontWeight: "600", fontSize: 11, letterSpacing: 1.4, marginBottom: 14 },
@@ -1174,23 +1216,42 @@ const styles = StyleSheet.create({
   badgesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   badgeItem: { width: "30%", alignItems: "center", opacity: 0.5 },
   badgeItemUnlocked: { opacity: 1 },
-  badgeCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.light, alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  badgeCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: COLORS.light, alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  // Embossed coin: lit top edge, shaded underside, soft drop shadow.
+  badgeCircleUnlocked: {
+    borderWidth: 1,
+    boxShadow:
+      "inset 0px 2px 3px rgba(255,255,255,0.85), inset 0px -4px 8px rgba(11,26,31,0.10), 0px 8px 16px rgba(11,26,31,0.12)",
+  },
   badgeName: { fontSize: 11, fontWeight: "600", color: COLORS.dark, textAlign: "center" },
   badgeNameLocked: { color: COLORS.textMuted },
   
   // ===== HERO CO₂ CARD =====
-  heroContainer: { paddingHorizontal: 16, marginTop: 20 },
-  heroCard: { borderRadius: 28, padding: 24, overflow: "hidden" },
+  heroContainer: { paddingHorizontal: 16, marginTop: 4 },
+  globe: { height: 250, marginHorizontal: -16 },
+  // The card rides up over the globe's base so the planet sits "on" it.
+  heroTilt: { marginTop: -46, borderRadius: 28, boxShadow: ELEVATION.light.e4 },
+  heroCard: {
+    borderRadius: 28,
+    padding: 24,
+    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.16)",
+    borderTopColor: "rgba(255,255,255,0.32)",
+  },
   heroTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   heroMetric: { flex: 1 },
   heroLabel: { fontSize: 14, color: COLORS.white, opacity: 0.9 },
   heroValue: {
     fontWeight: "800",
-    fontSize: 96,
-    lineHeight: 112,
+    fontSize: 88,
+    lineHeight: 100,
     letterSpacing: -3,
     color: COLORS.white,
-    marginVertical: 4,
+    marginVertical: 2,
+    textShadowColor: "rgba(0,0,0,0.18)",
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 14,
   },
   heroUnit: {
     fontWeight: "600", fontStyle: "italic",
@@ -1198,13 +1259,29 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     opacity: 0.85,
   },
-  treeContainer: { marginTop: -10 },
-  treesProgress: { marginTop: 20, backgroundColor: COLORS.whiteTransparent20, borderRadius: 16, padding: 16 },
+  treeContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.whiteTransparent10,
+    borderWidth: 1,
+    borderColor: COLORS.whiteTransparent20,
+  },
+  treesProgress: {
+    marginTop: 20,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
   treesInfo: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
   treesLabel: { fontSize: 14, color: COLORS.white },
   treesValue: { fontSize: 24, fontWeight: "700", color: COLORS.white },
   treeProgressBarBg: { height: 8, backgroundColor: COLORS.whiteTransparent30, borderRadius: 4 },
-  treeProgressBarFill: { height: 8, backgroundColor: COLORS.accent, borderRadius: 4 },
+  treeProgressBarFill: { height: 8, borderRadius: 4 },
   progressText: { fontSize: 12, color: COLORS.white, opacity: 0.8, marginTop: 8, textAlign: "center" },
   
   // ===== STATS ROW =====
@@ -1215,20 +1292,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     alignItems: "center",
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    boxShadow: ELEVATION.light.e2,
   },
-  statValue: { fontSize: 22, fontWeight: "800", color: COLORS.dark, marginTop: 8 },
+  statIcon: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  statValue: { fontSize: 24, fontWeight: "800", color: COLORS.dark, marginTop: 8, letterSpacing: -0.5 },
+  skyline: { height: 190, marginHorizontal: -20, marginTop: -4, marginBottom: 8 },
   statLabel: { fontSize: 11, color: COLORS.textMuted, marginTop: 4, textAlign: "center" },
   
   // ===== WEEKLY CHART =====
-  chartCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 10, elevation: 3 },
+  chartCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, boxShadow: ELEVATION.light.e2 },
 
   // ── Period summary (week/month/all) ──
-  periodCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 16, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 10, elevation: 3 },
+  periodCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 16, marginHorizontal: 16, marginTop: 16, boxShadow: ELEVATION.light.e2 },
   periodToggle: { flexDirection: "row", borderRadius: 999, padding: 4, gap: 4, marginBottom: 16 },
   periodSeg: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: 999 },
   periodSegText: { fontSize: 13, fontWeight: "700" },
@@ -1246,7 +1321,7 @@ const styles = StyleSheet.create({
   chartBarValue: { fontSize: 14, fontWeight: "700", color: COLORS.dark },
   
   // ===== LEADERBOARD =====
-  leaderboardCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, shadowColor: COLORS.black, shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 10, elevation: 3 },
+  leaderboardCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, boxShadow: ELEVATION.light.e2 },
 
   errorBanner: {
     marginHorizontal: 16,
@@ -1271,6 +1346,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
+    boxShadow: depth.embossLight,
   },
   zeroTitle: { fontSize: 18, fontWeight: "700", textAlign: "center" },
   zeroBody: {
@@ -1294,11 +1370,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginHorizontal: 16,
     marginTop: 16,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 3,
+    boxShadow: ELEVATION.light.e2,
   },
   companyImpactTotal: {
     fontSize: 15,
@@ -1386,11 +1458,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginHorizontal: 16,
     marginTop: 16,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 3,
+    boxShadow: ELEVATION.light.e2,
   },
   topModesRow: {
     flexDirection: "row",
@@ -1409,6 +1477,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
+    boxShadow: depth.embossLight,
   },
   topModeLabel: {
     fontSize: 12,

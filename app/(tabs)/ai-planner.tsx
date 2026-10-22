@@ -41,6 +41,11 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors, TAB_SCREEN_BOTTOM_PADDING } from "../../lib/theme";
 import { haversineKm, computeLocalModes, MODES, CAR_CO2, CAR_COST, WORKING_DAYS, LocalMode } from "../../lib/commuteUtils";
 import CarpoolMatchModal from "../../components/CarpoolMatchModal";
+import { elevation as ELEVATION } from "../../lib/theme/tokens";
+import { GlowBackdrop } from "../../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 // ─── Brand Colors ─────────────────────────────────────────────────────────────
 
@@ -481,12 +486,8 @@ const plannerInputStyles = StyleSheet.create({
   dropdown: {
     borderRadius: 12,
     marginTop: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 4,
     zIndex: 999,
+    boxShadow: ELEVATION.light.e2,
   },
   dropdownItem: {
     flexDirection: "row",
@@ -670,6 +671,7 @@ export default function AIPlannerScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
+      <GlowBackdrop variant="brand" style={GLOW_TOP} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -1013,12 +1015,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     marginBottom: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
     zIndex: 10,
+    boxShadow: ELEVATION.light.e2,
   },
   editableRouteHeader: {
     flexDirection: "row",
@@ -1115,18 +1113,10 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     marginBottom: 12,
-    shadowColor: "#0B1A1F",
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    boxShadow: ELEVATION.light.e3,
   },
   topCard: {
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 12,
-    elevation: 6,
+    boxShadow: ELEVATION.light.e4,
   },
   bestPickBadge: {
     alignSelf: "flex-start",
@@ -1238,13 +1228,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 3,
     borderWidth: 0,
     borderColor: "transparent",
+    boxShadow: ELEVATION.light.e2,
   },
   localModeTagBadge: {
     alignSelf: "flex-start",
@@ -1368,11 +1354,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
+    boxShadow: ELEVATION.light.e2,
   },
   matchSectionHeader: {
     flexDirection: "row",

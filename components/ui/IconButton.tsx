@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, PressableProps, StyleSheet, ViewStyle } from 'react-native';
-import { getPalette, radii } from '../../lib/theme/tokens';
+import { getElevation, getPalette, radii } from '../../lib/theme/tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export interface IconButtonProps extends Omit<PressableProps, 'style'> {
@@ -34,9 +34,13 @@ export function IconButton({
         {
           width: size,
           height: size,
-          backgroundColor: variant === 'surface' ? p.surface2 : 'transparent',
+          backgroundColor: variant === 'surface' ? p.surface : 'transparent',
         },
-        pressed && { opacity: 0.6 },
+        variant === 'surface' && [
+          { borderWidth: StyleSheet.hairlineWidth, borderColor: p.border },
+          getElevation(isDark, 'e1'),
+        ],
+        pressed && { opacity: 0.7, transform: [{ scale: 0.94 }] },
         style,
       ]}
       {...rest}

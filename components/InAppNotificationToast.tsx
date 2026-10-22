@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react-native";
 import { ToastItem, useNotificationToastStore } from "../store/useNotificationToastStore";
+import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 const AUTO_DISMISS_MS = 4500;
 
@@ -176,11 +177,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 16,
-    elevation: 8,
+    boxShadow: ELEVATION.light.e3,
   },
   cardInner: {
     flexDirection: "row",

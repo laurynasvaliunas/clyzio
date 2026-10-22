@@ -135,6 +135,8 @@ jest.mock("@rnmapbox/maps", () => {
     ShapeSource: passthrough("mock-shape-source"),
     LineLayer: passthrough("mock-line-layer"),
     UserLocation: passthrough("mock-user-location"),
+    StyleImport: passthrough("mock-style-import"),
+    Atmosphere: passthrough("mock-atmosphere"),
   };
 });
 
@@ -187,6 +189,8 @@ jest.mock("@react-native-community/datetimepicker", () => ({ default: () => null
 jest.mock("expo-haptics", () => ({
   impactAsync: jest.fn(),
   notificationAsync: jest.fn(),
+  // ui/Button and the Map's day toggle call this (and .catch() it).
+  selectionAsync: jest.fn(() => Promise.resolve()),
   ImpactFeedbackStyle: { Light: 1, Medium: 2 },
   NotificationFeedbackType: { Success: 0, Warning: 1, Error: 2 },
 }));
@@ -237,5 +241,21 @@ jest.mock("./contexts/ToastContext", () => {
     __esModule: true,
     ToastProvider: ({ children }) => children,
     useToast: () => ({ showToast: jest.fn(), hideToast: jest.fn() }),
+  };
+});
+
+// 3D scenes need GL (expo-gl), which Jest doesn't have: render each scene as
+// a plain View. Screens must import scenes from "components/three" (index).
+jest.mock("./components/three", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+  const stub = (testID) => (props) => React.createElement(View, { testID, style: props.style });
+  return {
+    Scene3D: stub("scene-3d"),
+    EcoGlobe: stub("eco-globe"),
+    CommuteCity: stub("commute-city"),
+    MedalBurst: stub("medal-burst"),
+    LevelGem: stub("level-gem"),
+    DeptSkyline: stub("dept-skyline"),
   };
 });

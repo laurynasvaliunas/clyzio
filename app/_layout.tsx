@@ -32,6 +32,7 @@ import IncomingSuggestionBanner from "../components/IncomingSuggestionBanner";
 import InAppNotificationToast from "../components/InAppNotificationToast";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { initSentry, setSentryUser, clearSentryUser, captureError, Sentry } from "../lib/sentry";
+import { elevation as ELEVATION } from "../lib/theme/tokens";
 import "../global.css";
 
 // Initialise Sentry as early as possible — before any component renders
@@ -625,11 +626,7 @@ const splashStyles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 32,
-    // Subtle drop shadow on iOS so the white O reads against the cyan halo.
-    shadowColor: "#0B1A1F",
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
+    boxShadow: ELEVATION.light.e3,
   },
   tagline: {
     marginTop: 36,

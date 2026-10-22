@@ -8,6 +8,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Building2, CheckCircle2, AlertCircle } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
 import { signOut } from "../lib/signOut";
+import { depth } from "../lib/theme/tokens";
+import { GlowBackdrop } from "../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
   primary: "#00565A",
@@ -82,6 +87,7 @@ export default function JoinScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <GlowBackdrop variant="brand" style={GLOW_TOP} />
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.iconWrap}>
           {phase === "joined" ? <CheckCircle2 size={40} color={COLORS.green} />
@@ -157,6 +163,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 72, height: 72, borderRadius: 20, alignSelf: "center",
     backgroundColor: "#E6F1F2", alignItems: "center", justifyContent: "center", marginBottom: 20,
+    boxShadow: depth.embossLight,
   },
   heading: { fontSize: 26, fontWeight: "700", color: COLORS.dark, textAlign: "center" },
   sub: { fontSize: 15, color: COLORS.textSecondary, textAlign: "center", lineHeight: 22, marginTop: 10 },

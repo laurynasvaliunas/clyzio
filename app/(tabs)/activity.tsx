@@ -36,6 +36,9 @@ import { formatCO2 } from "../../lib/format";
 import { useToast } from "../../contexts/ToastContext";
 import { completeTrip, shouldEndRide, co2Share } from "../../lib/completeTrip";
 import { cancelRide } from "../../lib/cancelRide";
+import { elevation as ELEVATION, depth, motion } from "../../lib/theme/tokens";
+import Reanimated, { FadeInDown } from "react-native-reanimated";
+import { GlowBackdrop } from "../../components/ui";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -112,6 +115,9 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel, completing 
 
   const { time, day } = formatScheduledTime(item.scheduled_at);
   const role = getRoleBadge();
+  // close-stale-rides closes open rides 24 h after their planned time; say so
+  // on a ride that's already past it, instead of it vanishing unexplained.
+  const overdue = parseISO(item.scheduled_at).getTime() < Date.now() - 60 * 60 * 1000;
 
   return (
     <TouchableOpacity style={[styles.card, { backgroundColor: TC.surface }]} onPress={onPress} activeOpacity={0.7}>
@@ -159,6 +165,12 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel, completing 
           </View>
         )}
       </View>
+
+      {overdue && (
+        <Text style={[styles.overdueNote, { color: TC.textSecondary }]}>
+          Not completed yet. Unfinished trips close automatically 24 h after the planned time.
+        </Text>
+      )}
 
       {/* Action buttons */}
       <View style={[styles.cardActions, { borderTopColor: TC.border }]}>
@@ -487,9 +499,12 @@ export default function ActivityScreen() {
   /**
    * Render function for FlatList items
    */
-  const renderCard = useCallback(({ item }: { item: Ride }) => {
+  const renderCard = useCallback(({ item, index }: { item: Ride; index: number }) => {
+    // Cards rise in one after another (first screenful only).
+    const entering = FadeInDown.delay(Math.min(index, 6) * motion.stagger).springify().damping(18);
     if (activeTab === "upcoming") {
       return (
+        <Reanimated.View entering={entering}>
         <UpcomingCard
           item={item}
           userId={userId}
@@ -499,20 +514,24 @@ export default function ActivityScreen() {
           completing={completingId === item.id}
           TC={TC}
         />
+        </Reanimated.View>
       );
     } else {
       return (
+        <Reanimated.View entering={entering}>
         <HistoryCard
           item={item}
           onPress={() => router.push(`/trip/${item.id}`)}
           TC={TC}
         />
+        </Reanimated.View>
       );
     }
   }, [activeTab, userId, router, handleComplete, confirmCancel, completingId, TC]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
+      <GlowBackdrop variant="subtle" style={styles.glow} />
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: TC.text }]}>Activity</Text>
@@ -660,11 +679,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 999,
     padding: 4,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 3,
+    boxShadow: ELEVATION.light.e2,
   },
   tab: {
     flex: 1,
@@ -674,8 +689,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   tabActive: {
-    backgroundColor: COLORS.primary
+    backgroundColor: COLORS.primary,
+    boxShadow: "0px 4px 12px rgba(0,86,90,0.30)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
+  glow: { bottom: undefined, height: 360 },
   tabText: {
     fontSize: 15,
     fontWeight: "600",
@@ -700,13 +719,11 @@ const styles = StyleSheet.create({
   // ===== CARD SHARED =====
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 20,
+    borderRadius: 22,
     padding: 16,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(11,26,31,0.06)",
+    boxShadow: ELEVATION.light.e3,
   },
   cardCancelled: {
     opacity: 0.5
@@ -819,12 +836,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   modeCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: depth.emboss,
   },
   timeChip: {
     flexDirection: "row",
@@ -870,6 +888,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingVertical: 12,
     borderRadius: 24, // pill, like the app's other primary buttons
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   completeBtnLoading: {
     opacity: 0.7,
@@ -889,6 +910,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.red,
     fontWeight: "500",
+  },
+  overdueNote: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 12,
   },
   cardActions: {
     flexDirection: "row",
@@ -935,12 +961,13 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   modeIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: depth.emboss,
   },
   historyCenter: {
     flex: 1,
@@ -1035,6 +1062,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 28,
     marginTop: 24,
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   emptyButtonText: { 
     color: COLORS.white, 

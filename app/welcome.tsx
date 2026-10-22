@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
+
   StyleSheet,
   Animated,
   Easing,
@@ -14,6 +14,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import * as SecureStore from "expo-secure-store";
 import { Bike, Cloud, Smile, ArrowRight } from "lucide-react-native";
+import { gradients } from "../lib/theme/tokens";
+import { CommuteCity } from "../components/three";
+import { GlowBackdrop, PressableScale } from "../components/ui";
 
 /**
  * Welcome — Stage 0 of the customer-journey PDF.
@@ -171,15 +174,21 @@ export default function WelcomeScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={[COLORS.bgTop, COLORS.bgBottom]}
+        colors={gradients.brand}
         start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
+        end={{ x: 0.4, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
+      <GlowBackdrop variant="eco" />
 
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        {/* Hero area */}
+        {/* Hero: a live 3D city where people commute cleanly. */}
         <View style={styles.hero}>
+          <CommuteCity style={styles.city} accessibilityLabel="A small city where a car and a bike share the road" />
+        </View>
+
+        {/* The story in three beats: ride → less CO₂ → happier planet. */}
+        <View style={styles.storyRow}>
           {/* Bike rider */}
           <Animated.View
             style={[
@@ -191,7 +200,7 @@ export default function WelcomeScreen() {
             ]}
           >
             <View style={styles.iconBubble}>
-              <Bike size={48} color={COLORS.bgTop} />
+              <Bike size={30} color={COLORS.bgTop} />
             </View>
           </Animated.View>
 
@@ -207,7 +216,7 @@ export default function WelcomeScreen() {
             ]}
           >
             <Animated.View style={[styles.iconBubble, { backgroundColor: cloudTint }]}>
-              <Cloud size={48} color={COLORS.ink} />
+              <Cloud size={30} color={COLORS.ink} />
             </Animated.View>
             <Text style={styles.cloudLabel} accessibilityLabel="CO 2">CO₂</Text>
           </Animated.View>
@@ -223,7 +232,7 @@ export default function WelcomeScreen() {
             ]}
           >
             <View style={[styles.iconBubble, { backgroundColor: "#F59E0B" }]}>
-              <Smile size={48} color={COLORS.bgBottom} />
+              <Smile size={30} color={COLORS.bgBottom} />
             </View>
           </Animated.View>
         </View>
@@ -253,16 +262,17 @@ export default function WelcomeScreen() {
             },
           ]}
         >
-          <TouchableOpacity
+          <PressableScale
             style={styles.cta}
             onPress={handlePress}
-            activeOpacity={0.9}
             accessibilityRole="button"
             accessibilityLabel="Let's set up"
           >
             <Text style={styles.ctaText}>Let's set up</Text>
-            <ArrowRight size={20} color={COLORS.ctaInk} />
-          </TouchableOpacity>
+            <View style={styles.ctaArrow}>
+              <ArrowRight size={18} color={COLORS.ink} />
+            </View>
+          </PressableScale>
         </Animated.View>
       </SafeAreaView>
     </View>
@@ -280,10 +290,20 @@ const styles = StyleSheet.create({
   },
   hero: {
     flex: 1,
+    justifyContent: "center",
+    marginHorizontal: -24,
+  },
+  city: {
+    flex: 1,
+    minHeight: 260,
+    maxHeight: 440,
+  },
+  storyRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 18,
+    gap: 14,
+    marginBottom: 20,
   },
   stageItem: {
     alignItems: "center",
@@ -294,17 +314,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   iconBubble: {
-    width: 96,
-    height: 96,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     backgroundColor: COLORS.ink,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.35)",
+    boxShadow: "inset 0px 2px 2px rgba(255,255,255,0.5), 0px 10px 24px rgba(0,0,0,0.22)",
   },
   cloudLabel: {
     fontSize: 11,
@@ -329,16 +347,21 @@ const styles = StyleSheet.create({
   cta: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
+    justifyContent: "space-between",
     backgroundColor: COLORS.cta,
-    paddingVertical: 18,
+    minHeight: 60,
+    paddingLeft: 26,
+    paddingRight: 8,
     borderRadius: 999,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    boxShadow: "0px 2px 4px rgba(0,0,0,0.10), 0px 16px 36px rgba(0,0,0,0.28)",
+  },
+  ctaArrow: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.bgTop,
+    alignItems: "center",
+    justifyContent: "center",
   },
   ctaText: {
     color: COLORS.ctaInk,

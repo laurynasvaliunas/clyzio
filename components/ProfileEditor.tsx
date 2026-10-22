@@ -31,6 +31,7 @@ import { useToast } from "../contexts/ToastContext";
 import { deriveProfileCarFields, getPrimaryVehicle } from "../lib/commuteUtils";
 import { Vehicle, parseVehicles, makeVehicle } from "../lib/vehicles";
 import GarageEditor from "./GarageEditor";
+import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
 
 /**
  * ProfileEditor — the full profile editing experience (avatar, personal
@@ -870,6 +871,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     borderColor: COLORS.white,
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   avatarHint: { fontSize: 13, color: COLORS.textMuted, marginTop: 12 },
   section: {
@@ -877,11 +881,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 3,
+    boxShadow: ELEVATION.light.e2,
   },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 4 },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: COLORS.dark },
@@ -897,7 +897,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     justifyContent: "center",
   },
-  teamChipSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.light },
+  teamChipSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.light, boxShadow: depth.selected },
   teamChipText: { fontSize: 15, fontWeight: "600", color: COLORS.inkSoft },
   teamChipTextSelected: { color: COLORS.primary },
   inputLabel: { fontSize: 12, color: COLORS.textMuted, marginBottom: 8, fontWeight: "500" },

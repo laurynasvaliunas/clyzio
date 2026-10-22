@@ -27,8 +27,14 @@ import {
 import { useDailyCommuteStore, TripIntentMatch } from "../store/useDailyCommuteStore";
 import OpenTripToggle from "../components/OpenTripToggle";
 import { supabase } from "../lib/supabase";
+import { formatClockTime } from "../lib/format";
 import { useTheme } from "../contexts/ThemeContext";
 import { getThemeColors } from "../lib/theme";
+import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
+import { GlowBackdrop } from "../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
   textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
@@ -497,7 +503,7 @@ function DriverConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.confirmedName}>{match.passenger_profile?.first_name ?? "Passenger"}</Text>
               <Text style={styles.confirmedDetail}>
-                Pickup: {match.pickup_address?.split(",")[0] ?? "TBD"} · {match.proposed_pickup_time ?? "—"}
+                Pickup: {match.pickup_address?.split(",")[0] ?? "TBD"} · {formatClockTime(match.proposed_pickup_time) ?? "—"}
               </Text>
             </View>
           </View>
@@ -628,7 +634,7 @@ function PassengerReviewStep({
             <Text style={styles.matchName}>{match.driver_profile?.first_name ?? "Driver"}</Text>
             {hasCompany && match.peer_is_colleague === false && <OutsideCompanyPill />}
             <Text style={styles.matchDetail}>
-              Departs {match.proposed_departure ?? "—"} · {match.ai_compatibility_score?.toFixed(0) ?? "—"}% match
+              Departs {formatClockTime(match.proposed_departure) ?? "—"} · {match.ai_compatibility_score?.toFixed(0) ?? "—"}% match
             </Text>
             <Text style={styles.matchDetail}>
               Pickup: {match.pickup_address ?? "To be confirmed"}
@@ -688,7 +694,7 @@ function PassengerConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.confirmedName}>{confirmed.driver_profile?.first_name ?? "Driver"} picks you up</Text>
               <Text style={styles.confirmedDetail}>
-                At {confirmed.pickup_address?.split(",")[0] ?? "pickup point"} · {confirmed.proposed_pickup_time ?? confirmed.proposed_departure ?? "—"}
+                At {confirmed.pickup_address?.split(",")[0] ?? "pickup point"} · {formatClockTime(confirmed.proposed_pickup_time ?? confirmed.proposed_departure) ?? "—"}
               </Text>
             </View>
           </View>
@@ -852,6 +858,7 @@ export default function DailyCommuteScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
+      <GlowBackdrop variant="brand" style={GLOW_TOP} />
       {/* Header */}
       <View style={styles.header}>
         {showBackBtn ? (
@@ -1002,6 +1009,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     marginTop: 20,
     marginBottom: 4,
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   greenOptionsBtnText: {
     color: "#FFFFFF",
@@ -1018,11 +1028,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 18,
     marginBottom: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    boxShadow: ELEVATION.light.e2,
   },
   roleIconWrap: {
     width: 56,
@@ -1051,11 +1057,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     marginBottom: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 2,
+    boxShadow: ELEVATION.light.e2,
   },
   fieldLabel: {
     fontSize: 14,
@@ -1152,6 +1154,7 @@ const styles = StyleSheet.create({
   matchCardAccepted: {
     borderColor: COLORS.primary,
     backgroundColor: "#E6F1F2",
+    boxShadow: depth.selected,
   },
   matchCardLeft: {
     flexDirection: "row",
@@ -1166,6 +1169,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.light,
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: depth.embossLight,
   },
   matchName: {
     fontSize: 15,
@@ -1210,6 +1214,7 @@ const styles = StyleSheet.create({
   matchCheckboxChecked: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
+    boxShadow: depth.selected,
   },
 
   // ── Driver match card (passenger view) ──
@@ -1220,11 +1225,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1.5,
     borderColor: "#E2E8EA",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 10,
-    elevation: 2,
+    boxShadow: ELEVATION.light.e2,
   },
 
   // ── Detour cards ──
@@ -1241,6 +1242,7 @@ const styles = StyleSheet.create({
   detourCardSelected: {
     borderColor: COLORS.primary,
     backgroundColor: "#E6F1F2",
+    boxShadow: depth.selected,
   },
   detourTitle: {
     fontSize: 15,
@@ -1312,6 +1314,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 14,
     paddingVertical: 14,
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   acceptBtnText: {
     fontSize: 15,
@@ -1330,6 +1335,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 8,
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   primaryBtnText: {
     fontSize: 16,

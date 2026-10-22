@@ -2,6 +2,7 @@ import React, { Component, ReactNode } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Sentry } from "../lib/sentry";
+import { depth } from "../lib/theme/tokens";
 
 interface Props {
   children: ReactNode;
@@ -108,6 +109,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 28,
+    boxShadow: depth.embossLight,
   },
   title: {
     fontSize: 24,

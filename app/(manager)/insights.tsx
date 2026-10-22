@@ -19,6 +19,11 @@ import {
   Zap,
 } from "lucide-react-native";
 import { useManagerStore, TimePeriod } from "../../store/useManagerStore";
+import { elevation as ELEVATION, depth } from "../../lib/theme/tokens";
+import { GlowBackdrop } from "../../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
   textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
@@ -65,6 +70,7 @@ export default function InsightsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <GlowBackdrop variant="brand" style={GLOW_TOP} />
       <View style={styles.header}>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backBtn} onPress={() => router.back()}>
           <ArrowLeft size={22} color={COLORS.dark} />
@@ -261,7 +267,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white, alignItems: "center",
     borderWidth: 1, borderColor: "transparent",
   },
-  periodBtnActive: { backgroundColor: COLORS.primary + "15", borderColor: COLORS.primary },
+  periodBtnActive: { backgroundColor: COLORS.primary + "15", borderColor: COLORS.primary, boxShadow: depth.selected },
   periodText: { fontSize: 13, color: COLORS.textMuted, fontWeight: "600" },
   periodTextActive: { color: COLORS.primary },
 
@@ -284,8 +290,11 @@ const styles = StyleSheet.create({
   costHighlight: { fontWeight: "700", color: COLORS.green },
 
   section: {
-    backgroundColor: COLORS.white, borderRadius: 18, padding: 18, marginBottom: 14,
-    shadowColor: "#000", shadowOpacity: 0.04, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 2,
+    backgroundColor: COLORS.white,
+ borderRadius: 18,
+ padding: 18,
+ marginBottom: 14,
+    boxShadow: ELEVATION.light.e2,
   },
   sectionTitle: { fontSize: 15, fontWeight: "700", color: COLORS.dark, marginBottom: 12 },
   summaryText: { fontSize: 14, color: COLORS.dark, lineHeight: 22 },

@@ -219,7 +219,114 @@ export const motion = {
     decelerate: 'ease-out',
     accelerate: 'ease-in',
   },
+  // Reanimated `withSpring` configs. snappy = presses / toggles, gentle =
+  // cards settling, bouncy = celebratory pops.
+  spring: {
+    snappy: { damping: 18, stiffness: 320, mass: 0.6 },
+    gentle: { damping: 16, stiffness: 140, mass: 1 },
+    bouncy: { damping: 10, stiffness: 180, mass: 0.8 },
+  },
+  /** Delay between list items entering, ms. */
+  stagger: 55,
 } as const;
+
+// ─── Depth system (2026-10 "premium light" redesign) ─────────────────────────
+//
+// Layered shadows: a tight ambient contact shadow + a soft key-light shadow,
+// via RN's `boxShadow` (new architecture). The deepest level is tinted with the
+// brand teal so floating surfaces read as lit by the brand, not grey.
+
+export type ElevationLevel = 'e1' | 'e2' | 'e3' | 'e4';
+
+export const elevation = {
+  light: {
+    e1: '0px 1px 2px rgba(11,26,31,0.06), 0px 2px 6px rgba(11,26,31,0.04)',
+    e2: '0px 1px 2px rgba(11,26,31,0.05), 0px 8px 20px rgba(11,26,31,0.07)',
+    e3: '0px 2px 4px rgba(11,26,31,0.05), 0px 14px 34px rgba(11,26,31,0.10)',
+    e4: '0px 4px 10px rgba(0,61,64,0.08), 0px 26px 60px rgba(0,61,64,0.20)',
+    /** Bottom sheets / docked bars: light falls upward. */
+    up: '0px -1px 0px rgba(11,26,31,0.04), 0px -10px 30px rgba(11,26,31,0.10)',
+  },
+  dark: {
+    e1: '0px 1px 2px rgba(0,0,0,0.30)',
+    e2: '0px 8px 20px rgba(0,0,0,0.36)',
+    e3: '0px 14px 34px rgba(0,0,0,0.44)',
+    e4: '0px 26px 60px rgba(0,0,0,0.55)',
+    up: '0px -10px 30px rgba(0,0,0,0.45)',
+  },
+} as const;
+
+/** `boxShadow` style for an elevation level in the current scheme. */
+export const getElevation = (isDark: boolean, level: ElevationLevel) => ({
+  boxShadow: (isDark ? elevation.dark : elevation.light)[level],
+});
+
+/** Frosted-glass surfaces (expo-blur + a translucent fill + a lit top edge). */
+export const glass = {
+  light: {
+    tint: 'light' as const,
+    intensity: 55,
+    fill: 'rgba(255,255,255,0.74)',
+    highlight: 'rgba(255,255,255,0.95)',
+    stroke: 'rgba(11,26,31,0.07)',
+  },
+  dark: {
+    tint: 'dark' as const,
+    intensity: 45,
+    fill: 'rgba(21,40,44,0.74)',
+    highlight: 'rgba(255,255,255,0.10)',
+    stroke: 'rgba(255,255,255,0.08)',
+  },
+} as const;
+
+export const getGlass = (isDark: boolean) => (isDark ? glass.dark : glass.light);
+
+/** Gradient stops (expo-linear-gradient `colors`). */
+export const gradients = {
+  /** Brand surface — buttons, hero cards. */
+  brand: ['#00767C', '#00565A', '#003D40'] as const,
+  /** Pale brand wash for light hero backgrounds. */
+  brandMist: ['#E8F4F4', '#F7F9FA'] as const,
+  /** Positive impact (CO₂ saved, completion). */
+  eco: ['#34D399', '#059669'] as const,
+  /** XP / rewards. */
+  sun: ['#FCD34D', '#F59E0B'] as const,
+  /** Night scene (active ride, dark heroes). */
+  night: ['#1B3035', '#0E1F23'] as const,
+} as const;
+
+/**
+ * Soft background glows (GlowBackdrop), per scheme: hex colour + opacity kept
+ * separate — react-native-svg ignores the alpha of rgba() stop colours.
+ */
+export const glows = {
+  light: {
+    teal: { color: '#00767C', opacity: 0.16 },
+    mint: { color: '#10B981', opacity: 0.13 },
+    sun: { color: '#F59E0B', opacity: 0.1 },
+  },
+  dark: {
+    teal: { color: '#00969E', opacity: 0.2 },
+    mint: { color: '#10B981', opacity: 0.14 },
+    sun: { color: '#F59E0B', opacity: 0.1 },
+  },
+} as const;
+
+/** Recurring depth recipes (boxShadow strings) used across screens. */
+export const depth = {
+  /** Brand-filled hero tiles / logo blocks: lit top edge + teal drop shadow. */
+  emboss: 'inset 0px 2px 3px rgba(255,255,255,0.32), inset 0px -3px 6px rgba(0,0,0,0.12), 0px 14px 30px rgba(0,61,64,0.28)',
+  /** Light tiles / chips: subtle raised coin. */
+  embossLight:
+    'inset 0px 2px 3px rgba(255,255,255,0.9), inset 0px -3px 6px rgba(11,26,31,0.08), 0px 8px 18px rgba(11,26,31,0.10)',
+  /** Primary call-to-action underglow. */
+  ctaGlow: '0px 2px 4px rgba(0,61,64,0.18), 0px 12px 28px rgba(0,86,90,0.30)',
+  /** Selected option halo (pair with a brand border). */
+  selected: '0px 0px 0px 4px rgba(0,86,90,0.10), 0px 10px 24px rgba(0,86,90,0.16)',
+} as const;
+
+/** Numbers that update in place (stats, timers) keep their width. */
+export const numeric = { fontVariant: ['tabular-nums' as const] };
 
 export const shadows = {
   sm: {

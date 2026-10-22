@@ -5,6 +5,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, UserCircle, Leaf, Route, Award } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import { logger } from "../../lib/logger";
+import { GlowBackdrop } from "../../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
   textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
@@ -62,6 +66,7 @@ export default function PublicProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <GlowBackdrop variant="brand" style={GLOW_TOP} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} accessibilityLabel="Back">
           <ChevronLeft size={24} color={COLORS.dark} />

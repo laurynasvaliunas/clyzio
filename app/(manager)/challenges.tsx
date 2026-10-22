@@ -15,6 +15,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { ArrowLeft, Plus, Target, X } from "lucide-react-native";
 import { useManagerStore, NewChallenge } from "../../store/useManagerStore";
 import { useToast } from "../../contexts/ToastContext";
+import { elevation as ELEVATION, depth } from "../../lib/theme/tokens";
+import { GlowBackdrop } from "../../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
   textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
@@ -78,6 +83,7 @@ export default function ChallengesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <GlowBackdrop variant="reward" style={GLOW_TOP} />
       <View style={styles.header}>
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backBtn} onPress={() => router.back()}>
           <ArrowLeft size={22} color={COLORS.dark} />
@@ -303,8 +309,11 @@ const styles = StyleSheet.create({
   createFirstText: { color: COLORS.white, fontWeight: "700" },
 
   challengeCard: {
-    backgroundColor: COLORS.white, borderRadius: 18, padding: 16, marginBottom: 12,
-    shadowColor: "#000", shadowOpacity: 0.05, shadowOffset: { width: 0, height: 2 }, shadowRadius: 8, elevation: 3,
+    backgroundColor: COLORS.white,
+ borderRadius: 18,
+ padding: 16,
+ marginBottom: 12,
+    boxShadow: ELEVATION.light.e2,
   },
   challengeHeader: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
@@ -353,7 +362,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
     backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.grayLight,
   },
-  typeBtnActive: { backgroundColor: COLORS.primary + "15", borderColor: COLORS.primary },
+  typeBtnActive: { backgroundColor: COLORS.primary + "15", borderColor: COLORS.primary, boxShadow: depth.selected },
   typeText: { fontSize: 13, color: COLORS.textMuted },
   typeTextActive: { color: COLORS.primary, fontWeight: "600" },
 

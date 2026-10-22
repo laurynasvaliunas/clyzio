@@ -18,7 +18,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
 // Gamification math (XP per trip, level math, badge thresholds) lives
 // server-side in the `complete-trip` edge function. See audit C2.
-import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserLocation } from "@rnmapbox/maps";
+import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserLocation, StyleImport } from "@rnmapbox/maps";
+import { MAP_STYLE_3D, standardConfig } from "../../lib/map3d";
+import { useTheme } from "../../contexts/ThemeContext";
 import * as Location from "expo-location";
 import { MessageCircle, Shield, X, Phone, AlertTriangle, Car, Footprints, Bike, Zap, Bus, Navigation as NavIcon, Circle, MapPin, ChevronLeft, Leaf, Star } from "lucide-react-native";
 import ChatModal from "../../components/ChatModal";
@@ -60,6 +62,7 @@ interface Profile {
 }
 
 import { MAPBOX_TOKEN, IS_MAPBOX_TOKEN_VALID } from "../../lib/config";
+import { elevation as ELEVATION, depth } from "../../lib/theme/tokens";
 if (IS_MAPBOX_TOKEN_VALID) {
   Mapbox.setAccessToken(MAPBOX_TOKEN);
   // Mapbox usage telemetry is off (privacy policy §5); maps work without it.
@@ -98,6 +101,9 @@ export default function TripScreen() {
   const [partner, setPartner] = useState<Profile | null>(null); // The other person (driver or rider)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { isDark } = useTheme();
+  // Standard (3D) style failed to load → fall back to the flat Dark style.
+  const [flatMap, setFlatMap] = useState(false);
   // 1.4 — Loading watchdog. If the spinner is up for >5 s (slow auth resolve,
   // bad network, RLS hiccup) we flip to an explicit failure state with a
   // retry button instead of hanging silently. `retryNonce` is bumped on
@@ -544,11 +550,14 @@ export default function TripScreen() {
         <MapView
           ref={mapRef}
           style={styles.map}
-          styleURL={Mapbox.StyleURL.Dark}
+          // 3D city at dusk (night in dark mode); flat Dark if Standard fails.
+          styleURL={flatMap ? Mapbox.StyleURL.Dark : MAP_STYLE_3D}
+          onMapLoadingError={() => setFlatMap(true)}
           logoEnabled
           attributionEnabled
           scaleBarEnabled={false} // sat beside the back button
         >
+          {!flatMap && <StyleImport id="basemap" existing config={standardConfig(isDark ? "night" : "dusk")} />}
           <Camera
             ref={cameraRef}
             defaultSettings={{
@@ -557,6 +566,8 @@ export default function TripScreen() {
                 (ride.origin_lat + ride.dest_lat) / 2,
               ],
               zoomLevel: 12,
+              pitch: 55,
+              heading: -20,
             }}
           />
 
@@ -579,14 +590,20 @@ export default function TripScreen() {
             }}
           >
             <LineLayer
+              id="routeGlow"
+              slot="middle"
+              style={{ lineColor: "#34D399", lineWidth: 16, lineBlur: 10, lineOpacity: 0.4, lineJoin: "round", lineCap: "round", lineEmissiveStrength: 1 }}
+            />
+            <LineLayer
               id="routeLine"
-              style={{ lineColor: COLORS.primary, lineWidth: 4, lineJoin: "round", lineCap: "round" }}
+              slot="middle"
+              style={{ lineColor: "#7FD3D6", lineWidth: 4.5, lineJoin: "round", lineCap: "round", lineEmissiveStrength: 1 }}
             />
           </ShapeSource>
 
           {/* Origin Marker */}
           <PointAnnotation id="origin" coordinate={[originLng, originLat]}>
-            <View style={[styles.markerDot, { backgroundColor: "#059669" }]} />
+            <View collapsable={false} style={[styles.markerDot, { backgroundColor: "#059669" }]} />
           </PointAnnotation>
 
           {/* Waypoint Markers */}
@@ -596,13 +613,13 @@ export default function TripScreen() {
               id={`waypoint-${index}`}
               coordinate={[waypoint.lng, waypoint.lat]}
             >
-              <View style={[styles.markerDot, { backgroundColor: COLORS.accent }]} />
+              <View collapsable={false} style={[styles.markerDot, { backgroundColor: COLORS.accent }]} />
             </PointAnnotation>
           ))}
 
           {/* Destination Marker */}
           <PointAnnotation id="destination" coordinate={[ride.dest_long, ride.dest_lat]}>
-            <View style={[styles.markerDot, { backgroundColor: COLORS.red }]} />
+            <View collapsable={false} style={[styles.markerDot, { backgroundColor: COLORS.red }]} />
           </PointAnnotation>
         </MapView>
 
@@ -815,6 +832,7 @@ export default function TripScreen() {
           rideId={id as string}
           ratedId={partner.id}
           partnerName={partnerName}
+          ratedRole={isDriver ? "passenger" : "driver"}
           onClose={() => {
             setShowRatingSheet(false);
             router.push("/(tabs)/activity");
@@ -961,17 +979,15 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 50,
     left: 20,
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     backgroundColor: COLORS.white,
-    borderRadius: 20,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(11,26,31,0.08)",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 4,
+    boxShadow: ELEVATION.light.e2,
   },
   distanceBadge: {
     position: "absolute",
@@ -981,11 +997,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 4,
+    boxShadow: ELEVATION.light.e2,
   },
   distanceBadgeText: {
     fontWeight: "700",
@@ -1012,14 +1024,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: -4 },
-    shadowRadius: 16,
-    elevation: 20,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(255,255,255,0.9)",
+    boxShadow: ELEVATION.light.up,
   },
   dragHandle: {
-    width: 40,
+    width: 44,
     height: 5,
     backgroundColor: COLORS.gray200,
     borderRadius: 3,
@@ -1041,17 +1051,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   modeIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 4,
+    boxShadow: depth.emboss,
   },
   modeLabel: {
     fontWeight: "700",
@@ -1068,11 +1074,12 @@ const styles = StyleSheet.create({
   // 2. Route Card (Timeline Style)
   routeCard: {
     backgroundColor: COLORS.gray50,
-    borderRadius: 20,
+    borderRadius: 22,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.gray200,
+    boxShadow: "inset 0px 1px 2px rgba(255,255,255,0.9), 0px 6px 16px rgba(11,26,31,0.05)",
   },
   routeRow: {
     flexDirection: "row",
@@ -1139,6 +1146,9 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   endTripBtnText: {
     color: COLORS.white,
@@ -1152,7 +1162,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.gray50,
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 22,
+    boxShadow: "inset 0px 1px 2px rgba(255,255,255,0.9), 0px 6px 16px rgba(11,26,31,0.05)",
     marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.gray200,
@@ -1164,6 +1175,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: depth.emboss,
   },
   partnerAvatarText: {
     fontSize: 24,
@@ -1197,11 +1209,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderTopWidth: 1,
     borderTopColor: COLORS.gray200,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: -2 },
-    shadowRadius: 8,
-    elevation: 8,
+    boxShadow: ELEVATION.light.up,
   },
   actionGrid: {
     flexDirection: "row",
@@ -1211,17 +1219,13 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     backgroundColor: COLORS.white,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: COLORS.gray200,
-    borderRadius: 16,
+    borderRadius: 18,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
+    boxShadow: depth.embossLight,
   },
   actionButtonDanger: {
     borderColor: COLORS.red + "30",
@@ -1318,6 +1322,9 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     width: "100%",
     marginBottom: 12,
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   confirmButtonText: {
     color: COLORS.white,

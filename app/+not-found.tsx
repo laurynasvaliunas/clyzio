@@ -2,6 +2,11 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import { Compass } from "lucide-react-native";
+import { depth } from "../lib/theme/tokens";
+import { GlowBackdrop } from "../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 /**
  * Catch-all route. Without this, an unmatched deep link or a stale push
@@ -25,6 +30,7 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: "Not found", headerShown: false }} />
       <SafeAreaView style={styles.container}>
+        <GlowBackdrop variant="subtle" style={GLOW_TOP} />
         <View style={styles.content}>
           <View style={styles.iconWrap}>
             <Compass size={36} color={COLORS.primary} />
@@ -63,6 +69,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
+    boxShadow: depth.embossLight,
   },
   title: {
     fontSize: 20,
@@ -83,6 +90,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 16,
     paddingHorizontal: 32,
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.22)",
   },
   ctaText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
 });

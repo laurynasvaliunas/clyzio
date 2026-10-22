@@ -27,6 +27,11 @@ import {
 import SetupProgress from "../../components/SetupProgress";
 import ModeIcon from "../../components/ModeIcon";
 import { deriveProfileCarFields, getPrimaryVehicle } from "../../lib/commuteUtils";
+import { elevation as ELEVATION } from "../../lib/theme/tokens";
+import { GlowBackdrop } from "../../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -183,6 +188,7 @@ export default function GarageSetupScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
+      <GlowBackdrop variant="brand" style={GLOW_TOP} />
       <View style={styles.headerRow}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -366,12 +372,8 @@ const styles = StyleSheet.create({
     gap: 10,
     borderWidth: 2,
     borderColor: "transparent",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
     position: "relative",
+    boxShadow: ELEVATION.light.e2,
   },
   cardSelected: {
     borderColor: COLORS.selected,

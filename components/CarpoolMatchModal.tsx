@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { CarpoolMatch, CarpoolAIResult, useAIStore } from "../store/useAIStore";
 import { useToast } from "../contexts/ToastContext";
 import { Avatar, toneFromKey } from "./ui/editorial";
+import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
@@ -246,11 +247,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     padding: 18,
     marginBottom: 12,
-    shadowColor: "#0B1A1F",
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    boxShadow: ELEVATION.light.e3,
   },
   matchHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
   avatarPlaceholder: {

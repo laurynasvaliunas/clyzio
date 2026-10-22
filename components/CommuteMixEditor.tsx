@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 import { Check } from "lucide-react-native";
 import ModeIcon from "./ModeIcon";
+import { depth } from "../lib/theme/tokens";
 
 /**
  * CommuteMixEditor — "which modes do you use on which days?".
@@ -269,7 +270,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.border,
   },
-  modeCardSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.tint },
+  modeCardSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.tint, boxShadow: depth.selected },
   modeCardHasData: { borderColor: COLORS.primary },
   modeIcon: { height: 32, justifyContent: "center", marginBottom: 6 },
   modeName: {

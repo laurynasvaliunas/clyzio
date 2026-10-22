@@ -13,3 +13,14 @@ export function formatCO2(kg: number | null | undefined): string {
 export function formatCO2kg(kg: number | null | undefined): string {
   return `${formatCO2(kg)} kg`;
 }
+
+/**
+ * A Postgres `time` value ("08:00:00") as a clock time ("08:00"). Pickup and
+ * departure times used to render with seconds. Returns null for empty or
+ * unparseable input so callers can fall back ("—", "tomorrow").
+ */
+export function formatClockTime(t: string | null | undefined): string | null {
+  if (!t) return null;
+  const m = /^(\d{1,2}):(\d{2})/.exec(t);
+  return m ? `${m[1].padStart(2, "0")}:${m[2]}` : null;
+}

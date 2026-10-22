@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Leaf, Check, X } from "lucide-react-native";
 import { CarpoolSuggestion, useAIStore } from "../store/useAIStore";
 import { Avatar, toneFromKey } from "./ui/editorial";
+import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
@@ -197,11 +198,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     flexDirection: "row",
     overflow: "hidden",
-    shadowColor: "#0B1A1F",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 8,
+    boxShadow: ELEVATION.light.e4,
   },
   accentBar: {
     width: 4,

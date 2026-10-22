@@ -21,6 +21,10 @@ import { supabase } from "../../lib/supabase";
 import { friendlyError } from "../../lib/friendlyError";
 import { useToast } from "../../contexts/ToastContext";
 import SetupProgress from "../../components/SetupProgress";
+import { GlowBackdrop } from "../../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 /**
  * Stage 1.0 — "Tell us about you."
@@ -164,6 +168,7 @@ export default function ProfileSetupScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
+      <GlowBackdrop variant="brand" style={GLOW_TOP} />
       <SetupProgress current={0} total={5} />
 
       <KeyboardAvoidingView

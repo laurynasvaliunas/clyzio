@@ -2,7 +2,8 @@ import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Text } from './Text';
 import { Button, ButtonProps } from './Button';
-import { spacing } from '../../lib/theme/tokens';
+import { getElevation, getPalette, spacing } from '../../lib/theme/tokens';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -14,9 +15,21 @@ export interface EmptyStateProps {
 
 /** Friendly empty/placeholder state with optional CTA. */
 export function EmptyState({ icon, title, description, action, style }: EmptyStateProps) {
+  const { isDark } = useTheme();
+  const p = getPalette(isDark);
   return (
     <View style={[styles.wrap, style]}>
-      {icon ? <View style={{ marginBottom: spacing[4] }}>{icon}</View> : null}
+      {icon ? (
+        <View
+          style={[
+            styles.disc,
+            { backgroundColor: p.surface, borderColor: p.border },
+            getElevation(isDark, 'e3'),
+          ]}
+        >
+          {icon}
+        </View>
+      ) : null}
       <Text variant="heading" style={{ textAlign: 'center', marginBottom: spacing[2] }}>
         {title}
       </Text>
@@ -37,6 +50,15 @@ export function EmptyState({ icon, title, description, action, style }: EmptySta
 }
 
 const styles = StyleSheet.create({
+  disc: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: spacing[5],
+  },
   wrap: {
     alignItems: 'center',
     justifyContent: 'center',

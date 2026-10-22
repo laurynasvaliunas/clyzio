@@ -8,9 +8,14 @@ import {
   ViewStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Text } from './Text';
-import { brand, semantic, radii, spacing, getPalette } from '../../lib/theme/tokens';
+import { brand, semantic, radii, spacing, getPalette, gradients, motion } from '../../lib/theme/tokens';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useReducedMotion } from './useReducedMotion';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -53,31 +58,50 @@ export function Button({
   const s = sizeStyles[size];
 
   const effectiveDisabled = disabled || loading;
+  const reduce = useReducedMotion();
+  const scale = useSharedValue(1);
+  const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const filled = variant === 'primary' || variant === 'destructive';
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={title}
       accessibilityState={{ disabled: !!effectiveDisabled, busy: loading }}
       hitSlop={8}
       disabled={effectiveDisabled}
+      onPressIn={() => {
+        if (!reduce) scale.value = withSpring(0.97, motion.spring.snappy);
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1, motion.spring.snappy);
+      }}
       onPress={(e) => {
         if (variant === 'primary' || variant === 'destructive') {
           Haptics.selectionAsync().catch(() => undefined);
         }
         onPress?.(e);
       }}
-      style={({ pressed }) => [
+      style={[
         styles.base,
         s.container,
         v.container,
         fullWidth && { alignSelf: 'stretch' },
-        pressed && !effectiveDisabled && { opacity: 0.85, transform: [{ scale: 0.98 }] },
         effectiveDisabled && { opacity: 0.55 },
         style,
+        pressStyle,
       ]}
       {...rest}
     >
+      {variant === 'primary' && (
+        <LinearGradient
+          colors={gradients.brand}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[StyleSheet.absoluteFill, styles.fill]}
+        />
+      )}
+      {filled && <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.fill, styles.sheen]} />}
       {loading ? (
         <ActivityIndicator color={v.labelColor} />
       ) : (
@@ -89,7 +113,7 @@ export function Button({
           {rightIcon ? <View style={{ marginLeft: spacing[2] }}>{rightIcon}</View> : null}
         </View>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -116,12 +140,21 @@ function variantStyles(
   switch (v) {
     case 'primary':
       return {
-        container: { backgroundColor: brand.primary },
+        // Gradient fill is layered on top; the solid colour is its fallback.
+        container: {
+          backgroundColor: brand.primary,
+          boxShadow: isDark
+            ? '0px 8px 20px rgba(0,0,0,0.40)'
+            : '0px 2px 4px rgba(0,61,64,0.18), 0px 10px 24px rgba(0,86,90,0.28)',
+        },
         labelColor: '#FFFFFF',
       };
     case 'destructive':
       return {
-        container: { backgroundColor: semantic.danger },
+        container: {
+          backgroundColor: semantic.danger,
+          boxShadow: isDark ? '0px 8px 20px rgba(0,0,0,0.40)' : '0px 8px 20px rgba(220,38,38,0.24)',
+        },
         labelColor: '#FFFFFF',
       };
     case 'secondary':
@@ -144,9 +177,17 @@ function variantStyles(
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radii.md,
+    borderRadius: radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  fill: {
+    borderRadius: radii.lg,
+  },
+  // Lit top edge on filled buttons.
+  sheen: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.22)',
   },
   content: {
     flexDirection: 'row',

@@ -62,11 +62,14 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   filled: {
-    width: 24,
+    width: 26,
     backgroundColor: COLORS.filled,
+    // Lit pill: a soft teal glow + highlight so progress reads as "on".
+    boxShadow: "inset 0px 1px 1px rgba(255,255,255,0.35), 0px 2px 6px rgba(0,61,64,0.30)",
   },
   empty: {
     width: 8,
     backgroundColor: COLORS.empty,
+    boxShadow: "inset 0px 1px 2px rgba(11,26,31,0.10)",
   },
 });

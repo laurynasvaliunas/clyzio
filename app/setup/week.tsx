@@ -21,6 +21,10 @@ import CommuteMixEditor, {
   computeBaseline,
   hasAnyDay,
 } from "../../components/CommuteMixEditor";
+import { GlowBackdrop } from "../../components/ui";
+
+// Ambient light across the top of the screen (decorative).
+const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 /**
  * Stage 1.4 — "How do you usually get to work?"
@@ -85,6 +89,7 @@ export default function WeekSetupScreen() {
 
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
+      <GlowBackdrop variant="eco" style={GLOW_TOP} />
       <View style={styles.headerRow}>
         <TouchableOpacity
           style={styles.backBtn}

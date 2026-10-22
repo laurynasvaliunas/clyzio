@@ -27,27 +27,20 @@ import { verifyAuth } from '../_shared/auth.ts';
 import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
 import { parseBody, CompleteTripSchema } from '../_shared/validate.ts';
 import { sendPush } from '../_shared/expoPush.ts';
-
-// ─── Gamification constants (mirror lib/gamification.ts) ──────────────────────
-// Flat XP per trip so progress is legible ("3 more trips to the next level").
-const XP_PER_TRIP = 100;
-const TRIPS_PER_LEVEL = 3;
-const XP_PER_LEVEL = XP_PER_TRIP * TRIPS_PER_LEVEL; // 300
-const MAX_LEVEL = 10;
+import {
+  MAX_COMPLETIONS_PER_DAY,
+  RIDE_COLUMNS,
+  type RideRow,
+  carpoolPushToken,
+  creditOnBehalf,
+  creditProfile,
+} from '../_shared/credit.ts';
 
 // ─── Anti-farming limits ──────────────────────────────────────────────────────
 // A ride may be completed from shortly before its scheduled time (people leave
 // early) but not for a trip planned hours ahead.
 const EARLY_START_GRACE_MS = 30 * 60 * 1000;
-// Credited completions per user per rolling 24h. A commute is 2 legs a day;
-// 6 leaves room for errands without letting a script mint unbounded XP.
-const MAX_COMPLETIONS_PER_DAY = 6;
 const COMPLETABLE_STATUSES = new Set(['scheduled', 'requested', 'active', 'completed']);
-
-function getLevel(xp: number): number {
-  const safe = Math.max(0, Math.floor(xp || 0));
-  return Math.min(MAX_LEVEL, Math.floor(safe / XP_PER_LEVEL) + 1);
-}
 
 // ─── Haversine for the celebration modal's "distance" field ───────────────────
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -61,105 +54,6 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-interface RideRow {
-  id: string;
-  status: string;
-  scheduled_at: string | null;
-  rider_id: string | null;
-  driver_id: string | null;
-  transport_mode: string | null;
-  co2_saved: number | null;
-  origin_lat: number | null;
-  origin_long: number | null;
-  dest_lat: number | null;
-  dest_long: number | null;
-}
-
-type Credit =
-  | {
-      ok: true;
-      xpEarned: number;
-      co2Saved: number;
-      newXP: number;
-      newCO2: number;
-      newTripsCount: number;
-      oldLevel: number;
-      newLevel: number;
-      newBadges: string[];
-    }
-  | { ok: false; error: unknown };
-
-/**
- * Adds one ride's XP / CO₂ / trip / badges to a participant's profile. The
- * caller has already claimed the ride_completions row for this user.
- */
-// deno-lint-ignore no-explicit-any
-async function creditProfile(supabase: any, uid: string, ride: RideRow): Promise<Credit> {
-  const isCarpool = !!(ride.driver_id && ride.rider_id);
-  const xpEarned = XP_PER_TRIP;
-  // Carpool CO₂ is a SHARED saving — split it 50/50 between driver and rider so
-  // the pair's combined credit equals the trip's saving (no double-count). Solo
-  // trips credit the full amount to the one participant.
-  const fullCo2 = Number(ride.co2_saved) || 0;
-  const co2Saved = isCarpool ? Math.round((fullCo2 / 2) * 1000) / 1000 : fullCo2;
-
-  const { data: profile, error: profErr } = await supabase
-    .from('profiles')
-    .select('xp_points, total_co2_saved, trips_completed, badges')
-    .eq('id', uid)
-    .maybeSingle();
-  if (profErr || !profile) return { ok: false, error: profErr ?? new Error('profile not found') };
-
-  const oldXP = Number(profile.xp_points) || 0;
-  const newXP = oldXP + xpEarned;
-  const newCO2 = (Number(profile.total_co2_saved) || 0) + co2Saved;
-  const newTripsCount = (Number(profile.trips_completed) || 0) + 1;
-
-  // Badge evaluation
-  const existingBadges: string[] = Array.isArray(profile.badges) ? profile.badges : [];
-  const newBadges: string[] = [];
-  if (newTripsCount >= 1 && !existingBadges.includes('first_trip')) newBadges.push('first_trip');
-  if (newTripsCount >= 10 && !existingBadges.includes('trips_10')) newBadges.push('trips_10');
-  if (newCO2 >= 50 && !existingBadges.includes('co2_50')) newBadges.push('co2_50');
-  if (newCO2 >= 100 && !existingBadges.includes('co2_100')) newBadges.push('co2_100');
-  if (isCarpool && !existingBadges.includes('first_carpool')) newBadges.push('first_carpool');
-  if (ride.transport_mode === 'walking' && !existingBadges.includes('walker_5')) {
-    // Cheap aggregate: count this user's completed walking rides (as rider
-    // OR driver — mirrors the activity.tsx behaviour).
-    const { count } = await supabase
-      .from('rides')
-      .select('id', { count: 'exact', head: true })
-      .or(`rider_id.eq.${uid},driver_id.eq.${uid}`)
-      .eq('transport_mode', 'walking')
-      .eq('status', 'completed');
-    if ((count ?? 0) >= 5) newBadges.push('walker_5');
-  }
-
-  // Single UPDATE — service role bypasses the C1 column-guard trigger.
-  const { error: writeErr } = await supabase
-    .from('profiles')
-    .update({
-      xp_points: newXP,
-      total_co2_saved: newCO2,
-      trips_completed: newTripsCount,
-      ...(newBadges.length > 0 ? { badges: [...existingBadges, ...newBadges] } : {}),
-    })
-    .eq('id', uid);
-  if (writeErr) return { ok: false, error: writeErr };
-
-  return {
-    ok: true,
-    xpEarned,
-    co2Saved,
-    newXP,
-    newCO2,
-    newTripsCount,
-    oldLevel: getLevel(oldXP),
-    newLevel: getLevel(newXP),
-    newBadges,
-  };
-}
-
 /**
  * The driver ended a carpool: the passenger was in the car, so credit them too
  * (once — a passenger who already tapped "I've arrived" holds the claim) and
@@ -169,47 +63,24 @@ async function creditProfile(supabase: any, uid: string, ride: RideRow): Promise
  */
 // deno-lint-ignore no-explicit-any
 async function creditPassenger(supabase: any, ride: RideRow, driverId: string): Promise<void> {
-  const pid = ride.rider_id;
-  if (!pid) return;
+  if (!ride.rider_id) return;
+  const credit = await creditOnBehalf(supabase, ride, ride.rider_id, 'complete-trip');
+  if (!credit || !credit.ok) return;
   try {
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count } = await supabase
-      .from('ride_completions')
-      .select('ride_id', { count: 'exact', head: true })
-      .eq('user_id', pid)
-      .gte('created_at', since);
-    if ((count ?? 0) >= MAX_COMPLETIONS_PER_DAY) return;
-
-    const { error: claimErr } = await supabase.from('ride_completions').insert({ ride_id: ride.id, user_id: pid });
-    if (claimErr) {
-      if ((claimErr as { code?: string }).code !== '23505') {
-        console.error('[complete-trip] passenger claim failed:', claimErr.message);
-      }
-      return;
-    }
-
-    const credit = await creditProfile(supabase, pid, ride);
-    if (!credit.ok) {
-      await supabase.from('ride_completions').delete().eq('ride_id', ride.id).eq('user_id', pid);
-      console.error('[complete-trip] passenger credit failed:', credit.error);
-      return;
-    }
-
-    const [{ data: driver }, { data: passenger }] = await Promise.all([
+    const [{ data: driver }, token] = await Promise.all([
       supabase.from('profiles').select('first_name').eq('id', driverId).maybeSingle(),
-      supabase.from('profiles').select('expo_push_token, notification_prefs').eq('id', pid).maybeSingle(),
+      carpoolPushToken(supabase, ride.rider_id),
     ]);
-    const matchesPref = (passenger?.notification_prefs as { matches?: boolean } | null)?.matches ?? true;
-    if (passenger?.expo_push_token && matchesPref) {
+    if (token) {
       await sendPush({
-        to: passenger.expo_push_token,
+        to: token,
         title: 'Trip complete',
         body: `${driver?.first_name ?? 'Your driver'} ended the carpool: +${credit.xpEarned} XP and ${credit.co2Saved.toFixed(2)} kg CO₂ saved. Tap to rate them.`,
         data: { screen: 'rating', rideId: ride.id },
       });
     }
   } catch (err) {
-    console.error('[complete-trip] passenger credit error:', err);
+    console.error('[complete-trip] passenger push error:', err);
   }
 }
 
@@ -238,9 +109,7 @@ Deno.serve(async (req) => {
     // (1) Fetch the ride. Authorization: caller must be participant.
     const { data: ride, error: rideErr } = await supabase
       .from('rides')
-      .select(
-        'id, status, scheduled_at, rider_id, driver_id, transport_mode, co2_saved, origin_lat, origin_long, dest_lat, dest_long',
-      )
+      .select(RIDE_COLUMNS)
       .eq('id', ride_id)
       .maybeSingle();
 

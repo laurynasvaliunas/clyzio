@@ -2,6 +2,7 @@ import { TouchableOpacity, Text, View, StyleSheet } from "react-native";
 import { X } from "lucide-react-native";
 import { Picto } from "./ui/editorial";
 import { editorial, weights } from "../lib/theme/tokens";
+import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 interface AISuggestionChipProps {
   insight: string;
@@ -44,14 +45,10 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingLeft: 13,
     paddingRight: 10,
-    shadowColor: editorial.ink,
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
     borderLeftWidth: 3,
     borderLeftColor: editorial.teal,
     gap: 10,
+    boxShadow: ELEVATION.light.e3,
   },
   iconBox: {
     width: 30,

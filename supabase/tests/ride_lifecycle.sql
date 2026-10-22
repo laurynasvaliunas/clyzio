@@ -1,9 +1,9 @@
--- Scenario test for ride cancellation and completion rules (migration 048 on
--- top of the client-write guard from 036/041).
+-- Scenario test for ride cancellation, completion and rating rules (migrations
+-- 048 and 049 on top of the client-write guard from 036/041).
 --
 -- Side-effect free: ONE DO block that always ends by raising, so every fixture
 -- is rolled back. Success is "RIDE LIFECYCLE: ALL n CHECKS PASSED"; a failure
--- names the broken check. Assumes 048 is applied (or is run in the same
+-- names the broken check. Assumes 048 + 049 are applied (or are run in the same
 -- transaction, which is how it was dry-run against production).
 
 do $test$
@@ -13,6 +13,8 @@ declare
   p2    uuid := gen_random_uuid();
   d1    date := current_date + 1;
   d2    date := current_date + 2;
+  d0    date := current_date - 1;
+  i_drv3 uuid; i_p3 uuid; r9 uuid;
   i_drv uuid; i_p1 uuid; i_p2 uuid; i_drv2 uuid; i_p2b uuid;
   r1 uuid; r2 uuid; r3 uuid; r4 uuid; r5 uuid; r6 uuid; r7 uuid; r8 uuid; r_solo uuid;
   v5 numeric; v7 numeric; wk numeric;
@@ -165,6 +167,44 @@ begin
   assert not exists (select 1 from public.trip_intent_matches m join public.rides r on r.id = m.ride_id
                       where m.status = 'confirmed' and r.status = 'cancelled'),
          'no confirmed match may point at a cancelled ride (048 backfill)';                                         n := n + 1;
+
+  -- ── 8. Ratings (049): rater defaults to the caller; "I've arrived" may rate ─
+  -- r3: p1 confirmed it (ride_completions), the driver never ended it.
+  perform set_config('request.jwt.claims', json_build_object('sub', p1, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  insert into public.ratings (ride_id, rated_id, score, tags) values (r3, drv, 5, '{rating.tag.safe}');
+  reset role;
+  perform set_config('request.jwt.claims', '{}', true);
+  assert (select rater_id from public.ratings where ride_id = r3) = p1,
+         'a rating without rater_id is saved as the caller''s (every rating used to fail)';                  n := n + 1;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', drv, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  ok := false;
+  begin
+    insert into public.ratings (ride_id, rated_id, score) values (r3, p1, 4);
+  exception when others then ok := true;
+  end;
+  reset role;
+  perform set_config('request.jwt.claims', '{}', true);
+  assert ok, 'a participant who has not finished the trip cannot rate yet';                                 n := n + 1;
+
+  -- ── 9. A stale past carpool closed by the job (no caller) closes for good ─
+  insert into public.trip_intents (user_id, role, trip_date, home_lat, home_long, work_lat, work_long, status, passenger_capacity)
+  values (drv, 'driver', d0, 54.68, 25.27, 54.70, 25.30, 'matched', 1) returning id into i_drv3;
+  insert into public.trip_intents (user_id, role, trip_date, home_lat, home_long, work_lat, work_long, status)
+  values (p1, 'passenger', d0, 54.68, 25.27, 54.70, 25.30, 'matched') returning id into i_p3;
+  insert into public.rides (driver_id, rider_id, status, origin_lat, origin_long, dest_lat, dest_long, transport_mode, transport_label, scheduled_at)
+  values (drv, p1, 'scheduled', 54.68, 25.27, 54.70, 25.30, 'carpool', 'Carpool', d0 + time '08:00') returning id into r9;
+  insert into public.trip_intent_matches (driver_intent_id, passenger_intent_id, driver_user_id, passenger_user_id, trip_date, status, ride_id, driver_approved, passenger_approved)
+  values (i_drv3, i_p3, drv, p1, d0, 'confirmed', r9, true, true);
+  update public.rides set status = 'cancelled' where id = r9;
+  assert (select status from public.trip_intent_matches where ride_id = r9) = 'expired'
+     and (select count(*) from public.trip_intents where id in (i_drv3, i_p3) and status = 'expired') = 2,
+         'closing a past carpool expires its match and intents instead of reopening them';                  n := n + 1;
+
+  assert exists (select 1 from cron.job where jobname = 'clyzio-close-stale-rides' and active),
+         'the hourly close-stale-rides job must be scheduled';                                                  n := n + 1;
 
   raise exception 'RIDE LIFECYCLE: ALL % CHECKS PASSED (fixtures rolled back)', n;
 end

@@ -8,7 +8,8 @@ import {
   Animated,
   Share,
 } from "react-native";
-import Mapbox, { MapView, Camera, PointAnnotation, MarkerView, ShapeSource, LineLayer, UserLocation } from "@rnmapbox/maps";
+import Mapbox, { MapView, Camera, PointAnnotation, MarkerView, ShapeSource, LineLayer, UserLocation, StyleImport } from "@rnmapbox/maps";
+import { MAP_HEADING, MAP_PITCH, MAP_STYLE_3D, boundsWithPadding, standardConfig } from "../../lib/map3d";
 import { Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
@@ -28,6 +29,7 @@ import { localISODate, tomorrowLocalISODate } from "../../lib/localDate";
 import { buildWebLink } from "../../lib/deepLinks";
 import { cancelRide } from "../../lib/cancelRide";
 import { co2Share } from "../../lib/completeTrip";
+import { formatClockTime } from "../../lib/format";
 import { logger } from "../../lib/logger";
 import { useAIStore } from "../../store/useAIStore";
 import { useDailyCommuteStore } from "../../store/useDailyCommuteStore";
@@ -36,6 +38,7 @@ import { getThemeColors } from "../../lib/theme";
 import { useToast } from "../../contexts/ToastContext";
 
 import { MAPBOX_TOKEN, IS_MAPBOX_TOKEN_VALID } from "../../lib/config";
+import { elevation as ELEVATION, depth } from "../../lib/theme/tokens";
 if (IS_MAPBOX_TOKEN_VALID) {
   Mapbox.setAccessToken(MAPBOX_TOKEN);
   // Mapbox usage telemetry is off (privacy policy §5); maps work without it.
@@ -77,13 +80,6 @@ interface IntentPeer {
 /** Tomorrow as a local YYYY-MM-DD — same helper as useDailyCommuteStore. */
 const tomorrowISODate = tomorrowLocalISODate;
 
-/** "HH:MM:SS" → "HH:MM" for display. */
-function formatIntentTime(t: string | null): string | null {
-  if (!t) return null;
-  const m = /^(\d{2}:\d{2})/.exec(t);
-  return m ? m[1] : null;
-}
-
 /**
  * CommuterMarker - Displays a nearby driver or rider on the map
  * Shows custom icon (car for drivers, users for riders) with color coding
@@ -107,7 +103,7 @@ function CommuterMarker({ commuter, searchMode, onPress }: CommuterMarkerProps) 
       coordinate={[commuter.origin_long, commuter.origin_lat]}
       onSelected={onPress}
     >
-      <View style={[styles.customMarker, { backgroundColor: markerColor }]}>
+      <View collapsable={false} style={[styles.customMarker, { backgroundColor: markerColor }]}>
         {isLookingForDriver ? (
           <Car size={20} color={COLORS.white} />
         ) : (
@@ -391,7 +387,7 @@ function IntentPeerCard({
 }) {
   const router = useRouter();
   const isDriver = peer.role === 'driver';
-  const time = formatIntentTime(peer.departure_time);
+  const time = formatClockTime(peer.departure_time);
   const initial = (peer.first_name ?? '?').trim().charAt(0).toUpperCase() || '?';
 
   return (
@@ -519,6 +515,8 @@ export default function MapScreen() {
   // until tiles finish loading. Without this, cold-starts flash a gray grid
   // with the location-puck rings — looks like a broken/loading screen.
   const [mapReady, setMapReady] = useState(false);
+  // Standard (3D) style failed to load → fall back to the flat style.
+  const [flatMap, setFlatMap] = useState(false);
   const mapMaskOpacity = useRef(new Animated.Value(1)).current;
   const [showPlanner, setShowPlanner] = useState(false);
   const [pendingPresetMode, setPendingPresetMode] = useState<string | null>(null);
@@ -594,7 +592,9 @@ export default function MapScreen() {
 
       cameraRef.current?.setCamera({
         centerCoordinate: [location.coords.longitude, location.coords.latitude],
-        zoomLevel: 13,
+        zoomLevel: 15.5, // 3D buildings appear from ~15
+        pitch: MAP_PITCH,
+        heading: MAP_HEADING,
         animationDuration: 1000,
       });
     } catch (error) {
@@ -707,12 +707,12 @@ export default function MapScreen() {
         if (!cancelled && json.routes?.length > 0) {
           setDefaultRouteCoords(json.routes[0].geometry.coordinates);
           // Frame both endpoints on first load.
-          cameraRef.current?.fitBounds(
-            [workLng, workLat],
-            [homeLng, homeLat],
-            80,
-            800,
-          );
+          cameraRef.current?.setCamera({
+            bounds: boundsWithPadding([workLng, workLat], [homeLng, homeLat], [120, 60, 300, 60]),
+            pitch: MAP_PITCH,
+            heading: MAP_HEADING,
+            animationDuration: 800,
+          });
         }
       } catch {
         if (!cancelled) setDefaultRouteCoords(null);
@@ -1025,7 +1025,9 @@ export default function MapScreen() {
               
               cameraRef.current?.setCamera({
                 centerCoordinate: [location.coords.longitude, location.coords.latitude],
-                zoomLevel: 13,
+                zoomLevel: 15.5, // 3D buildings appear from ~15
+                pitch: MAP_PITCH,
+                heading: MAP_HEADING,
                 animationDuration: 1000,
               });
             }
@@ -1202,12 +1204,16 @@ export default function MapScreen() {
         lats.push(tripData.waypoint.lat);
         lngs.push(tripData.waypoint.lng);
       }
-      cameraRef.current?.fitBounds(
-        [Math.max(...lngs), Math.max(...lats)],
-        [Math.min(...lngs), Math.min(...lats)],
-        [100, 50, 350, 50],
-        1000,
-      );
+      cameraRef.current?.setCamera({
+        bounds: boundsWithPadding(
+          [Math.max(...lngs), Math.max(...lats)],
+          [Math.min(...lngs), Math.min(...lats)],
+          [100, 50, 350, 50],
+        ),
+        pitch: MAP_PITCH,
+        heading: MAP_HEADING,
+        animationDuration: 1000,
+      });
     }
   };
 
@@ -1388,17 +1394,22 @@ export default function MapScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        styleURL={isDark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street}
+        // 3D city (Mapbox Standard); flat Street/Dark if Standard can't load.
+        styleURL={flatMap ? (isDark ? Mapbox.StyleURL.Dark : Mapbox.StyleURL.Street) : MAP_STYLE_3D}
+        onMapLoadingError={() => setFlatMap(true)}
         logoEnabled
         attributionEnabled
         scaleBarEnabled={false} // overlapped the logo + greeting header
         onDidFinishLoadingMap={centerToUserLocation}
       >
+        {!flatMap && <StyleImport id="basemap" existing config={standardConfig(isDark ? "night" : "day")} />}
         <Camera
           ref={cameraRef}
           defaultSettings={{
             centerCoordinate: [25.2797, 54.6872],
-            zoomLevel: 12,
+            zoomLevel: 12.5,
+            pitch: MAP_PITCH,
+            heading: MAP_HEADING,
           }}
         />
 
@@ -1410,7 +1421,7 @@ export default function MapScreen() {
             id="origin"
             coordinate={[activeTrip.origin.lng, activeTrip.origin.lat]}
           >
-            <View style={[styles.markerDot, { backgroundColor: COLORS.green }]} />
+            <View collapsable={false} style={[styles.markerDot, { backgroundColor: COLORS.green }]} />
           </PointAnnotation>
         )}
 
@@ -1420,7 +1431,7 @@ export default function MapScreen() {
             id="waypoint"
             coordinate={[activeTrip.waypoint.lng, activeTrip.waypoint.lat]}
           >
-            <View style={[styles.markerDot, { backgroundColor: "#D97706" }]} />
+            <View collapsable={false} style={[styles.markerDot, { backgroundColor: "#D97706" }]} />
           </PointAnnotation>
         )}
 
@@ -1430,7 +1441,7 @@ export default function MapScreen() {
             id="destination"
             coordinate={[activeTrip.destination.lng, activeTrip.destination.lat]}
           >
-            <View style={[styles.markerDot, { backgroundColor: "#DC2626" }]} />
+            <View collapsable={false} style={[styles.markerDot, { backgroundColor: "#DC2626" }]} />
           </PointAnnotation>
         )}
 
@@ -1448,13 +1459,15 @@ export default function MapScreen() {
           >
             <LineLayer
               id="defaultRouteLine"
+              slot="middle"
               style={{
-                lineColor: COLORS.primary,
+                lineColor: isDark ? "#7FD3D6" : COLORS.primary,
                 lineWidth: 4,
                 lineJoin: "round",
                 lineCap: "round",
-                lineOpacity: 0.7,
+                lineOpacity: 0.8,
                 lineDasharray: [2, 1.5],
+                lineEmissiveStrength: 1,
               }}
             />
           </ShapeSource>
@@ -1463,14 +1476,14 @@ export default function MapScreen() {
         {/* Home / Work pins (Stage 2) — shown while idle. */}
         {!activeTrip && places?.homeLat != null && places?.homeLng != null && (
           <PointAnnotation id="home-place" coordinate={[places.homeLng, places.homeLat]}>
-            <View style={[styles.placePin, { backgroundColor: COLORS.primary }]}>
+            <View collapsable={false} style={[styles.placePin, { backgroundColor: COLORS.primary }]}>
               <House size={16} color={COLORS.white} strokeWidth={2.25} />
             </View>
           </PointAnnotation>
         )}
         {!activeTrip && places?.workLat != null && places?.workLng != null && (
           <PointAnnotation id="work-place" coordinate={[places.workLng, places.workLat]}>
-            <View style={[styles.placePin, { backgroundColor: COLORS.green }]}>
+            <View collapsable={false} style={[styles.placePin, { backgroundColor: COLORS.green }]}>
               <Briefcase size={16} color={COLORS.white} strokeWidth={2.25} />
             </View>
           </PointAnnotation>
@@ -1486,13 +1499,21 @@ export default function MapScreen() {
               properties: {},
             }}
           >
+            {/* Soft teal glow under the route, then a white casing and the line. */}
+            <LineLayer
+              id="routeGlow"
+              slot="middle"
+              style={{ lineColor: "#0E8C93", lineWidth: 16, lineBlur: 10, lineOpacity: 0.45, lineJoin: "round", lineCap: "round", lineEmissiveStrength: 1 }}
+            />
             <LineLayer
               id="routeLineCasing"
-              style={{ lineColor: "#FFFFFF", lineWidth: 8, lineJoin: "round", lineCap: "round", lineOpacity: 0.55 }}
+              slot="middle"
+              style={{ lineColor: "#FFFFFF", lineWidth: 8, lineJoin: "round", lineCap: "round", lineOpacity: 0.85, lineEmissiveStrength: 1 }}
             />
             <LineLayer
               id="routeLine"
-              style={{ lineColor: COLORS.dark, lineWidth: 4, lineJoin: "round", lineCap: "round" }}
+              slot="middle"
+              style={{ lineColor: isDark ? "#7FD3D6" : "#00565A", lineWidth: 4.5, lineJoin: "round", lineCap: "round", lineEmissiveStrength: 1 }}
             />
           </ShapeSource>
         )}
@@ -1591,7 +1612,7 @@ export default function MapScreen() {
             } else {
               const driverName = confirmedMatches[0].driver_profile?.first_name ?? "Driver";
               label = `Riding with ${driverName}`;
-              sublabel = `Pickup ${confirmedMatches[0].proposed_pickup_time ?? confirmedMatches[0].proposed_departure ?? "tomorrow"}`;
+              sublabel = `Pickup ${formatClockTime(confirmedMatches[0].proposed_pickup_time ?? confirmedMatches[0].proposed_departure) ?? "tomorrow"}`;
             }
             icon = <Users size={14} color="#fff" />;
           } else if (needsMyApproval.length > 0) {
@@ -1851,10 +1872,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 28,
-    shadowColor: "#0B1A1F",
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
+    boxShadow: ELEVATION.light.e3,
   },
 
   // ===== HOME / WORK PLACE PINS (Stage 2) =====
@@ -1866,11 +1884,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     borderColor: "#FFFFFF",
-    shadowColor: "#0B1A1F",
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
+    boxShadow: ELEVATION.light.e3,
   },
 
   // ===== ACTIVE TRIP CARD =====
@@ -1885,11 +1899,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.12,
-    shadowRadius: 28,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 8,
+    boxShadow: ELEVATION.light.e4,
   },
   activeTripTitle: {
     fontWeight: "700",
@@ -1922,12 +1932,8 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     paddingHorizontal: 16,
     borderRadius: 999,
-    shadowColor: "#0B1A1F",
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
     gap: 6,
+    boxShadow: ELEVATION.light.e3,
   },
   intentPillLabel: {
     fontSize: 13,
@@ -1954,11 +1960,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     gap: 12,
-    shadowColor: "#0B1A1F",
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    boxShadow: ELEVATION.light.e4,
   },
   emptyStateIcon: {
     width: 36,
@@ -1997,11 +1999,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 6,
+    boxShadow: ELEVATION.light.e3,
   },
   myLocationBtnDark: {
     backgroundColor: "#0B1A1F",
@@ -2023,11 +2021,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     borderColor: COLORS.white,
-    shadowColor: COLORS.black,
-   
-    shadowOpacity: 0.3, shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 5,
+    boxShadow: ELEVATION.light.e2,
   },
 
   // ===== INTENT-PEER MARKER (avatar disc + role badge) =====
@@ -2042,11 +2036,7 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: COLORS.white,
     backgroundColor: "#E6F1F2",
-    shadowColor: COLORS.black,
-   
-    shadowOpacity: 0.3, shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 5,
+    boxShadow: ELEVATION.light.e2,
   },
   intentPeerInitialWrap: {
     alignItems: "center",
@@ -2074,6 +2064,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: "#E6F1F2",
+    boxShadow: depth.embossLight,
   },
   intentCardInitial: {
     fontSize: 24,
@@ -2112,11 +2103,7 @@ const styles = StyleSheet.create({
     paddingBottom: 36,
     paddingTop: 12,
     maxHeight: "72%",
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 20,
-    elevation: 15,
+    boxShadow: ELEVATION.light.e4,
   },
   matchHandle: {
     width: 40,
@@ -2141,6 +2128,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + "15",
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: depth.emboss,
   },
   matchStatusDot: {
     position: "absolute",
@@ -2240,11 +2228,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    boxShadow: ELEVATION.light.e3,
   },
   requestBtnDisabled: {
     opacity: 0.6,
@@ -2289,11 +2273,7 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: "center",
     width: "100%",
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 20,
-    elevation: 15,
+    boxShadow: ELEVATION.light.e4,
   },
   searchingIconContainer: {
     width: 80,
@@ -2303,6 +2283,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,
+    boxShadow: depth.emboss,
   },
   searchingTitle: {
     fontSize: 24,
@@ -2353,11 +2334,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    boxShadow: ELEVATION.light.e3,
   },
   viewMatchesBtnText: {
     color: COLORS.white,
@@ -2374,11 +2351,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 8,
-    elevation: 6,
+    boxShadow: ELEVATION.light.e3,
   },
   aiMatchBtnText: {
     color: COLORS.white,

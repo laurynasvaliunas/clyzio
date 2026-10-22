@@ -12,6 +12,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { MedalBurst } from "../../components/three";
+import { GlowBackdrop } from "../../components/ui";
 import * as Haptics from "expo-haptics";
 import { Home, Briefcase, ArrowRight, Users } from "lucide-react-native";
 import ModeIcon from "../../components/ModeIcon";
@@ -20,6 +22,7 @@ import { supabase } from "../../lib/supabase";
 import { useToast } from "../../contexts/ToastContext";
 import { parseVehicles, type Vehicle } from "../../lib/vehicles";
 import SetupProgress from "../../components/SetupProgress";
+import { elevation as ELEVATION } from "../../lib/theme/tokens";
 
 /**
  * Stage 1.3 — "You're ready to go!"
@@ -167,16 +170,20 @@ export default function DoneScreen() {
         colors={["#E6F1F2", COLORS.bg]}
         style={StyleSheet.absoluteFill}
       />
+      <GlowBackdrop variant="reward" />
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
         <SetupProgress current={4} total={5} />
 
         <View style={styles.header}>
-          <Text style={styles.heading} accessibilityRole="header">
-            You're ready to go!
-          </Text>
-          <Text style={styles.subhead}>
-            Here's your daily commute.
-          </Text>
+          <View style={styles.headerText}>
+            <Text style={styles.heading} accessibilityRole="header">
+              You're ready to go!
+            </Text>
+            <Text style={styles.subhead}>
+              Here's your daily commute.
+            </Text>
+          </View>
+          <MedalBurst style={styles.medal} />
         </View>
 
         {loading ? (
@@ -290,11 +297,15 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.bg },
   safe: { flex: 1, paddingHorizontal: 16 },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 8,
     paddingTop: 8,
-    paddingBottom: 16,
-    gap: 6,
+    paddingBottom: 8,
   },
+  headerText: { flex: 1, gap: 6 },
+  // Celebration medal beside the heading (decorative).
+  medal: { width: 104, height: 104, marginRight: -8 },
   heading: {
     fontSize: 28,
     lineHeight: 34,
@@ -324,11 +335,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: 24,
     padding: 18,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    boxShadow: ELEVATION.light.e3,
   },
   endpoint: {
     flex: 1,
@@ -415,11 +422,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    boxShadow: ELEVATION.light.e2,
   },
   footer: {
     paddingTop: 12,
