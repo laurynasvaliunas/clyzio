@@ -38,7 +38,7 @@ const COLORS = {
   emptyCellDark: "#1B3035",
 };
 
-const GREEN_MODES = new Set(["walking", "bike", "ebike", "escooter", "scooter", "wfh"]);
+const GREEN_MODES = new Set(["walking", "bike", "ebike", "escooter", "scooter", "nomotor", "wfh"]);
 const YELLOW_MODES = new Set(["public"]);
 // everything else (my_car, car, taxi, moto, motorbike, carpool) → orange
 

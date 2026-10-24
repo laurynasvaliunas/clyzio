@@ -13,7 +13,8 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import * as SecureStore from "expo-secure-store";
-import { Bike, Cloud, Smile, ArrowRight } from "lucide-react-native";
+import { Cloud, Smile, ArrowRight } from "lucide-react-native";
+import { BikeIcon } from "../components/icons/TransportIcons";
 import { gradients } from "../lib/theme/tokens";
 import { CommuteCity } from "../components/three";
 import { GlowBackdrop, PressableScale } from "../components/ui";
@@ -200,7 +201,7 @@ export default function WelcomeScreen() {
             ]}
           >
             <View style={styles.iconBubble}>
-              <Bike size={30} color={COLORS.bgTop} />
+              <BikeIcon size={30} color={COLORS.bgTop} />
             </View>
           </Animated.View>
 

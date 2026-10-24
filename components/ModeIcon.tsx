@@ -1,55 +1,55 @@
 import React from "react";
+import { Compass, House, Users } from "lucide-react-native";
 import {
-  Bike,
-  Bus,
-  Car,
-  CarFront,
-  Compass,
-  Footprints,
-  Gauge,
-  House,
-  Users,
-  Zap,
-} from "lucide-react-native";
+  BikeIcon,
+  CarIcon,
+  EbikeIcon,
+  MotorcycleIcon,
+  NoMotorIcon,
+  PublicTransportIcon,
+  TaxiIcon,
+  WalkingIcon,
+} from "./icons/TransportIcons";
 
 /**
  * One line icon per transport mode / vehicle type, used everywhere a mode is
- * shown. Replaces the emoji (🚶 🚲 🏍️ 🚗 …) that rendered differently on iOS
- * and Android, ignored the brand colour and clashed with the lucide icons used
- * in the rest of the UI.
+ * shown. Modes use Clyzio's own pictograms (components/icons/TransportIcons);
+ * carpool and working-from-home, which have none, keep their lucide icons.
  *
  * Accepts the ids used across the app: commute-mix ids (car_gas, moto_gas,
- * public, wfh…), ride transport_mode values (walking, bike, ebike…), garage
- * vehicle types (bicycle, motorcycle, scooter…).
+ * public, wfh…), ride transport_mode values (walking, bike, ebike, moto,
+ * nomotor…), garage vehicle types (bicycle, motorcycle, scooter…).
  */
-type IconComponent = typeof Car;
+export type IconComponent = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
 
 const ICONS: Record<string, IconComponent> = {
-  walking: Footprints,
-  walk: Footprints,
-  bike: Bike,
-  bicycle: Bike,
-  cycling: Bike,
-  ebike: Zap,
-  escooter: Zap,
-  scooter: Zap,
-  moto_gas: Gauge,
-  motorbike: Gauge,
-  motorcycle: Gauge,
-  public: Bus,
-  bus: Bus,
-  transit: Bus,
+  public: PublicTransportIcon,
+  bus: PublicTransportIcon,
+  transit: PublicTransportIcon,
+  car: CarIcon,
+  my_car: CarIcon,
+  bike: BikeIcon,
+  bicycle: BikeIcon,
+  cycling: BikeIcon,
+  ebike: EbikeIcon,
+  escooter: EbikeIcon,
+  scooter: EbikeIcon,
+  walking: WalkingIcon,
+  walk: WalkingIcon,
+  taxi: TaxiIcon,
+  moto: MotorcycleIcon,
+  moto_gas: MotorcycleIcon,
+  motorbike: MotorcycleIcon,
+  motorcycle: MotorcycleIcon,
+  nomotor: NoMotorIcon,
   carpool: Users,
   wfh: House,
-  taxi: CarFront,
-  car: Car,
-  my_car: Car,
 };
 
 export function modeIconFor(mode: string | null | undefined): IconComponent {
   if (!mode) return Compass;
   if (ICONS[mode]) return ICONS[mode];
-  if (mode.startsWith("car")) return Car; // car_gas, car_diesel, car_electric…
+  if (mode.startsWith("car")) return CarIcon; // car_gas, car_diesel, car_electric…
   return Compass;
 }
 
@@ -60,7 +60,10 @@ interface ModeIconProps {
   strokeWidth?: number;
 }
 
-export default function ModeIcon({ mode, size = 20, color, strokeWidth = 2 }: ModeIconProps) {
+/** Line weight of the pictogram set (1.6 on a 24-unit grid). */
+const STROKE = 1.6;
+
+export default function ModeIcon({ mode, size = 20, color, strokeWidth = STROKE }: ModeIconProps) {
   const Icon = modeIconFor(mode);
   return <Icon size={size} color={color} strokeWidth={strokeWidth} />;
 }

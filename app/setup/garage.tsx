@@ -65,13 +65,14 @@ interface VehicleCard {
   label: string;
 }
 
+// Design display order: car, bike, e-bike / e-scooter, motorcycle / moped.
 const CARDS: VehicleCard[] = [
   { type: "car",        label: "Car" },
-  { type: "motorcycle", label: "Motorcycle" },
   { type: "bicycle",    label: "Bike" },
+  { type: "ebike",      label: "E-bike" },
+  { type: "escooter",   label: "E-scooter" },
   { type: "scooter",    label: "Scooter" },
-  { type: "ebike",      label: "E-Bike" },
-  { type: "escooter",   label: "E-Scooter" },
+  { type: "motorcycle", label: "Motorcycle / Moped" },
 ];
 
 const FUEL_OPTIONS: Array<{ id: string; label: string }> = [
@@ -368,7 +369,9 @@ const styles = StyleSheet.create({
     padding: 18,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 120,
+    // Fits a two-line label ("Motorcycle / Moped"), so every card in the
+    // grid has the same height.
+    minHeight: 132,
     gap: 10,
     borderWidth: 2,
     borderColor: "transparent",
@@ -398,6 +401,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: COLORS.ink,
+    textAlign: "center",
   },
   cardLabelSelected: {
     color: COLORS.selected,

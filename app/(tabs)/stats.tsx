@@ -30,11 +30,10 @@ import {
   Building2,
   User,
   BarChart3,
-  Bus,
-  Bike,
 } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
 import CostSavingsCard from "../../components/CostSavingsCard";
+import { modeIconFor } from "../../components/ModeIcon";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors, TAB_SCREEN_BOTTOM_PADDING } from "../../lib/theme";
 import { getLevelInfo, XP_PER_TRIP, TRIPS_PER_LEVEL, MAX_LEVEL, LEVEL_TITLES } from "../../lib/gamification";
@@ -77,20 +76,6 @@ const BADGES = [
 
 const CO2_PER_TREE = 20;
 
-
-/**
- * Get icon component for transport mode
- */
-function getTransportIcon(modeIcon: string) {
-  switch (modeIcon) {
-    case "walking": return Footprints;
-    case "bike": return Bike;
-    case "ebike": return Zap;
-    case "public": return Bus;
-    case "my_car": return Car;
-    default: return Car;
-  }
-}
 
 interface UserStats {
   total_co2_saved: number;
@@ -229,12 +214,12 @@ interface TopModeItemProps {
 }
 
 function TopModeItem({ mode }: TopModeItemProps) {
-  const IconComponent = getTransportIcon(mode.mode_icon);
+  const IconComponent = modeIconFor(mode.mode_icon);
   
   return (
     <View style={styles.topModeItem}>
       <View style={styles.topModeIconBox}>
-        <IconComponent size={28} color={COLORS.primary} />
+        <IconComponent size={28} color={COLORS.primary} strokeWidth={1.6} />
       </View>
       <Text style={styles.topModeLabel}>{mode.mode_label}</Text>
       <Text style={styles.topModeCount}>{mode.count} trips</Text>

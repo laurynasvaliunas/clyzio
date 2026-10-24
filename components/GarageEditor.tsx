@@ -39,13 +39,14 @@ const FUEL_TYPES = [
   { id: "cng", label: "CNG (Natural Gas)" },
 ];
 
+// Design display order: car, bike, e-bike / e-scooter, motorcycle / moped.
 const TYPE_ORDER: VehicleType[] = [
   "car",
-  "motorcycle",
   "bicycle",
-  "scooter",
   "ebike",
   "escooter",
+  "scooter",
+  "motorcycle",
 ];
 
 interface Props {

@@ -22,7 +22,8 @@ import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserL
 import { MAP_STYLE_3D, standardConfig } from "../../lib/map3d";
 import { useTheme } from "../../contexts/ThemeContext";
 import * as Location from "expo-location";
-import { MessageCircle, Shield, X, Phone, AlertTriangle, Car, Footprints, Bike, Zap, Bus, Navigation as NavIcon, Circle, MapPin, ChevronLeft, Leaf, Star } from "lucide-react-native";
+import { MessageCircle, Shield, X, Phone, AlertTriangle, Circle, MapPin, ChevronLeft, Leaf, Star } from "lucide-react-native";
+import { modeIconFor } from "../../components/ModeIcon";
 import ChatModal from "../../components/ChatModal";
 import SOSSheet from "../../components/SOSSheet";
 import RatingSheet from "../../components/RatingSheet";
@@ -71,6 +72,9 @@ if (IS_MAPBOX_TOKEN_VALID) {
 
 // Editorial reskin — active ride uses the brand + paper-ink system.
 // `white` kept true-white so glass overlays stay legible over the night map.
+/** Solo modes with their own pictogram; anything else (carpool…) shows the car. */
+const SOLO_MODES = new Set(["public", "my_car", "bike", "ebike", "walking", "taxi", "moto", "nomotor"]);
+
 const COLORS = {
   primary: "#00565A",   // cyan
   accent: "#F59E0B",    // sun
@@ -506,20 +510,10 @@ export default function TripScreen() {
   // RLS-limited for cross-company peers (that mislabeled carpools as solo).
   const isSoloTrip = !ride.driver_id || !ride.rider_id;
   
-  // Get transport mode icon
-  const getTransportIcon = () => {
-    switch (ride.transport_mode) {
-      case "walking": return Footprints;
-      case "bike": return Bike;
-      case "ebike": return Zap;
-      case "moto": return NavIcon;
-      case "public": return Bus;
-      case "my_car": return Car;
-      default: return Car;
-    }
-  };
-  
-  const TransportIcon = getTransportIcon();
+  // Transport mode icon; carpools and unknown modes show the car, as before.
+  const TransportIcon = SOLO_MODES.has(ride.transport_mode ?? "")
+    ? modeIconFor(ride.transport_mode)
+    : modeIconFor("my_car");
   
   // Calculate trip distance using Haversine
   const tripDistance = haversineDistance(
@@ -662,7 +656,7 @@ export default function TripScreen() {
           {/* 1. HEADER: Icon + Mode + Distance — horizontal row */}
           <View style={styles.headerSection}>
             <View style={styles.modeIconCircle}>
-              <TransportIcon size={26} color={COLORS.white} />
+              <TransportIcon size={26} color={COLORS.white} strokeWidth={1.6} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.modeLabel}>

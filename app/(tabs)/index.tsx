@@ -632,7 +632,7 @@ export default function MapScreen() {
         const modeId = activeTrip.mode?.id ?? "my_car";
         const profile =
           modeId === "walking" ? "walking"
-          : modeId === "bike" || modeId === "ebike" ? "cycling"
+          : modeId === "bike" || modeId === "ebike" || modeId === "nomotor" ? "cycling"
           : "driving";
 
         const waypoints = [

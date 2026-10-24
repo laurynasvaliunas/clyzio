@@ -16,10 +16,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import {
   Sparkles,
   RefreshCw,
-  Footprints,
-  Bike,
-  Bus,
-  Car,
   Users,
   ChevronRight,
   Leaf,
@@ -34,6 +30,7 @@ import {
   ArrowLeft,
   X,
 } from "lucide-react-native";
+import ModeIcon from "../../components/ModeIcon";
 import { MAPBOX_TOKEN } from "../../lib/config";
 import { supabase } from "../../lib/supabase";
 import { useAIStore, CommuteSuggestion } from "../../store/useAIStore";
@@ -69,13 +66,7 @@ const COLORS = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getModeIcon(icon: string, color: string, size = 22) {
-  switch (icon) {
-    case "walk": return <Footprints size={size} color={color} />;
-    case "bike": return <Bike size={size} color={color} />;
-    case "bus": return <Bus size={size} color={color} />;
-    case "carpool": return <Users size={size} color={color} />;
-    default: return <Car size={size} color={color} />;
-  }
+  return <ModeIcon mode={icon} size={size} color={color} />;
 }
 
 function getDifficultyColor(level: string) {
@@ -316,7 +307,7 @@ function LocalInsightsPanel({
 
           <View style={styles.cardHeader}>
             <View style={[styles.modeIconBg, { backgroundColor: m.color + "18" }]}>
-              {getModeIcon(m.icon, m.color, 20)}
+              {getModeIcon(m.id, m.color, 20)}
             </View>
             <View style={styles.cardHeaderText}>
               <Text style={[styles.modeName, { color: TC.text }]}>{m.label}</Text>

@@ -18,10 +18,6 @@ import {
   Car,
   Users,
   Footprints,
-  Bike,
-  Zap,
-  Bus,
-  Navigation as NavIcon,
   X,
   MapPin,
   Navigation2,
@@ -33,9 +29,8 @@ import {
   Minus,
   School,
   TrendingDown,
-  Car as TaxiIcon,
-  Home as HomeIcon,
 } from "lucide-react-native";
+import { modeIconFor } from "./ModeIcon";
 import * as Haptics from "expo-haptics";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -70,21 +65,24 @@ const COLORS = {
 /** One vertical gap between every stacked block in the sheet. */
 const GAP = 12;
 
-// Base transport modes — "my_car" co2 is patched at runtime from user's fuel type
+// Base transport modes, in the design's display order — "my_car" co2 is
+// patched at runtime from user's fuel type
 // One brand colour for every mode icon (the impact signal is the CO₂ dot,
 // not a rainbow of per-mode hues).
 const BASE_TRANSPORT_MODES = [
-  { id: "walking", label: "Walking",           icon: Footprints, co2: 0,     color: COLORS.primary },
-  { id: "bike",    label: "Bike / Scooter",    icon: Bike,       co2: 0,     color: COLORS.primary },
-  { id: "ebike",   label: "E-Bike / E-Scooter",icon: Zap,        co2: 0.023, color: COLORS.primary },
-  { id: "moto",    label: "Motorbike",          icon: NavIcon,    co2: 0.090, color: COLORS.primary },
-  { id: "public",  label: "Public Transport",   icon: Bus,        co2: 0.040, color: COLORS.primary },
+  { id: "public",  label: "Public transport",   icon: modeIconFor("public"),  co2: 0.040, color: COLORS.primary },
+  { id: "my_car",  label: "Car",                icon: modeIconFor("my_car"),  co2: 0.192, color: COLORS.primary },
+  { id: "bike",    label: "Bike",               icon: modeIconFor("bike"),    co2: 0,     color: COLORS.primary },
+  { id: "ebike",   label: "E-bike / E-scooter", icon: modeIconFor("ebike"),   co2: 0.023, color: COLORS.primary },
+  { id: "walking", label: "Walking",            icon: modeIconFor("walking"), co2: 0,     color: COLORS.primary },
   // Taxi — CO₂ estimated as an average hybrid car (Prius is the most common
   // EU taxi). A disclaimer is shown when this mode is selected. (PDF Branch C)
-  { id: "taxi",    label: "Taxi",               icon: TaxiIcon,   co2: 0.120, color: COLORS.primary },
-  { id: "my_car",  label: "My Car",             icon: Car,        co2: 0.192, color: COLORS.primary },
+  { id: "taxi",    label: "Taxi",               icon: modeIconFor("taxi"),    co2: 0.120, color: COLORS.primary },
+  { id: "moto",    label: "Motorcycle / Moped", icon: modeIconFor("moto"),    co2: 0.090, color: COLORS.primary },
+  // Kick scooter, skateboard, roller skates… zero emissions.
+  { id: "nomotor", label: "Other, no motor",    icon: modeIconFor("nomotor"), co2: 0,     color: COLORS.primary },
   // Working from home — a zero-commute day. No route required. (PDF Stage 3)
-  { id: "wfh",     label: "Working from home",  icon: HomeIcon,   co2: 0,     color: COLORS.primary },
+  { id: "wfh",     label: "Working from home",  icon: modeIconFor("wfh"),     co2: 0,     color: COLORS.primary },
 ];
 
 /**
@@ -466,14 +464,11 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
 
   const getModesByRole = () => {
     if (role === "solo") {
-      // Solo: Walking, Bike, E-Bike/E-Scooter, Motorbike, Public Transport,
-      // Taxi, My Car, Working from home. (PDF Stage 3 option cards)
-      return TRANSPORT_MODES.filter((m) =>
-        ["walking", "bike", "ebike", "moto", "public", "taxi", "my_car", "wfh"].includes(m.id)
-      );
+      // Solo: every mode, in display order (PDF Stage 3 option cards).
+      return TRANSPORT_MODES;
     } else if (role === "driver") {
-      // Driver: Only Motorbike and My Car (for carpooling)
-      return TRANSPORT_MODES.filter((m) => ["moto", "my_car"].includes(m.id));
+      // Driver: only Car and Motorcycle / Moped (for carpooling)
+      return TRANSPORT_MODES.filter((m) => ["my_car", "moto"].includes(m.id));
     } else {
       // Rider: No modes (will show message instead)
       return [];
@@ -986,7 +981,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                           accessibilityLabel={`${m.label}, ${co2Display}`}
                         >
                           <View style={[styles.iconBox, { backgroundColor: m.color + '20' }]}>
-                            <IconComponent size={24} color={m.color} />
+                            <IconComponent size={24} color={m.color} strokeWidth={1.6} />
                             {/* CO₂ intensity dot (PDF Stage 3) */}
                             <View style={[styles.co2Dot, { backgroundColor: co2DotColor(m.co2) }]} />
                           </View>

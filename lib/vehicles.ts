@@ -39,11 +39,11 @@ export const FUELED_VEHICLE_TYPES: VehicleType[] = ["car", "motorcycle"];
 
 export const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
   car: "Car",
-  motorcycle: "Motorcycle",
+  motorcycle: "Motorcycle / Moped",
   bicycle: "Bike",
   scooter: "Scooter",
-  ebike: "E-Bike",
-  escooter: "E-Scooter",
+  ebike: "E-bike",
+  escooter: "E-scooter",
 };
 
 export function newVehicleId(): string {
