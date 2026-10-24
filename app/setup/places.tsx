@@ -246,7 +246,7 @@ export default function PlacesScreen() {
         >
           <ArrowLeft size={22} color={COLORS.ink} />
         </TouchableOpacity>
-        <SetupProgress current={1} total={5} />
+        <SetupProgress current={1} total={4} />
         <View style={styles.backButton} />
       </View>
 

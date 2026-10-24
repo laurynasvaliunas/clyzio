@@ -135,6 +135,9 @@ export default function ProfileScreen() {
   const habitsRef = useRef<CommuteHabit[]>(habits);
   habitsRef.current = habits;
   const savedHabitsRef = useRef<string | null>(null);
+  /** Stored baseline_co2 — first-run setup sets it from the picked modes
+   *  without any days, so it stands until the weekly mix has days. */
+  const storedBaselineRef = useRef<number | null>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
 
@@ -201,6 +204,7 @@ export default function ProfileScreen() {
           const loaded = Array.isArray(profile.commuting_habits)
             ? (profile.commuting_habits as CommuteHabit[])
             : [];
+          storedBaselineRef.current = profile.baseline_co2 ?? null;
           setHabits(loaded);
           savedHabitsRef.current = JSON.stringify(loaded);
           if (profile.baseline_co2 != null) setBaseline(profile.baseline_co2);
@@ -223,9 +227,10 @@ export default function ProfileScreen() {
   );
 
   // Recompute the baseline whenever the mix changes, and give the number a
-  // small pulse so the change is noticeable.
+  // small pulse so the change is noticeable. A mix without days keeps the
+  // stored baseline (from setup) instead of wiping it on the next save.
   useEffect(() => {
-    setBaseline(computeBaseline(habits));
+    setBaseline(computeBaseline(habits) ?? storedBaselineRef.current);
     Animated.sequence([
       Animated.timing(scaleAnim, { toValue: 1.08, duration: 150, useNativeDriver: true }),
       Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 4 }),

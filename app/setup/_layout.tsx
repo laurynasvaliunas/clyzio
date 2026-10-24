@@ -5,8 +5,9 @@ import { Stack } from "expo-router";
 /**
  * First-run setup stack — Stage 1 of the customer-journey PDF.
  *
- * Sequence: profile (name/photo) → places → garage → week (commute mix)
- * → done → Map.
+ * Sequence: profile (name/photo) → places → garage ("What do you travel
+ * with?", which also sets the CO₂ baseline) → done → Map. The weekly commute
+ * mix lives in Profile, as an optional refinement.
  *
  * Lives at root (not under `(auth)`) so the root layout's redirect rule
  * "authenticated users in (auth) → kick to (tabs)" doesn't fight the setup

@@ -8,13 +8,12 @@ import { depth } from "../lib/theme/tokens";
  * CommuteMixEditor — "which modes do you use on which days?".
  *
  * The answer produces `commuting_habits` + a weighted `baseline_co2` (kg/km),
- * which is the denominator for every saving the app reports. It is used in two
- * places, so it lives here instead of being duplicated:
- *   - app/setup/week.tsx  — first-run step 4 of 5
- *   - app/(tabs)/profile.tsx — editable later, inside ProfileEditor's save
+ * which is the denominator for every saving the app reports. First-run setup
+ * doesn't ask for days: it stores `averageBaseline` of the modes picked on
+ * "What do you travel with?". Profile (app/(tabs)/profile.tsx) hosts this
+ * editor so the mix can be refined later, inside ProfileEditor's save.
  *
- * Controlled: the host owns `habits` and persists them. `computeBaseline` is
- * exported so both hosts derive the number the same way.
+ * Controlled: the host owns `habits` and persists them.
  */
 
 const COLORS = {
@@ -82,6 +81,18 @@ export function computeBaseline(habits: CommuteHabit[]): number | null {
   return totalDays > 0 ? weightedSum / totalDays : null;
 }
 
+/**
+ * Baseline for a set of modes with no days known (first-run setup): each
+ * picked mode counts equally. Null when none of the ids is a known mode.
+ */
+export function averageBaseline(modeIds: string[]): number | null {
+  const known = modeIds
+    .map((id) => TRANSPORT_OPTIONS.find((m) => m.id === id))
+    .filter((m): m is TransportMode => !!m);
+  if (known.length === 0) return null;
+  return known.reduce((sum, m) => sum + m.co2, 0) / known.length;
+}
+
 export function hasAnyDay(habits: CommuteHabit[]): boolean {
   return habits.some((h) => h.days.some(Boolean));
 }
@@ -90,14 +101,11 @@ function ModeCard({
   mode,
   isSelected,
   daysCount,
-  featured = false,
   onPress,
 }: {
   mode: TransportMode;
   isSelected: boolean;
   daysCount: number;
-  /** Chosen in the previous setup step: outlined until it has days. */
-  featured?: boolean;
   onPress: () => void;
 }) {
   const hasData = daysCount > 0;
@@ -106,7 +114,7 @@ function ModeCard({
       style={[
         styles.modeCard,
         isSelected && styles.modeCardSelected,
-        (hasData || featured) && !isSelected && styles.modeCardHasData,
+        hasData && !isSelected && styles.modeCardHasData,
       ]}
       onPress={onPress}
       activeOpacity={0.8}
@@ -122,7 +130,7 @@ function ModeCard({
         </View>
       )}
       <View style={styles.modeIcon}>
-        <ModeIcon mode={mode.id} size={26} color={isSelected || hasData || featured ? COLORS.primary : COLORS.inkSoft} />
+        <ModeIcon mode={mode.id} size={26} color={isSelected || hasData ? COLORS.primary : COLORS.inkSoft} />
       </View>
       <Text style={[styles.modeName, isSelected && styles.modeNameSelected]} numberOfLines={2}>
         {mode.name}
@@ -179,26 +187,14 @@ export default function CommuteMixEditor({
   habits,
   onChange,
   bleed = 0,
-  featuredModeIds = [],
 }: {
   habits: CommuteHabit[];
   onChange: (habits: CommuteHabit[]) => void;
   /** The parent's horizontal padding: the mode carousel scrolls edge to edge
    *  instead of being clipped mid-card at the padding. */
   bleed?: number;
-  /** Modes picked in the previous setup step: listed first and outlined,
-   *  with the first one open for picking days. */
-  featuredModeIds?: string[];
 }) {
-  const [selectedModeId, setSelectedModeId] = useState<string | null>(featuredModeIds[0] ?? null);
-
-  const options = useMemo(() => {
-    if (featuredModeIds.length === 0) return TRANSPORT_OPTIONS;
-    const featured = featuredModeIds
-      .map((id) => TRANSPORT_OPTIONS.find((m) => m.id === id))
-      .filter((m): m is TransportMode => !!m);
-    return [...featured, ...TRANSPORT_OPTIONS.filter((m) => !featuredModeIds.includes(m.id))];
-  }, [featuredModeIds]);
+  const [selectedModeId, setSelectedModeId] = useState<string | null>(null);
 
   const getHabitDays = useCallback(
     (modeId: string) => habits.find((h) => h.modeId === modeId)?.days ?? emptyDays(),
@@ -256,13 +252,12 @@ export default function CommuteMixEditor({
         style={{ marginHorizontal: -bleed }}
         contentContainerStyle={[styles.modeCardsContainer, { paddingHorizontal: bleed }]}
       >
-        {options.map((mode) => (
+        {TRANSPORT_OPTIONS.map((mode) => (
           <ModeCard
             key={mode.id}
             mode={mode}
             isSelected={selectedModeId === mode.id}
             daysCount={getDaysCount(mode.id)}
-            featured={featuredModeIds.includes(mode.id)}
             onPress={() => handleModeSelect(mode.id)}
           />
         ))}

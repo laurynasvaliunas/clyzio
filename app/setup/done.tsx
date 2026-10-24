@@ -10,7 +10,7 @@ import {
   Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MedalBurst } from "../../components/three";
 import { GlowBackdrop } from "../../components/ui";
@@ -60,6 +60,8 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 
 export default function DoneScreen() {
   const router = useRouter();
+  // Picks from "What do you travel with?" (first run); absent when revisited.
+  const { modes } = useLocalSearchParams<{ modes?: string }>();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [finishing, setFinishing] = useState(false);
@@ -67,8 +69,12 @@ export default function DoneScreen() {
   const [workAddress, setWorkAddress] = useState<string>("");
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  /** Modes from the weekly mix (days picked, not WFH), in mix order. */
-  const [travelModes, setTravelModes] = useState<string[]>([]);
+  /** How they get to work: the setup picks, else the weekly mix (days picked, not WFH). */
+  const [travelModes, setTravelModes] = useState<string[]>(() =>
+    (typeof modes === "string" ? modes.split(",") : []).filter((id) =>
+      TRANSPORT_OPTIONS.some((m) => m.id === id),
+    ),
+  );
   // Users without a company choose here whether other independent commuters
   // (and employees who open a trip to them) can match with them. Saved to
   // profiles.is_public, which is_peer_visible honours (migration 045).
@@ -101,10 +107,12 @@ export default function DoneScreen() {
           const habits: CommuteHabit[] = Array.isArray((profile as any).commuting_habits)
             ? (profile as any).commuting_habits
             : [];
-          setTravelModes(
-            TRANSPORT_OPTIONS.map((m) => m.id).filter(
-              (id) => id !== "wfh" && habits.some((h) => h.modeId === id && h.days?.some(Boolean)),
-            ),
+          setTravelModes((fromSetup) =>
+            fromSetup.length > 0
+              ? fromSetup
+              : TRANSPORT_OPTIONS.map((m) => m.id).filter(
+                  (id) => id !== "wfh" && habits.some((h) => h.modeId === id && h.days?.some(Boolean)),
+                ),
           );
           if (
             profile.home_lat != null && profile.home_long != null &&
@@ -143,7 +151,7 @@ export default function DoneScreen() {
         // Flip the first-run gate so we don't re-enter setup on next launch.
         // This used to swallow the result (`.then(noop, noop)`), so a failed
         // write was indistinguishable from success and the user was marched
-        // through all 5 steps again on the next cold start. Now we surface it
+        // through every step again on the next cold start. Now we surface it
         // and let them retry. `42703` = column absent (pre-migration) — that
         // one is genuinely tolerable, the resolver handles it.
         const { error } = await supabase
@@ -183,7 +191,7 @@ export default function DoneScreen() {
       />
       <GlowBackdrop variant="reward" />
       <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-        <SetupProgress current={4} total={5} />
+        <SetupProgress current={3} total={4} />
 
         <View style={styles.header}>
           <View style={styles.headerText}>

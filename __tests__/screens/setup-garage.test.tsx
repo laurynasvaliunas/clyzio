@@ -2,10 +2,11 @@ import React from "react";
 import { render, fireEvent, waitFor } from "../utils/test-utils";
 import { supabase } from "../../lib/supabase";
 import GarageSetupScreen from "../../app/setup/garage";
-import { computeBaseline } from "../../components/CommuteMixEditor";
+import { averageBaseline, computeBaseline } from "../../components/CommuteMixEditor";
 
 // Setup step "What do you travel with?": public transport, taxi and walking
-// are full options next to the vehicles, and every pick reaches the weekly mix.
+// are full options next to the vehicles. The picks set the CO₂ baseline (their
+// average — setup no longer asks for days) and go straight to Done.
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
@@ -53,7 +54,7 @@ describe("Setup - what do you travel with", () => {
     expect(queryByText("I only use public transport or taxi")).toBeNull();
   });
 
-  it("saves only vehicles to the garage and hands every pick to the weekly mix", async () => {
+  it("saves only vehicles to the garage, averages the picks into the baseline and finishes", async () => {
     const update = spyOnProfileUpdate();
     const { getByLabelText } = render(<GarageSetupScreen />);
 
@@ -65,7 +66,8 @@ describe("Setup - what do you travel with", () => {
     const saved = update.mock.calls[0][0];
     expect(saved.vehicles).toHaveLength(1);
     expect(saved.vehicles[0]).toMatchObject({ type: "car", fuel_type: "petrol" });
-    expect(mockPush).toHaveBeenCalledWith({ pathname: "/setup/week", params: { modes: "public,car_gas" } });
+    expect(saved.baseline_co2).toBeCloseTo((0.04 + 0.192) / 2);
+    expect(mockPush).toHaveBeenCalledWith({ pathname: "/setup/done", params: { modes: "public,car_gas" } });
   });
 
   it("lets a taxi-only commuter continue with an empty garage", async () => {
@@ -77,12 +79,18 @@ describe("Setup - what do you travel with", () => {
 
     await waitFor(() => expect(mockPush).toHaveBeenCalled());
     expect(update.mock.calls[0][0]).toMatchObject({ vehicles: [], primary_vehicle_id: null });
-    expect(mockPush).toHaveBeenCalledWith({ pathname: "/setup/week", params: { modes: "taxi" } });
+    expect(update.mock.calls[0][0].baseline_co2).toBeCloseTo(0.12);
+    expect(mockPush).toHaveBeenCalledWith({ pathname: "/setup/done", params: { modes: "taxi" } });
   });
 });
 
-describe("Weekly mix baseline", () => {
-  it("counts taxi days at the taxi factor", () => {
+describe("Baselines", () => {
+  it("averages picked modes equally and ignores unknown ids", () => {
+    expect(averageBaseline(["walking", "car_gas", "hovercraft"])).toBeCloseTo(0.096);
+    expect(averageBaseline([])).toBeNull();
+  });
+
+  it("counts taxi days in the weekly mix at the taxi factor", () => {
     const weekdays = [true, true, true, true, true, false, false];
     expect(computeBaseline([{ modeId: "taxi", days: weekdays }])).toBeCloseTo(0.12);
   });

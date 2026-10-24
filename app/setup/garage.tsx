@@ -28,6 +28,7 @@ import SetupProgress from "../../components/SetupProgress";
 import ModeIcon from "../../components/ModeIcon";
 import { deriveProfileCarFields, getPrimaryVehicle } from "../../lib/commuteUtils";
 import { elevation as ELEVATION } from "../../lib/theme/tokens";
+import { averageBaseline } from "../../components/CommuteMixEditor";
 import { GlowBackdrop } from "../../components/ui";
 
 // Ambient light across the top of the screen (decorative).
@@ -46,9 +47,10 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
  * people most likely to need a lift, so they get full-size cards, not a skip
  * link. Car and Motorcycle reveal an inline fuel-type chip row.
  *
- * Vehicle cards are saved to the garage (profiles.vehicles). Every pick is
- * also handed to the next step as `modes`, so the weekly commute mix opens
- * with those modes already chosen.
+ * Vehicle cards are saved to the garage (profiles.vehicles). The picks also
+ * set the CO₂ baseline — their average, since setup doesn't ask which days
+ * each mode is used (Profile's weekly mix refines it later) — and are shown
+ * on the Done screen.
  */
 
 const COLORS = {
@@ -166,6 +168,9 @@ export default function GarageSetupScreen() {
       const derived = deriveProfileCarFields(
         getPrimaryVehicle(vehicles, primaryId),
       );
+      const modes = picks.map((p) =>
+        p.card.id === "car" ? CAR_MIX_MODE[p.fuel_type ?? "petrol"] ?? "car_gas" : p.card.id,
+      );
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -176,14 +181,12 @@ export default function GarageSetupScreen() {
           car_color: derived.car_color,
           car_plate: derived.car_plate,
           car_fuel_type: derived.car_fuel_type,
+          baseline_co2: averageBaseline(modes),
         })
         .eq("id", user.id);
       if (error) throw error;
-      const modes = picks.map((p) =>
-        p.card.id === "car" ? CAR_MIX_MODE[p.fuel_type ?? "petrol"] ?? "car_gas" : p.card.id,
-      );
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
-      router.push({ pathname: "/setup/week", params: { modes: modes.join(",") } } as any);
+      router.push({ pathname: "/setup/done", params: { modes: modes.join(",") } } as any);
     } catch (err: any) {
       showToast({ title: "Couldn't save", message: friendlyError(err), type: "error" });
     } finally {
@@ -204,7 +207,7 @@ export default function GarageSetupScreen() {
         >
           <ArrowLeft size={22} color={COLORS.ink} />
         </TouchableOpacity>
-        <SetupProgress current={2} total={5} />
+        <SetupProgress current={2} total={4} />
         <View style={styles.backButton} />
       </View>
 

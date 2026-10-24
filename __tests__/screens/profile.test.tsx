@@ -115,5 +115,46 @@ describe("ProfileScreen", () => {
     });
     expect(updates.some((u) => "commuting_habits" in u || "baseline_co2" in u)).toBe(false);
   });
+
+  it("keeps the setup baseline while the weekly mix has no days", async () => {
+    // First-run setup stores baseline_co2 from the picked modes without any
+    // days. Profile used to recompute it from the empty mix: "Not set yet",
+    // and the next Save wrote null over it.
+    const updates: Record<string, unknown>[] = [];
+    (supabase.from as jest.Mock).mockImplementation(() => {
+      const row = {
+        first_name: "Test", last_name: "User", phone: "", department: "",
+        avatar_url: null, car_make: "", car_model: "", car_color: "",
+        car_plate: "", car_fuel_type: "", home_address: "", home_lat: null,
+        home_long: null, work_address: "", work_lat: null, work_long: null,
+        is_public: false, share_pickup_address: true, vehicles: [],
+        primary_vehicle_id: null, company_id: null, department_id: null,
+        commuting_habits: [], baseline_co2: 0.116,
+      };
+      const chain: Record<string, unknown> = {};
+      Object.assign(chain, {
+        select: () => chain,
+        update: (payload: Record<string, unknown>) => { updates.push(payload); return chain; },
+        eq: () => chain,
+        order: () => chain,
+        single: jest.fn().mockResolvedValue({ data: row, error: null }),
+        maybeSingle: jest.fn().mockResolvedValue({ data: row, error: null }),
+      });
+      return chain;
+    });
+
+    render(<ProfileScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByText("0.116")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByText("Save profile"));
+
+    await waitFor(() => {
+      expect(updates.some((u) => "baseline_co2" in u)).toBe(true);
+    });
+    expect(updates.find((u) => "baseline_co2" in u)?.baseline_co2).toBe(0.116);
+  });
 });
 
