@@ -69,7 +69,8 @@ export function getTransitCO2(submode?: string | null): number {
 
 /**
  * CO₂ factor (kg/km) for a specific garage vehicle.
- * car/motorcycle → fuel-based; scooter → e-scooter; bicycle → 0.
+ * car/motorcycle → fuel-based; e-bike / e-scooter / scooter → e-scooter;
+ * bicycle → 0.
  */
 export function getVehicleCO2(v?: Vehicle | null): number {
   if (!v) return FUEL_CO2_FACTORS.petrol;
@@ -78,6 +79,8 @@ export function getVehicleCO2(v?: Vehicle | null): number {
       return getFuelBaseCO2(v.fuel_type);
     case "motorcycle":
       return MOTO_CO2;
+    case "ebike":
+    case "escooter":
     case "scooter":
       return ESCOOTER_CO2;
     case "bicycle":

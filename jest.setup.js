@@ -187,9 +187,9 @@ jest.mock("@react-native-community/datetimepicker", () => ({ default: () => null
 
 // Mock expo-haptics
 jest.mock("expo-haptics", () => ({
-  impactAsync: jest.fn(),
-  notificationAsync: jest.fn(),
-  // ui/Button and the Map's day toggle call this (and .catch() it).
+  // Like the real API these return promises: callers .catch() them.
+  impactAsync: jest.fn(() => Promise.resolve()),
+  notificationAsync: jest.fn(() => Promise.resolve()),
   selectionAsync: jest.fn(() => Promise.resolve()),
   ImpactFeedbackStyle: { Light: 1, Medium: 2 },
   NotificationFeedbackType: { Success: 0, Warning: 1, Error: 2 },

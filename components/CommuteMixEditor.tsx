@@ -54,6 +54,7 @@ export const TRANSPORT_OPTIONS: TransportMode[] = [
   { id: "bike", name: "Bike", co2: 0 },
   { id: "ebike", name: "E-bike / E-scooter", co2: 0.023 },
   { id: "walking", name: "Walking", co2: 0 },
+  { id: "taxi", name: "Taxi", co2: 0.12 },
   { id: "moto_gas", name: "Motorcycle / Moped", co2: 0.09 },
   { id: "nomotor", name: "Other, no motor", co2: 0 },
   { id: "wfh", name: "Working from home", co2: 0 },
@@ -89,11 +90,14 @@ function ModeCard({
   mode,
   isSelected,
   daysCount,
+  featured = false,
   onPress,
 }: {
   mode: TransportMode;
   isSelected: boolean;
   daysCount: number;
+  /** Chosen in the previous setup step: outlined until it has days. */
+  featured?: boolean;
   onPress: () => void;
 }) {
   const hasData = daysCount > 0;
@@ -102,7 +106,7 @@ function ModeCard({
       style={[
         styles.modeCard,
         isSelected && styles.modeCardSelected,
-        hasData && !isSelected && styles.modeCardHasData,
+        (hasData || featured) && !isSelected && styles.modeCardHasData,
       ]}
       onPress={onPress}
       activeOpacity={0.8}
@@ -118,7 +122,7 @@ function ModeCard({
         </View>
       )}
       <View style={styles.modeIcon}>
-        <ModeIcon mode={mode.id} size={26} color={isSelected || hasData ? COLORS.primary : COLORS.inkSoft} />
+        <ModeIcon mode={mode.id} size={26} color={isSelected || hasData || featured ? COLORS.primary : COLORS.inkSoft} />
       </View>
       <Text style={[styles.modeName, isSelected && styles.modeNameSelected]} numberOfLines={2}>
         {mode.name}
@@ -175,14 +179,26 @@ export default function CommuteMixEditor({
   habits,
   onChange,
   bleed = 0,
+  featuredModeIds = [],
 }: {
   habits: CommuteHabit[];
   onChange: (habits: CommuteHabit[]) => void;
   /** The parent's horizontal padding: the mode carousel scrolls edge to edge
    *  instead of being clipped mid-card at the padding. */
   bleed?: number;
+  /** Modes picked in the previous setup step: listed first and outlined,
+   *  with the first one open for picking days. */
+  featuredModeIds?: string[];
 }) {
-  const [selectedModeId, setSelectedModeId] = useState<string | null>(null);
+  const [selectedModeId, setSelectedModeId] = useState<string | null>(featuredModeIds[0] ?? null);
+
+  const options = useMemo(() => {
+    if (featuredModeIds.length === 0) return TRANSPORT_OPTIONS;
+    const featured = featuredModeIds
+      .map((id) => TRANSPORT_OPTIONS.find((m) => m.id === id))
+      .filter((m): m is TransportMode => !!m);
+    return [...featured, ...TRANSPORT_OPTIONS.filter((m) => !featuredModeIds.includes(m.id))];
+  }, [featuredModeIds]);
 
   const getHabitDays = useCallback(
     (modeId: string) => habits.find((h) => h.modeId === modeId)?.days ?? emptyDays(),
@@ -240,12 +256,13 @@ export default function CommuteMixEditor({
         style={{ marginHorizontal: -bleed }}
         contentContainerStyle={[styles.modeCardsContainer, { paddingHorizontal: bleed }]}
       >
-        {TRANSPORT_OPTIONS.map((mode) => (
+        {options.map((mode) => (
           <ModeCard
             key={mode.id}
             mode={mode}
             isSelected={selectedModeId === mode.id}
             daysCount={getDaysCount(mode.id)}
+            featured={featuredModeIds.includes(mode.id)}
             onPress={() => handleModeSelect(mode.id)}
           />
         ))}

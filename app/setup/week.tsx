@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { ArrowLeft, ArrowRight, Leaf } from "lucide-react-native";
 
@@ -18,6 +18,7 @@ import { useToast } from "../../contexts/ToastContext";
 import SetupProgress from "../../components/SetupProgress";
 import CommuteMixEditor, {
   type CommuteHabit,
+  TRANSPORT_OPTIONS,
   computeBaseline,
   hasAnyDay,
 } from "../../components/CommuteMixEditor";
@@ -37,6 +38,9 @@ const GLOW_TOP = { bottom: undefined, height: 420 } as const;
  * Baseline" for users who had never answered the question — a fabricated
  * number presented as measured.
  *
+ * Modes picked on the previous step arrive as `?modes=public,taxi…`: they're
+ * listed first, and a single mode starts with Mon–Fri already ticked.
+ *
  * On Next → /setup/done.
  */
 
@@ -51,10 +55,24 @@ const COLORS = {
   tint: "#E6F1F2",
 };
 
+/** Mode ids from the previous step's `modes` param, unknown ids dropped. */
+function parseModes(raw: string | string[] | undefined): string[] {
+  const list = (Array.isArray(raw) ? raw.join(",") : raw ?? "").split(",");
+  return list.filter((id) => TRANSPORT_OPTIONS.some((m) => m.id === id));
+}
+
+const WEEKDAYS = [true, true, true, true, true, false, false];
+
 export default function WeekSetupScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const [habits, setHabits] = useState<CommuteHabit[]>([]);
+  const { modes } = useLocalSearchParams<{ modes?: string }>();
+  const [pickedModes] = useState(() => parseModes(modes));
+  // One mode is the whole answer: tick the working week so it only needs a
+  // confirm. With several, the user splits the days themselves.
+  const [habits, setHabits] = useState<CommuteHabit[]>(() =>
+    pickedModes.length === 1 ? [{ modeId: pickedModes[0], days: [...WEEKDAYS] }] : [],
+  );
   const [saving, setSaving] = useState(false);
 
   const baseline = computeBaseline(habits);
@@ -71,7 +89,11 @@ export default function WeekSetupScreen() {
       }
       const { error } = await supabase
         .from("profiles")
-        .update({ commuting_habits: habits, baseline_co2: baseline } as never)
+        .update({
+          // Modes opened without picking a day carry no information.
+          commuting_habits: habits.filter((h) => h.days.some(Boolean)),
+          baseline_co2: baseline,
+        } as never)
         .eq("id", user.id);
       if (error) throw error;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
@@ -115,7 +137,7 @@ export default function WeekSetupScreen() {
           CO₂ saving is measured against - you can change it anytime.
         </Text>
 
-        <CommuteMixEditor habits={habits} onChange={setHabits} bleed={20} />
+        <CommuteMixEditor habits={habits} onChange={setHabits} bleed={20} featuredModeIds={pickedModes} />
 
         {baseline !== null && (
           <View style={styles.baselineCard}>

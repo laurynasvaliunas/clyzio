@@ -21,6 +21,7 @@ import ModeIcon from "../../components/ModeIcon";
 import { supabase } from "../../lib/supabase";
 import { useToast } from "../../contexts/ToastContext";
 import { parseVehicles, type Vehicle } from "../../lib/vehicles";
+import { TRANSPORT_OPTIONS, type CommuteHabit } from "../../components/CommuteMixEditor";
 import SetupProgress from "../../components/SetupProgress";
 import { elevation as ELEVATION } from "../../lib/theme/tokens";
 
@@ -66,6 +67,8 @@ export default function DoneScreen() {
   const [workAddress, setWorkAddress] = useState<string>("");
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  /** Modes from the weekly mix (days picked, not WFH), in mix order. */
+  const [travelModes, setTravelModes] = useState<string[]>([]);
   // Users without a company choose here whether other independent commuters
   // (and employees who open a trip to them) can match with them. Saved to
   // profiles.is_public, which is_peer_visible honours (migration 045).
@@ -87,7 +90,7 @@ export default function DoneScreen() {
         }
         const { data: profile } = await supabase
           .from("profiles")
-          .select("home_address, home_lat, home_long, work_address, work_lat, work_long, vehicles, company_id")
+          .select("home_address, home_lat, home_long, work_address, work_lat, work_long, vehicles, commuting_habits, company_id")
           .eq("id", user.id)
           .single();
         if (profile) {
@@ -95,6 +98,14 @@ export default function DoneScreen() {
           setHomeAddress(profile.home_address ?? "");
           setWorkAddress(profile.work_address ?? "");
           setVehicles(parseVehicles((profile as any).vehicles));
+          const habits: CommuteHabit[] = Array.isArray((profile as any).commuting_habits)
+            ? (profile as any).commuting_habits
+            : [];
+          setTravelModes(
+            TRANSPORT_OPTIONS.map((m) => m.id).filter(
+              (id) => id !== "wfh" && habits.some((h) => h.modeId === id && h.days?.some(Boolean)),
+            ),
+          );
           if (
             profile.home_lat != null && profile.home_long != null &&
             profile.work_lat != null && profile.work_long != null
@@ -232,7 +243,7 @@ export default function DoneScreen() {
 
             {/* Vehicle icons */}
             <Animated.View style={[styles.vehicles, { opacity: detailsOpacity }]}>
-              {vehicles.length === 0 ? (
+              {travelModes.length === 0 && vehicles.length === 0 ? (
                 <Text style={styles.vehiclesEmpty}>
                   No vehicles - you're going zero-emission by default.
                 </Text>
@@ -240,11 +251,18 @@ export default function DoneScreen() {
                 <>
                   <Text style={styles.vehiclesHeader}>You travel with</Text>
                   <View style={styles.vehiclesRow}>
-                    {vehicles.map((v) => (
-                      <View key={v.id} style={styles.vehicleChip}>
-                        <ModeIcon mode={v.type} size={22} color={COLORS.ink} />
-                      </View>
-                    ))}
+                    {/* How they commute (bus, taxi…) wins over what they own. */}
+                    {travelModes.length > 0
+                      ? travelModes.map((mode) => (
+                          <View key={mode} style={styles.vehicleChip}>
+                            <ModeIcon mode={mode} size={22} color={COLORS.ink} />
+                          </View>
+                        ))
+                      : vehicles.map((v) => (
+                          <View key={v.id} style={styles.vehicleChip}>
+                            <ModeIcon mode={v.type} size={22} color={COLORS.ink} />
+                          </View>
+                        ))}
                   </View>
                 </>
               )}

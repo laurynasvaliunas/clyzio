@@ -40,12 +40,15 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 /**
  * Stage 1.2 — "What do you travel with?"
  *
- * 6 large cards in a 2×3 grid. Tap to select (multiple allowed). Selected
- * cards get a check + tint. Tapping Car or Motorcycle reveals an inline
- * fuel-type chip row below the card (no new screen).
+ * The designer's 8 options as equal cards in a 2×4 grid, multi-select:
+ * public transport, car, bike, e-bike / e-scooter, walking, taxi,
+ * motorcycle / moped, other (no motor). Bus, train and taxi riders are the
+ * people most likely to need a lift, so they get full-size cards, not a skip
+ * link. Car and Motorcycle reveal an inline fuel-type chip row.
  *
- * "I only use public transport or taxi" skip link clears any garage state
- * and proceeds straight to Done.
+ * Vehicle cards are saved to the garage (profiles.vehicles). Every pick is
+ * also handed to the next step as `modes`, so the weekly commute mix opens
+ * with those modes already chosen.
  */
 
 const COLORS = {
@@ -60,20 +63,33 @@ const COLORS = {
   fuelPillActive: "#003D40",
 };
 
-interface VehicleCard {
-  type: VehicleType;
+interface TravelCard {
+  /** Commute-mode id used by the weekly mix (car/motorcycle resolve via fuel). */
+  id: string;
   label: string;
+  /** Garage vehicle the card creates; none for modes you don't own. */
+  vehicle?: VehicleType;
 }
 
-// Design display order: car, bike, e-bike / e-scooter, motorcycle / moped.
-const CARDS: VehicleCard[] = [
-  { type: "car",        label: "Car" },
-  { type: "bicycle",    label: "Bike" },
-  { type: "ebike",      label: "E-bike" },
-  { type: "escooter",   label: "E-scooter" },
-  { type: "scooter",    label: "Scooter" },
-  { type: "motorcycle", label: "Motorcycle / Moped" },
+// Design display order (Clyzio pictogram set 1–8).
+const CARDS: TravelCard[] = [
+  { id: "public",   label: "Public transport" },
+  { id: "car",      label: "Car",                vehicle: "car" },
+  { id: "bike",     label: "Bike",               vehicle: "bicycle" },
+  { id: "ebike",    label: "E-bike / E-scooter", vehicle: "ebike" },
+  { id: "walking",  label: "Walking" },
+  { id: "taxi",     label: "Taxi" },
+  { id: "moto_gas", label: "Motorcycle / Moped", vehicle: "motorcycle" },
+  { id: "nomotor",  label: "Other, no motor" },
 ];
+
+/** Car fuel → the matching weekly-mix mode. */
+const CAR_MIX_MODE: Record<string, string> = {
+  petrol: "car_gas",
+  diesel: "car_diesel",
+  hybrid: "car_hybrid",
+  electric: "car_electric",
+};
 
 const FUEL_OPTIONS: Array<{ id: string; label: string }> = [
   { id: "petrol",   label: "Petrol" },
@@ -82,8 +98,8 @@ const FUEL_OPTIONS: Array<{ id: string; label: string }> = [
   { id: "electric", label: "Electric" },
 ];
 
-interface PickedVehicle {
-  type: VehicleType;
+interface Pick {
+  card: TravelCard;
   fuel_type?: string;
 }
 
@@ -91,32 +107,32 @@ export default function GarageSetupScreen() {
   const router = useRouter();
   const { showToast } = useToast();
 
-  const [picked, setPicked] = useState<Map<VehicleType, PickedVehicle>>(new Map());
+  const [picked, setPicked] = useState<Map<string, Pick>>(new Map());
   const [saving, setSaving] = useState(false);
 
-  const togglePick = useCallback((card: VehicleCard) => {
+  const togglePick = useCallback((card: TravelCard) => {
     Haptics.selectionAsync().catch(() => undefined);
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setPicked((prev) => {
       const next = new Map(prev);
-      if (next.has(card.type)) {
-        next.delete(card.type);
+      if (next.has(card.id)) {
+        next.delete(card.id);
       } else {
-        next.set(card.type, {
-          type: card.type,
-          fuel_type: FUELED_VEHICLE_TYPES.includes(card.type) ? "petrol" : undefined,
+        next.set(card.id, {
+          card,
+          fuel_type: card.vehicle && FUELED_VEHICLE_TYPES.includes(card.vehicle) ? "petrol" : undefined,
         });
       }
       return next;
     });
   }, []);
 
-  const setFuel = useCallback((type: VehicleType, fuel: string) => {
+  const setFuel = useCallback((cardId: string, fuel: string) => {
     Haptics.selectionAsync().catch(() => undefined);
     setPicked((prev) => {
       const next = new Map(prev);
-      const v = next.get(type);
-      if (v) next.set(type, { ...v, fuel_type: fuel });
+      const p = next.get(cardId);
+      if (p) next.set(cardId, { ...p, fuel_type: fuel });
       return next;
     });
   }, []);
@@ -133,12 +149,15 @@ export default function GarageSetupScreen() {
         router.replace("/(auth)/login" as any);
         return;
       }
-      // Translate each picked card into a Vehicle row. We don't ask the user
-      // for make/model/plate during setup — those are post-setup polish.
-      const vehicles = Array.from(picked.values()).map((p) => ({
-        ...makeVehicle(p.type),
-        fuel_type: p.fuel_type,
-      }));
+      // Picks in grid order, so the next step lists them the way they're shown here.
+      const picks = CARDS.filter((c) => picked.has(c.id)).map((c) => picked.get(c.id)!);
+      // Vehicle cards become garage rows. We don't ask the user for
+      // make/model/plate during setup — those are post-setup polish. With no
+      // vehicle picked (bus, taxi, walking…) the garage is cleared, and the
+      // baseline comes from the weekly mix instead.
+      const vehicles = picks
+        .filter((p) => p.card.vehicle)
+        .map((p) => ({ ...makeVehicle(p.card.vehicle!), fuel_type: p.fuel_type }));
       const primaryId = vehicles[0]?.id ?? null;
       // Keep the legacy flat car_* columns in sync, exactly like
       // ProfileEditor.persistGarage does. Without this the sign-in baseline
@@ -160,26 +179,11 @@ export default function GarageSetupScreen() {
         })
         .eq("id", user.id);
       if (error) throw error;
+      const modes = picks.map((p) =>
+        p.card.id === "car" ? CAR_MIX_MODE[p.fuel_type ?? "petrol"] ?? "car_gas" : p.card.id,
+      );
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
-      router.push("/setup/week" as any);
-    } catch (err: any) {
-      showToast({ title: "Couldn't save", message: friendlyError(err), type: "error" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSkipNoVehicle = async () => {
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      // Clear garage; baseline will emerge from logged trips.
-      await supabase
-        .from("profiles")
-        .update({ vehicles: [], primary_vehicle_id: null })
-        .eq("id", user.id);
-      router.push("/setup/week" as any);
+      router.push({ pathname: "/setup/week", params: { modes: modes.join(",") } } as any);
     } catch (err: any) {
       showToast({ title: "Couldn't save", message: friendlyError(err), type: "error" });
     } finally {
@@ -219,11 +223,11 @@ export default function GarageSetupScreen() {
       >
         <View style={styles.grid}>
           {CARDS.map((card) => {
-            const selected = picked.has(card.type);
-            const v = picked.get(card.type);
-            const showsFuel = selected && FUELED_VEHICLE_TYPES.includes(card.type);
+            const p = picked.get(card.id);
+            const selected = !!p;
+            const showsFuel = selected && !!card.vehicle && FUELED_VEHICLE_TYPES.includes(card.vehicle);
             return (
-              <View key={card.type} style={styles.gridItem}>
+              <View key={card.id} style={styles.gridItem}>
                 <TouchableOpacity
                   style={[styles.card, selected && styles.cardSelected]}
                   onPress={() => togglePick(card)}
@@ -238,14 +242,15 @@ export default function GarageSetupScreen() {
                     </View>
                   )}
                   <View style={styles.cardIcon} accessibilityElementsHidden importantForAccessibility="no">
-                    <ModeIcon mode={card.type} size={36} color={selected ? COLORS.selected : COLORS.inkSoft} strokeWidth={1.75} />
+                    <ModeIcon mode={card.id} size={36} color={selected ? COLORS.selected : COLORS.inkSoft} strokeWidth={1.75} />
                   </View>
                   <Text style={[styles.cardLabel, selected && styles.cardLabelSelected]}>
-                    {card.label}
+                    {/* Non-breaking hyphens: "E-bike / E-scooter" wraps at the slash, not mid-word. */}
+                    {card.label.replace(/-/g, "\u2011")}
                   </Text>
                 </TouchableOpacity>
 
-                {showsFuel && v && (
+                {showsFuel && p && (
                   <View style={styles.fuelRow} accessibilityLabel={`Fuel type for ${card.label}`}>
                     <View style={styles.fuelRowHeader}>
                       <Text style={styles.fuelLabel}>Fuel type</Text>
@@ -257,12 +262,12 @@ export default function GarageSetupScreen() {
                       contentContainerStyle={styles.fuelPills}
                     >
                       {FUEL_OPTIONS.map((f) => {
-                        const active = v.fuel_type === f.id;
+                        const active = p.fuel_type === f.id;
                         return (
                           <TouchableOpacity
                             key={f.id}
                             style={[styles.fuelPillEl, active && styles.fuelPillElActive]}
-                            onPress={() => setFuel(card.type, f.id)}
+                            onPress={() => setFuel(card.id, f.id)}
                             accessibilityRole="radio"
                             accessibilityState={{ selected: active }}
                             accessibilityLabel={f.label}
@@ -280,16 +285,6 @@ export default function GarageSetupScreen() {
             );
           })}
         </View>
-
-        <TouchableOpacity
-          style={styles.skipLink}
-          onPress={handleSkipNoVehicle}
-          disabled={saving}
-          accessibilityRole="button"
-          accessibilityLabel="I only use public transport or taxi"
-        >
-          <Text style={styles.skipText}>I only use public transport or taxi</Text>
-        </TouchableOpacity>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -366,13 +361,13 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: 22,
-    padding: 18,
+    padding: 14,
     alignItems: "center",
     justifyContent: "center",
     // Fits a two-line label ("Motorcycle / Moped"), so every card in the
     // grid has the same height.
-    minHeight: 132,
-    gap: 10,
+    minHeight: 120,
+    gap: 8,
     borderWidth: 2,
     borderColor: "transparent",
     position: "relative",
@@ -394,7 +389,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cardIcon: {
-    height: 46,
+    height: 42,
     justifyContent: "center",
   },
   cardLabel: {
@@ -446,17 +441,6 @@ const styles = StyleSheet.create({
   },
   fuelPillTextActive: {
     color: COLORS.surface,
-  },
-  skipLink: {
-    alignItems: "center",
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-    marginTop: 8,
-  },
-  skipText: {
-    fontSize: 14,
-    color: COLORS.inkSoft,
-    textDecorationLine: "underline",
   },
   footer: {
     paddingHorizontal: 16,
