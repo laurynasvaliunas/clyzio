@@ -152,6 +152,7 @@ begin
            where ti.user_id = v_employee
              and ti.open_to_independents
              and ti.trip_date >= current_date
-             and ti.status in ('pending', 'unmatched'));
+             -- Searching, or matched with a seat still open (053): not closed.
+             and ti.status <> 'expired');
 end;
 $function$;
