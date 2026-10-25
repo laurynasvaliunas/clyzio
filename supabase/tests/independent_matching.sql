@@ -3,7 +3,7 @@
 -- Side-effect free: everything runs in ONE DO block that always ends by
 -- raising, so the fixtures (and anything else) are rolled back. Success is the
 -- error message "INDEPENDENT MATCHING: ALL n CHECKS PASSED"; a failure names
--- the check that broke. Assumes migration 045 is applied.
+-- the check that broke. Assumes migrations 045 and 053 are applied.
 --
 -- Fixtures: companies A and B; independents ind1, ind2 (public) and
 -- ind_private (not public); employees emp_a (A, open trip), emp_a2 (A, closed
@@ -102,8 +102,11 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', emp_a, 'role', 'authenticated')::text, true);
   select count(*), bool_and(is_colleague) into cnt, col from public.get_peer_trip_intents(d) where user_id = emp_a2;
   assert cnt = 1 and col, 'emp_a must see colleague emp_a2, labelled colleague';                         n := n + 1;
-  select count(*) into cnt from public.get_peer_trip_intents(d) where user_id in (ind1, ind2);
-  assert cnt = 2, 'employee with an open trip that day must see independents';                           n := n + 1;
+  select count(*) into cnt from public.get_peer_trip_intents(d) where user_id = ind2;
+  assert cnt = 1, 'employee with an open trip that day must see independents';                           n := n + 1;
+  -- ind1 already has an open offer (the emp_b match above): off the radar since 053.
+  select count(*) into cnt from public.get_peer_trip_intents(d) where user_id = ind1;
+  assert cnt = 0, 'a rider with an open offer is not offered on the radar';                              n := n + 1;
 
   perform set_config('request.jwt.claims', json_build_object('sub', emp_b, 'role', 'authenticated')::text, true);
   select count(*) into cnt from public.get_peer_trip_intents(d) where user_id in (ind1, ind2);

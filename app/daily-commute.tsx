@@ -20,11 +20,17 @@ import {
   X,
   Minus,
   Plus,
-  MapPin,
   AlertCircle,
   MessageCircle,
 } from "lucide-react-native";
-import { useDailyCommuteStore, TripIntentMatch } from "../store/useDailyCommuteStore";
+import {
+  useDailyCommuteStore,
+  CarpoolError,
+  type CarpoolOutcome,
+  type TripIntentMatch,
+} from "../store/useDailyCommuteStore";
+import PickupDetails from "../components/PickupDetails";
+import { dayLabel, tomorrowLocalISODate } from "../lib/localDate";
 import OpenTripToggle from "../components/OpenTripToggle";
 import { supabase } from "../lib/supabase";
 import { formatClockTime } from "../lib/format";
@@ -85,9 +91,16 @@ function CountdownTimer({ targetHour = 17 }: { targetHour?: number }) {
 
 // ─── Step: Role Select ────────────────────────────────────────────────────────
 
-function RoleSelectStep({ onSelect }: { onSelect: (role: "driver" | "passenger") => void }) {
+function RoleSelectStep({
+  onSelect,
+  outcome,
+}: {
+  onSelect: (role: "driver" | "passenger") => void;
+  outcome: CarpoolOutcome | null;
+}) {
   return (
     <KeyboardScroll contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
+      <OutcomeBanner outcome={outcome} />
       <Text style={styles.stepTitle}>Tomorrow's Commute</Text>
       <Text style={styles.stepSubtitle}>{getTomorrow()}</Text>
       <Text style={styles.stepDescription}>How are you getting to work tomorrow?</Text>
@@ -209,51 +222,85 @@ function DriverDetailsStep({
   );
 }
 
-// ─── Step: Submitted (driver or passenger) ────────────────────────────────────
+// ─── Step: Submitted (searching) ──────────────────────────────────────────────
 
-// Carpool cutoff hour (local). Before it, we reassure + offer to be notified;
-// after it, we stop implying a match is coming and surface greener options.
-// Mirror of the server-side CARPOOL_NUDGE_CUTOFF_HOUR.
+// Carpool cutoff hour (local). After it, a trip for tomorrow still without a
+// match also gets the greener options. Mirror of the server-side nudge.
 const CARPOOL_CUTOFF_HOUR = 16;
 
-function SubmittedStep({ role, onSeeOptions }: { role: "driver" | "passenger"; onSeeOptions?: () => void }) {
-  const afterCutoff = new Date().getHours() >= CARPOOL_CUTOFF_HOUR;
-  const counterpart = role === "driver" ? "passenger" : "driver";
+/** "for tomorrow" / "for today" / "on Tue 27 Oct". */
+function forDay(tripDate: string | null | undefined): string {
+  if (!tripDate) return "for tomorrow";
+  const label = dayLabel(tripDate);
+  return label === "Today" || label === "Tomorrow" ? `for ${label.toLowerCase()}` : `on ${label}`;
+}
 
-  if (afterCutoff) {
-    // PDF 2c — no dead end: acknowledge + redirect to the greenest options.
-    return (
-      <View style={styles.centeredStep}>
-        <View style={styles.bigCheckWrap}>
-          <CheckCircle size={64} color={COLORS.green} />
-        </View>
-        <Text style={styles.stepTitle}>You're registered</Text>
-        <Text style={styles.stepDescription}>
-          No {counterpart} match yet for tomorrow. We'll notify you the moment
-          someone matches - or pick another way to get there.
-        </Text>
-        {onSeeOptions && (
-          <TouchableOpacity style={styles.greenOptionsBtn} onPress={onSeeOptions}>
-            <Text style={styles.greenOptionsBtnText}>See your greenest options</Text>
-          </TouchableOpacity>
-        )}
-        <Text style={styles.stepHint}>Keep notifications on to receive your match.</Text>
-      </View>
-    );
-  }
+/** What last happened: the other person cancelled, or the trip is done. */
+function OutcomeBanner({ outcome }: { outcome: CarpoolOutcome | null }) {
+  if (!outcome) return null;
+  const done = outcome.kind === "trip_done";
+  const text = done
+    ? `Your carpool ${forDay(outcome.tripDate)} is done. Thanks for sharing the ride!`
+    : `${outcome.name ?? "Your match"} cancelled. We're looking for another match.`;
+  return (
+    <View style={[styles.outcomeBanner, done && styles.outcomeBannerDone]}>
+      {done ? <CheckCircle size={16} color={COLORS.green} /> : <AlertCircle size={16} color={COLORS.accent} />}
+      <Text style={styles.outcomeText}>{text}</Text>
+    </View>
+  );
+}
 
-  // PDF 2b — before cutoff: reassure, matching is live + instant.
+/** A quiet text button for the way out (stop looking / cancel the carpool). */
+function QuietButton({ label, a11y, onPress, busy }: { label: string; a11y: string; onPress: () => void; busy?: boolean }) {
+  return (
+    <TouchableOpacity
+      style={styles.quietBtn}
+      onPress={onPress}
+      disabled={busy}
+      accessibilityRole="button"
+      accessibilityLabel={a11y}
+    >
+      <Text style={styles.quietBtnText}>{busy ? "One moment…" : label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function SubmittedStep({
+  role,
+  tripDate,
+  outcome,
+  onSeeOptions,
+  onStopLooking,
+  busy,
+}: {
+  role: "driver" | "passenger";
+  tripDate: string | null;
+  outcome: CarpoolOutcome | null;
+  onSeeOptions?: () => void;
+  onStopLooking: () => void;
+  busy: boolean;
+}) {
+  const counterpart = role === "driver" ? "passengers" : "a driver";
+  // PDF 2c — no dead end: late in the day, also offer the greenest options.
+  const late = tripDate === tomorrowLocalISODate() && new Date().getHours() >= CARPOOL_CUTOFF_HOUR;
   return (
     <View style={styles.centeredStep}>
+      <OutcomeBanner outcome={outcome} />
       <View style={styles.bigCheckWrap}>
         <CheckCircle size={64} color={COLORS.green} />
       </View>
       <Text style={styles.stepTitle}>You're registered!</Text>
-      <Text style={styles.stepDescription}>
-        We'll match you with a {counterpart} as soon as one is available and
-        notify you right away.
+      <Text style={[styles.stepDescription, { textAlign: "center" }]}>
+        Looking for {counterpart} {forDay(tripDate)}. We match anyone on your route - also along the
+        way - and tell you right away.
       </Text>
+      {late && onSeeOptions && (
+        <TouchableOpacity style={styles.greenOptionsBtn} onPress={onSeeOptions}>
+          <Text style={styles.greenOptionsBtnText}>See your greenest options</Text>
+        </TouchableOpacity>
+      )}
       <Text style={styles.stepHint}>Keep notifications on to receive your match.</Text>
+      <QuietButton label="Stop looking" a11y="Stop looking for a carpool" onPress={onStopLooking} busy={busy} />
     </View>
   );
 }
@@ -305,162 +352,102 @@ function OutsideCompanyPill() {
   );
 }
 
+const isOffer = (m: TripIntentMatch) => m.status === "pending" || m.status === "awaiting_other";
+
 function DriverReviewStep({
   matches,
-  onConfirm,
-  isLoading,
+  tripDate,
+  onRespond,
   hasCompany,
   onChat,
 }: {
   matches: TripIntentMatch[];
-  onConfirm: (acceptedIds: string[], declinedIds: string[]) => void;
-  isLoading: boolean;
+  tripDate: string | null;
+  onRespond: (matchId: string, accepted: boolean) => Promise<void>;
   hasCompany: boolean;
   onChat: OnChat;
 }) {
-  // Symmetric approval: the driver reviews any open match they haven't yet
-  // approved (regardless of whether the passenger has approved already).
-  const pending = matches.filter(m => !m.driver_approved && (m.status === "pending" || m.status === "awaiting_other"));
-  const [acceptedIds, setAcceptedIds] = useState<Set<string>>(new Set(pending.map(m => m.id)));
+  // Symmetric approval: every open offer the driver hasn't answered yet, also
+  // when another passenger is already confirmed (a free seat).
+  const pending = matches.filter((m) => !m.driver_approved && isOffer(m));
+  const riding = matches.filter((m) => m.status === "confirmed").length;
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  const toggle = (id: string) => {
-    setAcceptedIds(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const handleConfirm = () => {
-    const acc = pending.filter(m => acceptedIds.has(m.id)).map(m => m.id);
-    const dec = pending.filter(m => !acceptedIds.has(m.id)).map(m => m.id);
-    onConfirm(acc, dec);
+  const respond = async (id: string, accepted: boolean) => {
+    setBusyId(id);
+    try {
+      await onRespond(id, accepted);
+    } finally {
+      setBusyId(null);
+    }
   };
 
   return (
     <KeyboardScroll contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Passenger Matches</Text>
       <Text style={styles.stepDescription}>
-        {pending.length} match{pending.length !== 1 ? "es" : ""} found for tomorrow. Select who to accept.
+        {pending.length} rider{pending.length !== 1 ? "s" : ""} on your way {forDay(tripDate)}. Check the
+        pickup, then accept or decline.{riding > 0 ? ` ${riding} already riding with you.` : ""}
       </Text>
 
-      {pending.map(match => {
-        const accepted = acceptedIds.has(match.id);
+      {pending.map((match) => {
+        const name = match.passenger_profile?.first_name ?? "Passenger";
+        const busy = busyId === match.id;
         return (
-          <TouchableOpacity
-            key={match.id}
-            style={[styles.matchCard, accepted && styles.matchCardAccepted]}
-            onPress={() => toggle(match.id)}
-            activeOpacity={0.85}
-          >
+          <View key={match.id} style={styles.driverMatchCard}>
             <View style={styles.matchCardLeft}>
               <View style={styles.matchAvatar}>
                 <Users size={20} color={COLORS.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.matchName}>
-                  {match.passenger_profile?.first_name ?? "Passenger"}
-                </Text>
+                <Text style={styles.matchName}>{name}</Text>
                 {hasCompany && match.peer_is_colleague === false && <OutsideCompanyPill />}
-                <Text style={styles.matchDetail}>
-                  {match.ai_compatibility_score?.toFixed(0) ?? "-"}% match · {match.pickup_address?.split(",")[0] ?? "Pickup TBD"}
-                </Text>
+                {match.passenger_approved && <Text style={styles.matchDetail}>{name} already accepted</Text>}
                 {!!match.ai_reasoning && (
-                  <Text style={styles.matchReasoning} numberOfLines={2}>{match.ai_reasoning}</Text>
+                  <Text style={styles.matchReasoning} numberOfLines={3}>{match.ai_reasoning}</Text>
                 )}
-                <MessageButton
-                  match={match}
-                  name={match.passenger_profile?.first_name ?? "passenger"}
-                  onPress={() => onChat(match)}
-                />
               </View>
             </View>
-            <View style={[styles.matchCheckbox, accepted && styles.matchCheckboxChecked]}>
-              {accepted && <CheckCircle size={18} color={COLORS.white} />}
+            <PickupDetails match={match} viewer="driver" peerName={name} />
+            <MessageButton match={match} name={name} onPress={() => onChat(match)} />
+            <View style={[styles.respondRow, { marginTop: 12 }]}>
+              <TouchableOpacity
+                style={[styles.declineBtn, busyId !== null && { opacity: 0.7 }]}
+                onPress={() => respond(match.id, false)}
+                disabled={busyId !== null}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={`Decline ${name}`}
+              >
+                <X size={18} color={COLORS.red} />
+                <Text style={styles.declineBtnText}>Decline</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.acceptBtn, busyId !== null && { opacity: 0.7 }]}
+                onPress={() => respond(match.id, true)}
+                disabled={busyId !== null}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={`Accept ${name}`}
+              >
+                {busy ? (
+                  <ActivityIndicator color="#0B2540" size="small" />
+                ) : (
+                  <>
+                    <CheckCircle size={18} color="#0B2540" />
+                    <Text style={styles.acceptBtnText}>Accept</Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
         );
       })}
-
-      <TouchableOpacity
-        style={[styles.primaryBtn, isLoading && { opacity: 0.7 }]}
-        onPress={handleConfirm}
-        disabled={isLoading}
-        activeOpacity={0.8}
-      >
-        {isLoading ? (
-          <ActivityIndicator color="#0B2540" />
-        ) : (
-          <Text style={styles.primaryBtnText}>Confirm Selections</Text>
-        )}
-      </TouchableOpacity>
     </KeyboardScroll>
   );
 }
 
-// ─── Step: Driver Detour ──────────────────────────────────────────────────────
-
-function DriverDetourStep({
-  onConfirm,
-  isLoading,
-  acceptedIds,
-}: {
-  onConfirm: (detour: "flexible" | "fixed") => void;
-  isLoading: boolean;
-  acceptedIds: string[];
-}) {
-  const [choice, setChoice] = useState<"flexible" | "fixed">("flexible");
-
-  return (
-    <KeyboardScroll contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
-      <Text style={styles.stepTitle}>Route Preference</Text>
-      <Text style={styles.stepDescription}>
-        How flexible are you with your driving route?
-      </Text>
-
-      <TouchableOpacity
-        style={[styles.detourCard, choice === "flexible" && styles.detourCardSelected]}
-        onPress={() => setChoice("flexible")}
-        activeOpacity={0.85}
-      >
-        <MapPin size={24} color={choice === "flexible" ? COLORS.primary : COLORS.gray} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={[styles.detourTitle, choice === "flexible" && { color: COLORS.primary }]}>Flexible</Text>
-          <Text style={styles.detourSub}>I'll pick up passengers near my route</Text>
-        </View>
-        {choice === "flexible" && <CheckCircle size={20} color={COLORS.primary} />}
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.detourCard, choice === "fixed" && styles.detourCardSelected]}
-        onPress={() => setChoice("fixed")}
-        activeOpacity={0.85}
-      >
-        <Car size={24} color={choice === "fixed" ? COLORS.primary : COLORS.gray} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={[styles.detourTitle, choice === "fixed" && { color: COLORS.primary }]}>Fixed Route</Text>
-          <Text style={styles.detourSub}>Passengers must come to a fixed pickup point</Text>
-        </View>
-        {choice === "fixed" && <CheckCircle size={20} color={COLORS.primary} />}
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.primaryBtn, isLoading && { opacity: 0.7 }]}
-        onPress={() => onConfirm(choice)}
-        disabled={isLoading}
-        activeOpacity={0.8}
-      >
-        {isLoading ? (
-          <ActivityIndicator color="#0B2540" />
-        ) : (
-          <Text style={styles.primaryBtnText}>Confirm &amp; Notify Passengers</Text>
-        )}
-      </TouchableOpacity>
-    </KeyboardScroll>
-  );
-}
-
-// ─── Step: Driver Waiting ─────────────────────────────────────────────────────
+// ─── Step: Waiting (either role) ──────────────────────────────────────────────
 
 /** Ask before withdrawing — the other person is told the carpool is off. */
 function confirmWithdraw(matchIds: string[], onWithdraw: (ids: string[]) => void) {
@@ -485,16 +472,23 @@ function DriverWaitingStep({ matches, onWithdraw, busy, onChat }: WaitingStepPro
   // Driver has approved; waiting on the passenger to approve too.
   const waiting = matches.filter(m => m.driver_approved && !m.passenger_approved && m.status === "awaiting_other");
   return (
-    <View style={styles.centeredStep}>
+    <KeyboardScroll contentContainerStyle={styles.scrollCentered} showsVerticalScrollIndicator={false}>
       <ActivityIndicator size="large" color={COLORS.primary} style={{ marginBottom: 20 }} />
       <Text style={styles.stepTitle}>You're in - waiting for them</Text>
       <Text style={styles.stepDescription}>
-        You approved {waiting.length} passenger{waiting.length !== 1 ? "s" : ""}. Waiting for them to approve too.
+        You accepted {waiting.length} passenger{waiting.length !== 1 ? "s" : ""}. Waiting for them to accept too.
       </Text>
-      <Text style={styles.stepHint}>The ride is confirmed once you both approve. You'll be notified.</Text>
-      {waiting.map((m) => (
-        <MessageButton key={m.id} centered match={m} name={m.passenger_profile?.first_name ?? "passenger"} onPress={() => onChat(m)} />
-      ))}
+      <Text style={styles.stepHint}>The ride is confirmed once you both accept. You'll be notified.</Text>
+      {waiting.map((m) => {
+        const name = m.passenger_profile?.first_name ?? "passenger";
+        return (
+          <View key={m.id} style={styles.waitingCard}>
+            <Text style={styles.confirmedName}>{name}</Text>
+            <PickupDetails match={m} viewer="driver" peerName={name} showMap={false} />
+            <MessageButton match={m} name={name} onPress={() => onChat(m)} />
+          </View>
+        );
+      })}
       <TouchableOpacity
         style={[styles.declineBtn, styles.withdrawBtn]}
         onPress={() => confirmWithdraw(waiting.map((m) => m.id), onWithdraw)}
@@ -504,25 +498,28 @@ function DriverWaitingStep({ matches, onWithdraw, busy, onChat }: WaitingStepPro
       >
         <Text style={styles.declineBtnText}>{busy ? "Withdrawing…" : "Withdraw request"}</Text>
       </TouchableOpacity>
-    </View>
+    </KeyboardScroll>
   );
 }
-
-// ─── Step: Passenger Waiting ──────────────────────────────────────────────────
 
 function PassengerWaitingStep({ matches, onWithdraw, busy, onChat }: WaitingStepProps) {
   // Passenger has approved; waiting on the driver to approve too.
   const waiting = matches.filter(m => m.passenger_approved && !m.driver_approved && m.status === "awaiting_other");
   const driverName = waiting[0]?.driver_profile?.first_name ?? "your driver";
   return (
-    <View style={styles.centeredStep}>
+    <KeyboardScroll contentContainerStyle={styles.scrollCentered} showsVerticalScrollIndicator={false}>
       <ActivityIndicator size="large" color={COLORS.primary} style={{ marginBottom: 20 }} />
       <Text style={styles.stepTitle}>You're in - waiting for them</Text>
       <Text style={styles.stepDescription}>
-        You approved the carpool with {driverName}. Waiting for them to approve too.
+        You accepted the carpool with {driverName}. Waiting for them to accept too.
       </Text>
-      <Text style={styles.stepHint}>The ride is confirmed once you both approve. You'll be notified.</Text>
-      {waiting[0] && <MessageButton centered match={waiting[0]} name={driverName} onPress={() => onChat(waiting[0])} />}
+      <Text style={styles.stepHint}>The ride is confirmed once you both accept. You'll be notified.</Text>
+      {waiting[0] && (
+        <View style={styles.waitingCard}>
+          <PickupDetails match={waiting[0]} viewer="passenger" peerName={driverName} showMap={false} />
+          <MessageButton match={waiting[0]} name={driverName} onPress={() => onChat(waiting[0])} />
+        </View>
+      )}
       <TouchableOpacity
         style={[styles.declineBtn, styles.withdrawBtn]}
         onPress={() => confirmWithdraw(waiting.map((m) => m.id), onWithdraw)}
@@ -532,45 +529,72 @@ function PassengerWaitingStep({ matches, onWithdraw, busy, onChat }: WaitingStep
       >
         <Text style={styles.declineBtnText}>{busy ? "Withdrawing…" : "Withdraw request"}</Text>
       </TouchableOpacity>
-    </View>
+    </KeyboardScroll>
   );
 }
 
 // ─── Step: Driver Confirmed ───────────────────────────────────────────────────
 
-function DriverConfirmedStep({ matches, onChat }: { matches: TripIntentMatch[]; onChat: OnChat }) {
+type OnCancelCarpool = (match: TripIntentMatch, partnerName: string) => void;
+
+function DriverConfirmedStep({
+  matches,
+  onChat,
+  onCancel,
+  busy,
+}: {
+  matches: TripIntentMatch[];
+  onChat: OnChat;
+  onCancel: OnCancelCarpool;
+  busy: boolean;
+}) {
   const router = useRouter();
   const confirmed = matches.filter(m => m.status === "confirmed");
+  const waiting = matches.filter((m) => isOffer(m) && m.driver_approved);
   return (
-    <KeyboardScroll contentContainerStyle={styles.centeredStep} showsVerticalScrollIndicator={false}>
+    <KeyboardScroll contentContainerStyle={styles.scrollCentered} showsVerticalScrollIndicator={false}>
       <View style={styles.bigCheckWrap}>
         <CheckCircle size={64} color={COLORS.green} />
       </View>
       <Text style={styles.stepTitle}>Ride Confirmed!</Text>
       <Text style={styles.stepDescription}>You have {confirmed.length} confirmed passenger{confirmed.length !== 1 ? "s" : ""}.</Text>
-      {confirmed.map(match => (
-        <View key={match.id} style={{ width: "100%" }}>
-          <View style={styles.confirmedCard}>
-            <Users size={18} color={COLORS.primary} />
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={styles.confirmedName}>{match.passenger_profile?.first_name ?? "Passenger"}</Text>
-              <Text style={styles.confirmedDetail}>
-                Pickup: {match.pickup_address?.split(",")[0] ?? "TBD"} · {formatClockTime(match.proposed_pickup_time) ?? "-"}
-              </Text>
+      {confirmed.map(match => {
+        const name = match.passenger_profile?.first_name ?? "Passenger";
+        return (
+          <View key={match.id} style={{ width: "100%" }}>
+            <View style={styles.confirmedCardColumn}>
+              <View style={styles.confirmedHead}>
+                <Users size={18} color={COLORS.primary} />
+                <Text style={styles.confirmedName}>{name}</Text>
+              </View>
+              <PickupDetails match={match} viewer="driver" peerName={name} />
             </View>
+            <MessageButton centered match={match} name={name} onPress={() => onChat(match)} />
+            {match.ride_id && (
+              <TouchableOpacity
+                style={styles.primaryBtn}
+                onPress={() => router.push(`/trip/${match.ride_id}` as any)}
+                accessibilityRole="button"
+              >
+                <Text style={styles.primaryBtnText}>View pickup & start trip</Text>
+              </TouchableOpacity>
+            )}
+            {match.ride_id && (
+              <QuietButton
+                label="Cancel carpool"
+                a11y={`Cancel the carpool with ${name}`}
+                onPress={() => onCancel(match, name)}
+                busy={busy}
+              />
+            )}
           </View>
-          <MessageButton centered match={match} name={match.passenger_profile?.first_name ?? "passenger"} onPress={() => onChat(match)} />
-          {match.ride_id && (
-            <TouchableOpacity
-              style={styles.primaryBtn}
-              onPress={() => router.push(`/trip/${match.ride_id}` as any)}
-              accessibilityRole="button"
-            >
-              <Text style={styles.primaryBtnText}>View pickup & start trip</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ))}
+        );
+      })}
+      {waiting.length > 0 && (
+        <Text style={styles.stepHint}>
+          Waiting for {waiting.map((m) => m.passenger_profile?.first_name ?? "a passenger").join(", ")} to accept too.
+        </Text>
+      )}
     </KeyboardScroll>
   );
 }
@@ -647,12 +671,14 @@ function PassengerDetailsStep({
 
 function PassengerReviewStep({
   matches,
+  tripDate,
   onRespond,
   isLoading,
   hasCompany,
   onChat,
 }: {
   matches: TripIntentMatch[];
+  tripDate: string | null;
   onRespond: (matchId: string, accepted: boolean) => void;
   isLoading: boolean;
   hasCompany: boolean;
@@ -660,7 +686,7 @@ function PassengerReviewStep({
 }) {
   // Symmetric approval: the passenger reviews any open match they haven't yet
   // approved (whether or not the driver has approved already).
-  const available = matches.filter(m => !m.passenger_approved && (m.status === "pending" || m.status === "awaiting_other"));
+  const available = matches.filter(m => !m.passenger_approved && isOffer(m));
   const match = available[0];
 
   if (!match) {
@@ -669,16 +695,17 @@ function PassengerReviewStep({
         <AlertCircle size={48} color={COLORS.gray} />
         <Text style={styles.stepTitle}>No Matches Available</Text>
         <Text style={styles.stepDescription}>
-          No drivers accepted your request. Check again tomorrow.
+          We're still looking for a driver on your route.
         </Text>
       </View>
     );
   }
 
+  const driverName = match.driver_profile?.first_name ?? "Driver";
   return (
     <KeyboardScroll contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Driver Match Found!</Text>
-      <Text style={styles.stepDescription}>Review your match for tomorrow.</Text>
+      <Text style={styles.stepDescription}>Review your match {forDay(tripDate)}.</Text>
 
       <View style={styles.driverMatchCard}>
         <View style={styles.matchCardLeft}>
@@ -686,20 +713,19 @@ function PassengerReviewStep({
             <Car size={20} color={COLORS.primary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.matchName}>{match.driver_profile?.first_name ?? "Driver"}</Text>
+            <Text style={styles.matchName}>{driverName}</Text>
             {hasCompany && match.peer_is_colleague === false && <OutsideCompanyPill />}
             <Text style={styles.matchDetail}>
-              Departs {formatClockTime(match.proposed_departure) ?? "-"} · {match.ai_compatibility_score?.toFixed(0) ?? "-"}% match
-            </Text>
-            <Text style={styles.matchDetail}>
-              Pickup: {match.pickup_address ?? "To be confirmed"}
+              Leaves {formatClockTime(match.proposed_departure) ?? "-"}
+              {match.driver_approved ? ` · ${driverName} already accepted` : ""}
             </Text>
             {!!match.ai_reasoning && (
               <Text style={styles.matchReasoning} numberOfLines={3}>{match.ai_reasoning}</Text>
             )}
-            <MessageButton match={match} name={match.driver_profile?.first_name ?? "driver"} onPress={() => onChat(match)} />
           </View>
         </View>
+        <PickupDetails match={match} viewer="passenger" peerName={driverName} />
+        <MessageButton match={match} name={driverName} onPress={() => onChat(match)} />
       </View>
 
       <View style={styles.respondRow}>
@@ -734,27 +760,36 @@ function PassengerReviewStep({
 
 // ─── Step: Passenger Confirmed ────────────────────────────────────────────────
 
-function PassengerConfirmedStep({ matches, onChat }: { matches: TripIntentMatch[]; onChat: OnChat }) {
+function PassengerConfirmedStep({
+  matches,
+  onChat,
+  onCancel,
+  busy,
+}: {
+  matches: TripIntentMatch[];
+  onChat: OnChat;
+  onCancel: OnCancelCarpool;
+  busy: boolean;
+}) {
   const router = useRouter();
   const confirmed = matches.find(m => m.status === "confirmed");
+  const driverName = confirmed?.driver_profile?.first_name ?? "Driver";
   return (
-    <View style={styles.centeredStep}>
+    <KeyboardScroll contentContainerStyle={styles.scrollCentered} showsVerticalScrollIndicator={false}>
       <View style={styles.bigCheckWrap}>
         <CheckCircle size={64} color={COLORS.green} />
       </View>
       <Text style={styles.stepTitle}>Ride Confirmed!</Text>
       {confirmed ? (
         <>
-          <View style={styles.confirmedCard}>
-            <Car size={18} color={COLORS.primary} />
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={styles.confirmedName}>{confirmed.driver_profile?.first_name ?? "Driver"} picks you up</Text>
-              <Text style={styles.confirmedDetail}>
-                At {confirmed.pickup_address?.split(",")[0] ?? "pickup point"} · {formatClockTime(confirmed.proposed_pickup_time ?? confirmed.proposed_departure) ?? "-"}
-              </Text>
+          <View style={styles.confirmedCardColumn}>
+            <View style={styles.confirmedHead}>
+              <Car size={18} color={COLORS.primary} />
+              <Text style={styles.confirmedName}>{driverName} picks you up</Text>
             </View>
+            <PickupDetails match={confirmed} viewer="passenger" peerName={driverName} />
           </View>
-          <MessageButton centered match={confirmed} name={confirmed.driver_profile?.first_name ?? "driver"} onPress={() => onChat(confirmed)} />
+          <MessageButton centered match={confirmed} name={driverName} onPress={() => onChat(confirmed)} />
           {confirmed.ride_id && (
             <TouchableOpacity
               style={styles.primaryBtn}
@@ -764,14 +799,19 @@ function PassengerConfirmedStep({ matches, onChat }: { matches: TripIntentMatch[
               <Text style={styles.primaryBtnText}>View ride & pickup</Text>
             </TouchableOpacity>
           )}
-          <Text style={styles.stepHint}>
-            Your driver will contact you if plans change.
-          </Text>
+          {confirmed.ride_id && (
+            <QuietButton
+              label="Cancel carpool"
+              a11y={`Cancel the carpool with ${driverName}`}
+              onPress={() => onCancel(confirmed, driverName)}
+              busy={busy}
+            />
+          )}
         </>
       ) : (
-        <Text style={styles.stepDescription}>Your ride is confirmed for tomorrow.</Text>
+        <Text style={styles.stepDescription}>Your ride is confirmed.</Text>
       )}
-    </View>
+    </KeyboardScroll>
   );
 }
 
@@ -786,6 +826,7 @@ export default function DailyCommuteScreen() {
     step,
     intent,
     matches,
+    outcome,
     isLoading,
     error,
     selectedRole,
@@ -795,6 +836,8 @@ export default function DailyCommuteScreen() {
     submitIntent,
     respondAsDriver,
     respondAsPassenger,
+    stopLooking,
+    cancelCarpool,
     subscribeToMatches,
     reset,
   } = useDailyCommuteStore();
@@ -839,7 +882,7 @@ export default function DailyCommuteScreen() {
   }, [openChatId, userId, matches, openChat]);
 
   // Withdrawing = declining through respond-to-match, which tells the other
-  // side. (There was no way to take back an approval before.)
+  // side and puts both back into matching.
   const [withdrawing, setWithdrawing] = useState(false);
   const handleWithdraw = async (matchIds: string[]) => {
     setWithdrawing(true);
@@ -854,9 +897,57 @@ export default function DailyCommuteScreen() {
     }
   };
 
-  // Accepted IDs staged during driver_review → needed for driver_detour step
-  const pendingAcceptedIds = useRef<string[]>([]);
-  const pendingDeclinedIds = useRef<string[]>([]);
+  // Stop looking / cancel the carpool: you can plan a new trip straight after.
+  const [leaving, setLeaving] = useState(false);
+  const handleStopLooking = () => {
+    Alert.alert("Stop looking?", "You can plan a new trip any time.", [
+      { text: "Keep looking", style: "cancel" },
+      {
+        text: "Stop looking",
+        style: "destructive",
+        onPress: async () => {
+          setLeaving(true);
+          try {
+            await stopLooking();
+          } catch (err) {
+            if (err instanceof CarpoolError && err.code === "has_confirmed_ride") {
+              Alert.alert("Your carpool is confirmed", "Cancel the carpool instead - your partner is told right away.");
+            } else {
+              Alert.alert("Couldn't stop", "Check your connection and try again.");
+            }
+            checkExistingIntent();
+          } finally {
+            setLeaving(false);
+          }
+        },
+      },
+    ]);
+  };
+  const handleCancelCarpool: OnCancelCarpool = (match, partnerName) => {
+    if (!match.ride_id) return;
+    const rideId = match.ride_id;
+    Alert.alert(
+      "Cancel this carpool?",
+      `${partnerName} is told right away and we look for another match for them. You can plan a new trip straight after.`,
+      [
+        { text: "Keep it", style: "cancel" },
+        {
+          text: "Cancel carpool",
+          style: "destructive",
+          onPress: async () => {
+            setLeaving(true);
+            try {
+              await cancelCarpool(rideId);
+            } catch (err) {
+              Alert.alert("Couldn't cancel", err instanceof Error ? err.message : "Check your connection and try again.");
+            } finally {
+              setLeaving(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -883,40 +974,30 @@ export default function DailyCommuteScreen() {
         departure_time: departureTime,
         open_to_independents: openToIndependents,
       });
-    } catch {
-      Alert.alert("Error", "Could not submit your intent. Check your profile has home/work addresses set.");
+    } catch (err) {
+      alertSubmitError(err);
     }
   };
 
   const handlePassengerDetailsSubmit = async (leavingTime: string, openToIndependents: boolean) => {
     try {
-      // Passenger now gives a LEAVING time so the matcher can compare both
-      // sides' departure times within ±15 min (see daily-commute-matcher).
+      // Passenger now gives a LEAVING time so the matcher can compare it with
+      // when the driver reaches the pickup (±15 min, see daily-commute-matcher).
       await submitIntent({
         role: "passenger",
         departure_time: leavingTime,
         open_to_independents: openToIndependents,
       });
-    } catch {
-      Alert.alert("Error", "Could not submit your intent. Check your profile has home/work addresses set.");
+    } catch (err) {
+      alertSubmitError(err);
     }
   };
 
-  const handleDriverReviewConfirm = (acceptedIds: string[], declinedIds: string[]) => {
-    pendingAcceptedIds.current = acceptedIds;
-    pendingDeclinedIds.current = declinedIds;
-    setStep("driver_detour");
-  };
-
-  const handleDriverDetourConfirm = async (detour: "flexible" | "fixed") => {
+  const handleDriverRespond = async (matchId: string, accepted: boolean) => {
     try {
-      await respondAsDriver({
-        accepted_ids: pendingAcceptedIds.current,
-        declined_ids: pendingDeclinedIds.current,
-        detour_preference: detour,
-      });
+      await respondAsDriver(accepted ? { accepted_ids: [matchId] } : { accepted_ids: [], declined_ids: [matchId] });
     } catch {
-      Alert.alert("Error", "Could not save your preferences. Please try again.");
+      Alert.alert("Error", "Could not save your answer. Please try again.");
     }
   };
 
@@ -931,15 +1012,14 @@ export default function DailyCommuteScreen() {
   const handleBack = () => {
     if (step === "driver_details" || step === "passenger_details") {
       setStep("role_select");
-    } else if (step === "driver_detour") {
-      setStep("driver_review");
     } else {
       router.back();
     }
   };
 
-  const showBackBtn = ["driver_details", "passenger_details", "driver_detour"].includes(step);
+  const showBackBtn = ["driver_details", "passenger_details"].includes(step);
   const showCloseBtn = !showBackBtn;
+  const tripDate = intent?.trip_date ?? null;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
@@ -972,36 +1052,51 @@ export default function DailyCommuteScreen() {
       )}
 
       {/* Steps */}
-      {step === "role_select" && <RoleSelectStep onSelect={handleRoleSelect} />}
+      {step === "role_select" && <RoleSelectStep onSelect={handleRoleSelect} outcome={outcome} />}
       {step === "driver_details" && (
         <DriverDetailsStep onSubmit={handleDriverDetailsSubmit} isLoading={isLoading} hasCompany={hasCompany} />
       )}
-      {step === "driver_submitted" && <SubmittedStep role="driver" onSeeOptions={() => router.replace("/(tabs)")} />}
-      {step === "driver_review" && (
-        <DriverReviewStep matches={matches} onConfirm={handleDriverReviewConfirm} isLoading={isLoading} hasCompany={hasCompany} onChat={openChat} />
-      )}
-      {step === "driver_detour" && (
-        <DriverDetourStep
-          onConfirm={handleDriverDetourConfirm}
-          isLoading={isLoading}
-          acceptedIds={pendingAcceptedIds.current}
+      {step === "driver_submitted" && (
+        <SubmittedStep
+          role="driver"
+          tripDate={tripDate}
+          outcome={outcome}
+          onSeeOptions={() => router.replace("/(tabs)")}
+          onStopLooking={handleStopLooking}
+          busy={leaving}
         />
+      )}
+      {step === "driver_review" && (
+        <DriverReviewStep matches={matches} tripDate={tripDate} onRespond={handleDriverRespond} hasCompany={hasCompany} onChat={openChat} />
       )}
       {step === "driver_waiting" && (
         <DriverWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} onChat={openChat} />
       )}
-      {step === "driver_confirmed" && <DriverConfirmedStep matches={matches} onChat={openChat} />}
+      {step === "driver_confirmed" && (
+        <DriverConfirmedStep matches={matches} onChat={openChat} onCancel={handleCancelCarpool} busy={leaving} />
+      )}
       {step === "passenger_details" && (
         <PassengerDetailsStep onSubmit={handlePassengerDetailsSubmit} isLoading={isLoading} hasCompany={hasCompany} />
       )}
-      {step === "passenger_submitted" && <SubmittedStep role="passenger" onSeeOptions={() => router.replace("/(tabs)")} />}
+      {step === "passenger_submitted" && (
+        <SubmittedStep
+          role="passenger"
+          tripDate={tripDate}
+          outcome={outcome}
+          onSeeOptions={() => router.replace("/(tabs)")}
+          onStopLooking={handleStopLooking}
+          busy={leaving}
+        />
+      )}
       {step === "passenger_review" && (
-        <PassengerReviewStep matches={matches} onRespond={handlePassengerRespond} isLoading={isLoading} hasCompany={hasCompany} onChat={openChat} />
+        <PassengerReviewStep matches={matches} tripDate={tripDate} onRespond={handlePassengerRespond} isLoading={isLoading} hasCompany={hasCompany} onChat={openChat} />
       )}
       {step === "passenger_waiting" && (
         <PassengerWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} onChat={openChat} />
       )}
-      {step === "passenger_confirmed" && <PassengerConfirmedStep matches={matches} onChat={openChat} />}
+      {step === "passenger_confirmed" && (
+        <PassengerConfirmedStep matches={matches} onChat={openChat} onCancel={handleCancelCarpool} busy={leaving} />
+      )}
 
       {chat && userId && (
         <ChatModal
@@ -1014,6 +1109,18 @@ export default function DailyCommuteScreen() {
       )}
     </SafeAreaView>
   );
+}
+
+/** A submit the server refused: a confirmed carpool that day, or no commute set. */
+function alertSubmitError(err: unknown) {
+  if (err instanceof CarpoolError && err.code === "has_confirmed_ride") {
+    Alert.alert(
+      "You already have a carpool",
+      "There's a confirmed carpool on that day. Cancel it first to plan a different trip.",
+    );
+    return;
+  }
+  Alert.alert("Error", "Could not submit your intent. Check your profile has home/work addresses set.");
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -1072,6 +1179,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
+    gap: 12,
+  },
+  // Centred like centeredStep, but grows past the screen so it can scroll.
+  scrollCentered: {
+    flexGrow: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    paddingBottom: 40,
     gap: 12,
   },
   stepTitle: {
@@ -1236,21 +1352,6 @@ const styles = StyleSheet.create({
   },
 
   // ── Match cards ──
-  matchCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1.5,
-    borderColor: "#EEF6F7",
-  },
-  matchCardAccepted: {
-    borderColor: COLORS.primary,
-    backgroundColor: "#E3FAFB",
-    boxShadow: depth.selected,
-  },
   matchCardLeft: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -1296,21 +1397,6 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     lineHeight: 16,
   },
-  matchCheckbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: "#EEF6F7",
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 10,
-  },
-  matchCheckboxChecked: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-    boxShadow: depth.selected,
-  },
 
   // ── Driver match card (passenger view) ──
   driverMatchCard: {
@@ -1323,32 +1409,6 @@ const styles = StyleSheet.create({
     boxShadow: ELEVATION.light.e2,
   },
 
-  // ── Detour cards ──
-  detourCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1.5,
-    borderColor: "#EEF6F7",
-  },
-  detourCardSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: "#E3FAFB",
-    boxShadow: depth.selected,
-  },
-  detourTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.primaryDark,
-  },
-  detourSub: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
 
   // ── Confirmed card ──
   messageBtn: {
@@ -1369,16 +1429,58 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.primary,
   },
-  confirmedCard: {
-    flexDirection: "row",
-    alignItems: "center",
+  confirmedCardColumn: {
     backgroundColor: "#ECFDF5",
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
     borderColor: "#D1FAE5",
-    gap: 10,
     width: "100%",
+  },
+  confirmedHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  waitingCard: {
+    alignSelf: "stretch",
+    backgroundColor: COLORS.white,
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: "#E1ECEE",
+  },
+  outcomeBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "stretch",
+    gap: 8,
+    backgroundColor: "#FFFBEB",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  outcomeBannerDone: {
+    backgroundColor: "#ECFDF5",
+  },
+  outcomeText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.primaryDark,
+  },
+  quietBtn: {
+    alignSelf: "center",
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  quietBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.red,
   },
   confirmedName: {
     fontSize: 15,

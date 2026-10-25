@@ -66,6 +66,14 @@ export const SubmitTripIntentSchema = z.object({
   // Employees only: open this ride/drive to commuters outside the company
   // (migration 045). Ignored for independents.
   open_to_independents: z.boolean().optional(),
+  // The phone's Date.getTimezoneOffset(), so the server knows the leaving
+  // moment (trip_intents.departs_at, migration 053). Absent → Vilnius time.
+  tz_offset_minutes: z.number().int().min(-840).max(720).optional(),
+});
+
+// "Stop looking": close the caller's carpool trip for a day (migration 053).
+export const CancelTripIntentSchema = z.object({
+  intent_id: uuid,
 });
 
 export const DriverRespondSchema = z.object({

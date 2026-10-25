@@ -36,7 +36,7 @@ import CommuteHomeCard, { type PlanDay, type PlannedRideSummary } from "../../co
 import YesterdayImpactCard, { type YesterdayImpact } from "../../components/YesterdayImpactCard";
 import * as SecureStore from "expo-secure-store";
 import { supabase } from "../../lib/supabase";
-import { localISODate, tomorrowLocalISODate } from "../../lib/localDate";
+import { dayLabel, localISODate, tomorrowLocalISODate } from "../../lib/localDate";
 import { buildWebLink } from "../../lib/deepLinks";
 import { cancelRide } from "../../lib/cancelRide";
 import { co2Share } from "../../lib/completeTrip";
@@ -90,6 +90,17 @@ interface IntentPeer {
 
 /** Tomorrow as a local YYYY-MM-DD — same helper as useDailyCommuteStore. */
 const tomorrowISODate = tomorrowLocalISODate;
+
+/** A carpool request the server refused (request-carpool codes), in words. */
+function carpoolRequestError(code: string, name: string): string | null {
+  if (/missing_home_or_work/i.test(code)) return "Set your home and work in Profile first - we need them to plan the pickup.";
+  if (/trip_not_open/i.test(code)) return "That trip isn't open to commuters outside the company.";
+  if (/peer_unavailable/i.test(code)) return `${name} isn't looking for a carpool that day, or their car is already full.`;
+  if (/already_matched/i.test(code)) return "You already have a carpool match that day - see Daily Commute.";
+  if (/no_seats_left/i.test(code)) return "Your car is already full that day.";
+  if (/role_conflict/i.test(code)) return "You've planned that day in the other role - change it in Daily Commute.";
+  return null;
+}
 
 /**
  * CommuterMarker - Displays a nearby driver or rider on the map
@@ -955,15 +966,9 @@ export default function MapScreen() {
       fetchIntentPeers();
     } catch (err: any) {
       const code = String(err?.message ?? err ?? "");
-      const missingPlaces = /missing_home_or_work/i.test(code);
-      const notOpen = /trip_not_open/i.test(code);
       showToast({
         title: "Couldn't send request",
-        message: missingPlaces
-          ? "Set your home and work in Profile first - we need them to plan the pickup."
-          : notOpen
-            ? "That trip isn't open to commuters outside the company."
-            : "Please try again.",
+        message: carpoolRequestError(code, peer.first_name ?? "They") ?? "Please try again.",
         type: "error",
       });
     } finally {
@@ -1348,7 +1353,7 @@ export default function MapScreen() {
       // tap counts as their approval; the target is notified to approve too.
       // `searchMode` is the current user's role: rider → we're the passenger,
       // driver → we're the driver.
-      await requestCarpool(targetProfile.id, searchMode === 'rider' ? 'rider' : 'driver');
+      await requestCarpool(targetProfile.id, searchMode === 'rider' ? 'rider' : 'driver', tomorrowISODate());
 
       // Reset the radar and tell the user we're waiting on the other side.
       setSelectedMatch(null);
@@ -1362,13 +1367,14 @@ export default function MapScreen() {
         type: 'success',
         duration: 5000,
       });
-    } catch {
+    } catch (err: any) {
       setRequestStatus('idle');
-      // Most common backend cause is the target hasn't set their commute yet.
       const name = selectedMatch?.profiles?.first_name ?? 'This colleague';
       showToast({
         title: "Couldn't send request",
-        message: `${name} may not have set their commute yet - try another colleague.`,
+        message:
+          carpoolRequestError(String(err?.message ?? err ?? ''), name) ??
+          `${name} may not have set their commute yet - try another colleague.`,
         type: "error",
       });
     }
@@ -1615,7 +1621,17 @@ export default function MapScreen() {
           let sublabel: string | null = null;
           let pillColor: string;
 
-          if (confirmedMatches.length > 0) {
+          if (needsMyApproval.length > 0) {
+            // A match is waiting for THIS user to approve (also a driver with a
+            // passenger confirmed and a seat still free).
+            pillColor = "#F59E0B";
+            const otherName = isDriver
+              ? (needsMyApproval[0].passenger_profile?.first_name ?? "a passenger")
+              : (needsMyApproval[0].driver_profile?.first_name ?? "a driver");
+            label = `Matched with ${otherName}`;
+            sublabel = "Tap to approve & ride together";
+            icon = <Car size={14} color="#0B2540" />;
+          } else if (confirmedMatches.length > 0) {
             // Ride confirmed — both approved.
             pillColor = "#059669";
             if (isDriver) {
@@ -1625,18 +1641,11 @@ export default function MapScreen() {
             } else {
               const driverName = confirmedMatches[0].driver_profile?.first_name ?? "Driver";
               label = `Riding with ${driverName}`;
-              sublabel = `Pickup ${formatClockTime(confirmedMatches[0].proposed_pickup_time ?? confirmedMatches[0].proposed_departure) ?? "tomorrow"}`;
+              const pickupAt = formatClockTime(confirmedMatches[0].proposed_pickup_time ?? confirmedMatches[0].proposed_departure);
+              const where = confirmedMatches[0].pickup_address?.split(",")[0];
+              sublabel = pickupAt ? `Pickup ${pickupAt}${where ? ` · ${where}` : ""}` : "Pickup time in chat";
             }
             icon = <Users size={14} color="#fff" />;
-          } else if (needsMyApproval.length > 0) {
-            // A match is waiting for THIS user to approve.
-            pillColor = "#F59E0B";
-            const otherName = isDriver
-              ? (needsMyApproval[0].passenger_profile?.first_name ?? "a passenger")
-              : (needsMyApproval[0].driver_profile?.first_name ?? "a driver");
-            label = `Matched with ${otherName}`;
-            sublabel = "Tap to approve & ride together";
-            icon = <Car size={14} color="#0B2540" />;
           } else if (awaitingOther.length > 0) {
             // This user approved; waiting on the other side.
             pillColor = "#007C89";
@@ -1646,15 +1655,18 @@ export default function MapScreen() {
             label = "You're in - waiting for them";
             sublabel = `Waiting for ${otherName} to approve`;
             icon = <Users size={14} color="#fff" />;
-          } else if (intent.status === "pending") {
-            // Submitted, matching runs instantly — no fixed wait time.
+          } else if (intent.status === "pending" || intent.status === "unmatched") {
+            // Searching: matching runs as soon as someone fits, no fixed wait.
             pillColor = "#007C89";
-            label = isDriver ? "Driver intent submitted" : "Passenger intent submitted";
-            sublabel = "Matching now…";
+            label = isDriver ? "Ride offered" : "Looking for a driver";
+            sublabel = isDriver ? "Looking for passengers on your way…" : "Matching you with someone on your route…";
             icon = isDriver ? <Car size={14} color="#fff" /> : <Users size={14} color="#fff" />;
           } else {
             return null;
           }
+          // Trips can be for any day: say which unless it's tomorrow.
+          const day = dayLabel(intent.trip_date);
+          if (day !== "Tomorrow") label = `${label} · ${day}`;
 
           const textColor = pillColor === "#F59E0B" ? "#0B2540" : "#fff";
           const seatsLabel = isDriver && intent.passenger_capacity != null

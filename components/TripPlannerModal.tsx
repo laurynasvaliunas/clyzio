@@ -8,6 +8,7 @@ import {
   Platform,
   Keyboard,
   ActivityIndicator,
+  Alert,
   useWindowDimensions,
 } from "react-native";
 import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
@@ -38,7 +39,9 @@ import { friendlyError } from "../lib/friendlyError";
 import { useToast } from "../contexts/ToastContext";
 import { computeLocalModes, getFuelBaseCO2, getVehicleCO2, getPrimaryVehicle } from "../lib/commuteUtils";
 import { Vehicle, parseVehicles } from "../lib/vehicles";
-import { useDailyCommuteStore } from "../store/useDailyCommuteStore";
+import { useDailyCommuteStore, CarpoolError } from "../store/useDailyCommuteStore";
+import { cancelRide } from "../lib/cancelRide";
+import { dayLabel } from "../lib/localDate";
 import OpenTripToggle from "./OpenTripToggle";
 
 import { MAPBOX_TOKEN } from "../lib/config";
@@ -674,27 +677,36 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsSubmittingCarpool(true);
     try {
-      await useDailyCommuteStore.getState().submitIntent({
-        role: role === "driver" ? "driver" : "passenger",
-        passenger_capacity: role === "driver" ? capacity : undefined,
-        departure_time: hhmmLocal(scheduledDate),
-        trip_date: ymdLocal(scheduledDate),
-        origin_lat: originCoords.lat,
-        origin_long: originCoords.lng,
-        dest_lat: destCoords.lat,
-        dest_long: destCoords.lng,
-        origin_address: originDescription,
-        dest_address: destDescription,
-        open_to_independents: openToIndependents,
-      });
-      showToast({
-        title: role === "driver" ? "Ride offered!" : "Looking for a match",
-        message: "We'll match you with someone on your route. Track it on the map.",
-        type: "success",
-        duration: 5000,
-      });
-      handleClose();
+      await submitCarpool();
     } catch (err) {
+      if (err instanceof CarpoolError && err.code === "has_confirmed_ride") {
+        // One carpool per day: offer to replace the confirmed one.
+        const day = dayLabel(ymdLocal(scheduledDate));
+        Alert.alert(
+          "You already have a carpool",
+          `There's a confirmed carpool ${day === "Today" || day === "Tomorrow" ? day.toLowerCase() : `on ${day}`}. Cancel it to plan this one instead? Your partner is told right away.`,
+          [
+            { text: "Keep it", style: "cancel" },
+            {
+              text: "Cancel it and continue",
+              style: "destructive",
+              onPress: async () => {
+                setIsSubmittingCarpool(true);
+                try {
+                  const cancelled = err.rideId ? await cancelRide(err.rideId) : { ok: false as const, message: "" };
+                  if (!cancelled.ok) throw new Error(cancelled.message);
+                  await submitCarpool();
+                } catch (e) {
+                  showToast({ title: "Could not submit", message: friendlyError(e), type: "error" });
+                } finally {
+                  setIsSubmittingCarpool(false);
+                }
+              },
+            },
+          ],
+        );
+        return;
+      }
       showToast({
         title: "Could not submit",
         message: "Please try again in a moment.",
@@ -704,6 +716,31 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     } finally {
       setIsSubmittingCarpool(false);
     }
+  };
+
+  /** Offer the ride / ask for one, then close the planner. */
+  const submitCarpool = async () => {
+    if (!originCoords || !destCoords) return;
+    await useDailyCommuteStore.getState().submitIntent({
+      role: role === "driver" ? "driver" : "passenger",
+      passenger_capacity: role === "driver" ? capacity : undefined,
+      departure_time: hhmmLocal(scheduledDate),
+      trip_date: ymdLocal(scheduledDate),
+      origin_lat: originCoords.lat,
+      origin_long: originCoords.lng,
+      dest_lat: destCoords.lat,
+      dest_long: destCoords.lng,
+      origin_address: originDescription,
+      dest_address: destDescription,
+      open_to_independents: openToIndependents,
+    });
+    showToast({
+      title: role === "driver" ? "Ride offered!" : "Looking for a match",
+      message: "We'll match you with someone on your route. Track it on the map.",
+      type: "success",
+      duration: 5000,
+    });
+    handleClose();
   };
 
   const modeReady = originCoords && destCoords;

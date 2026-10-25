@@ -1,17 +1,17 @@
 /**
- * respond-to-match — unified symmetric carpool approval (migration 021).
+ * respond-to-match — symmetric carpool approval (migrations 021, 053).
  *
- * Supersedes driver-respond-to-matches + passenger-respond-to-match. One
- * endpoint handles both roles:
- *   - Decline → status cancelled_by_<role>, notify the other side.
- *   - Approve → set <role>_approved = true.
- *       • If BOTH sides have now approved → create the ride, status confirmed,
- *         flip both intents to matched, push both "you're riding together".
- *       • Otherwise → status awaiting_other, push the other side "X approved,
- *         your turn".
+ * One endpoint for both roles, any order:
+ *   - Decline / withdraw → cancelled_by_<role>. The database (053) puts both
+ *     trips back into matching and re-runs the matcher for them; the other
+ *     person gets a push.
+ *   - Approve → once both have, the ride is created and the match confirmed in
+ *     the same transaction (respond_carpool_match locks the match, so two
+ *     approvals at the same moment confirm exactly once).
  *
- * Order-independent: whoever approves first just waits for the other. Idempotent:
- * re-approving is a no-op; acting on a terminal match returns its state.
+ * The ride: origin = the pickup (a point on the driver's route or the rider's
+ * door), destination = the drop-off, scheduled at the pickup time.
+ * Idempotent: answering a match that's already settled returns its state.
  */
 
 import { corsHeaders } from '../_shared/cors.ts';
@@ -19,7 +19,7 @@ import { verifyAuth } from '../_shared/auth.ts';
 import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
 import { parseBody, RespondToMatchSchema } from '../_shared/validate.ts';
 import { sendPush } from '../_shared/expoPush.ts';
-import { reverseGeocode, mapboxToken } from '../_shared/geocode.ts';
+import { street } from '../_shared/carpool.ts';
 
 interface MatchRow {
   id: string;
@@ -29,44 +29,46 @@ interface MatchRow {
   passenger_intent_id: string;
   trip_date: string;
   status: string;
-  driver_approved: boolean;
-  passenger_approved: boolean;
   pickup_lat: number | null;
   pickup_long: number | null;
   pickup_address: string | null;
-  custom_pickup_lat: number | null;
-  custom_pickup_long: number | null;
-  detour_preference: string | null;
+  pickup_at: string | null;
+  proposed_pickup_time: string | null;
   proposed_departure: string | null;
-  ride_id: string | null;
+  dropoff_lat: number | null;
+  dropoff_long: number | null;
+  dropoff_address: string | null;
 }
 
-const TERMINAL = ['confirmed', 'cancelled_by_driver', 'cancelled_by_passenger', 'expired'];
+// Vilnius' getTimezoneOffset() on a date (-180 in summer, -120 in winter).
+function vilniusOffsetMinutes(tripDate: string): number {
+  const noon = new Date(`${tripDate}T12:00:00Z`);
+  const wall = (tz: string) => new Date(noon.toLocaleString('en-US', { timeZone: tz })).getTime();
+  return (wall('UTC') - wall('Europe/Vilnius')) / 60_000;
+}
 
-// Build a UTC ISO timestamp for "HH:MM local wall-clock on trip_date", given the
-// approver's UTC offset in minutes (Date.getTimezoneOffset(): +ve west of UTC).
-// offset absent → interpret as UTC (legacy behaviour). M1.
+// "HH:MM local wall-clock on trip_date" as UTC, given the phone's
+// getTimezoneOffset() (+ve west of UTC; Vilnius when absent). For matches
+// made before 053, which have no pickup_at.
 function buildScheduledAt(tripDate: string, hhmm: string, tzOffsetMinutes?: number): string {
   const [y, mo, d] = tripDate.split('-').map(Number);
   const [hh, mm] = (hhmm || '08:00').split(':').map(Number);
   const baseUtcMs = Date.UTC(y, (mo || 1) - 1, d, hh || 0, mm || 0);
-  const off = Number.isFinite(tzOffsetMinutes) ? (tzOffsetMinutes as number) : 0;
+  const off = Number.isFinite(tzOffsetMinutes) ? (tzOffsetMinutes as number) : vilniusOffsetMinutes(tripDate);
   return new Date(baseUtcMs + off * 60_000).toISOString();
 }
 
 // deno-lint-ignore no-explicit-any
-async function notify(supabase: any, userId: string, title: string, body: string) {
+async function notify(supabase: any, userId: string, title: string, body: string, data: Record<string, unknown>) {
   const { data: prof, error } = await supabase
     .from('profiles')
     .select('expo_push_token, notification_prefs')
     .eq('id', userId)
     .single();
-  // A failed read used to skip the push silently (the column was missing on
-  // prod until migration 046) — make it visible in the function logs.
   if (error) console.error('[respond-to-match] notify profile read failed:', error.message);
   const matchesPref = (prof?.notification_prefs as { matches?: boolean } | null)?.matches ?? true;
   if (prof?.expo_push_token && matchesPref) {
-    await sendPush({ to: prof.expo_push_token, title, body, data: { screen: 'daily-commute' } });
+    await sendPush({ to: prof.expo_push_token, title, body, data });
   }
 }
 
@@ -92,138 +94,81 @@ Deno.serve(async (req) => {
 
   const parsed = await parseBody(req, RespondToMatchSchema);
   if (!parsed.ok) return parsed.response;
-  const { match_id, accepted, detour_preference, custom_pickup, tz_offset_minutes } = parsed.data;
+  // detour_preference / custom_pickup from older builds are accepted and
+  // ignored: the pickup is planned with the match (migration 053).
+  const { match_id, accepted, tz_offset_minutes } = parsed.data;
 
   try {
     const { data: match, error: matchErr } = await supabase
       .from('trip_intent_matches')
-      .select('id, driver_user_id, passenger_user_id, driver_intent_id, passenger_intent_id, trip_date, status, driver_approved, passenger_approved, pickup_lat, pickup_long, pickup_address, custom_pickup_lat, custom_pickup_long, detour_preference, proposed_departure, ride_id')
+      .select('id, driver_user_id, passenger_user_id, driver_intent_id, passenger_intent_id, trip_date, status, pickup_lat, pickup_long, pickup_address, pickup_at, proposed_pickup_time, proposed_departure, dropoff_lat, dropoff_long, dropoff_address')
       .eq('id', match_id)
       .maybeSingle();
-
     if (matchErr) return respondInternalError('respond-to-match', matchErr, 'match_fetch_failed');
     if (!match) return respondError(404, 'not_found', 'match_not_found');
 
     const m = match as MatchRow;
     const isDriver = m.driver_user_id === userId;
-    const isPassenger = m.passenger_user_id === userId;
-    if (!isDriver && !isPassenger) return respondError(403, 'forbidden', 'not_a_participant');
-
-    // Terminal already — return current state, no side effects.
-    if (TERMINAL.includes(m.status)) {
-      return respondJSON({ ok: true, status: m.status, ride_id: m.ride_id });
-    }
-
-    const role = isDriver ? 'driver' : 'passenger';
+    if (!isDriver && m.passenger_user_id !== userId) return respondError(403, 'forbidden', 'not_a_participant');
     const otherUserId = isDriver ? m.passenger_user_id : m.driver_user_id;
 
-    // ── Decline ─────────────────────────────────────────────────────────────
-    if (!accepted) {
-      const cancelStatus = isDriver ? 'cancelled_by_driver' : 'cancelled_by_passenger';
-      await supabase
-        .from('trip_intent_matches')
-        .update({ status: cancelStatus, updated_at: new Date().toISOString() })
-        .eq('id', m.id);
-      const who = await firstName(supabase, userId);
-      await notify(supabase, otherUserId, 'Carpool cancelled', `${who} can't make the carpool. We'll keep looking.`);
-      return respondJSON({ ok: true, status: cancelStatus });
-    }
-
-    // ── Approve ─────────────────────────────────────────────────────────────
-    const alreadyApproved = isDriver ? m.driver_approved : m.passenger_approved;
-    const otherApproved = isDriver ? m.passenger_approved : m.driver_approved;
-
-    // Idempotent: caller already approved and still waiting → no-op.
-    if (alreadyApproved && !otherApproved) {
-      return respondJSON({ ok: true, status: 'awaiting_other', already: true });
-    }
-
-    const bothNowApproved = otherApproved; // caller is approving now
-
-    const approvalPatch: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-      [isDriver ? 'driver_approved' : 'passenger_approved']: true,
-    };
-    if (isDriver && detour_preference) {
-      approvalPatch.detour_preference = detour_preference;
-      if (detour_preference === 'fixed' && custom_pickup) {
-        approvalPatch.custom_pickup_lat = custom_pickup.lat;
-        approvalPatch.custom_pickup_long = custom_pickup.lng;
-      }
-    }
-
-    if (!bothNowApproved) {
-      // First approver → wait for the other.
-      approvalPatch.status = 'awaiting_other';
-      await supabase.from('trip_intent_matches').update(approvalPatch).eq('id', m.id);
-      const who = await firstName(supabase, userId);
-      await notify(
-        supabase,
-        otherUserId,
-        `${who} approved your carpool`,
-        `Open Clyzio to approve and lock in your ride for ${m.trip_date}.`,
-      );
-      return respondJSON({ ok: true, status: 'awaiting_other' });
-    }
-
-    // Both approved now → create the ride + confirm. Origin = the pickup (the
-    // driver's custom point when they chose a fixed route); destination = the
-    // driver's trip endpoint (typed in the planner or their profile work). Both
-    // with addresses — the trip screen showed "Origin/Destination" without them.
-    const [{ data: driverIntent }, { data: passengerIntent }, { data: driverProfile }, { data: passengerProfile }] =
-      await Promise.all([
+    // The ride this match becomes if this approval is the second one.
+    let ride: Record<string, unknown> | null = null;
+    if (accepted) {
+      const [{ data: driverIntent }, { data: passengerIntent }, { data: driverProfile }, { data: passengerProfile }] = await Promise.all([
         supabase.from('trip_intents').select('work_lat, work_long, dest_address').eq('id', m.driver_intent_id).single(),
-        supabase.from('trip_intents').select('origin_address').eq('id', m.passenger_intent_id).single(),
+        supabase.from('trip_intents').select('home_lat, home_long').eq('id', m.passenger_intent_id).single(),
         supabase.from('profiles').select('work_lat, work_long, work_address').eq('id', m.driver_user_id).single(),
         supabase.from('profiles').select('share_pickup_address').eq('id', m.passenger_user_id).single(),
       ]);
-
-    const detour = (approvalPatch.detour_preference as string | undefined) ?? m.detour_preference;
-    const customLat = (approvalPatch.custom_pickup_lat as number | undefined) ?? m.custom_pickup_lat;
-    const customLong = (approvalPatch.custom_pickup_long as number | undefined) ?? m.custom_pickup_long;
-    const useCustom = detour === 'fixed' && customLat != null && customLong != null;
-
-    const originLat = useCustom ? customLat : m.pickup_lat;
-    const originLong = useCustom ? customLong : m.pickup_long;
-    const originAddress = useCustom
-      ? await reverseGeocode(customLong as number, customLat as number, mapboxToken())
-      : (m.pickup_address ?? passengerIntent?.origin_address ?? null);
-
-    const { data: rideData, error: rideErr } = await supabase
-      .from('rides')
-      .insert({
-        driver_id: m.driver_user_id,
-        rider_id: m.passenger_user_id,
-        status: 'scheduled',
-        origin_lat: originLat ?? 0,
-        origin_long: originLong ?? 0,
-        origin_address: originAddress,
-        dest_lat: driverIntent?.work_lat ?? driverProfile?.work_lat ?? 0,
-        dest_long: driverIntent?.work_long ?? driverProfile?.work_long ?? 0,
-        dest_address: driverIntent?.dest_address ?? driverProfile?.work_address ?? null,
+      const hasDropoff = m.dropoff_lat != null && m.dropoff_long != null;
+      // A door pickup of a rider who hides their address has no pickup point
+      // on the match; the ride still needs one (its address stays hidden).
+      ride = {
+        origin_lat: m.pickup_lat ?? passengerIntent?.home_lat ?? 0,
+        origin_long: m.pickup_long ?? passengerIntent?.home_long ?? 0,
+        origin_address: m.pickup_address,
+        dest_lat: hasDropoff ? m.dropoff_lat : (driverIntent?.work_lat ?? driverProfile?.work_lat ?? 0),
+        dest_long: hasDropoff ? m.dropoff_long : (driverIntent?.work_long ?? driverProfile?.work_long ?? 0),
+        dest_address: hasDropoff ? m.dropoff_address : (driverIntent?.dest_address ?? driverProfile?.work_address ?? null),
         share_origin_address: passengerProfile?.share_pickup_address ?? true,
-        scheduled_at: buildScheduledAt(m.trip_date, m.proposed_departure ?? '08:00', tz_offset_minutes),
-        transport_mode: 'carpool',
-        transport_label: 'Carpool',
-      })
-      .select('id')
-      .single();
-    if (rideErr) return respondInternalError('respond-to-match', rideErr, 'ride_create_failed');
+        scheduled_at: m.pickup_at ??
+          buildScheduledAt(m.trip_date, m.proposed_pickup_time ?? m.proposed_departure ?? '08:00', tz_offset_minutes),
+      };
+    }
 
-    await supabase
-      .from('trip_intent_matches')
-      .update({ ...approvalPatch, status: 'confirmed', ride_id: rideData?.id ?? null })
-      .eq('id', m.id);
+    const { data: result, error: rpcErr } = await supabase.rpc('respond_carpool_match', {
+      p_match: m.id,
+      p_user: userId,
+      p_accept: accepted,
+      p_ride: ride,
+    });
+    if (rpcErr) return respondInternalError('respond-to-match', rpcErr, 'respond_failed');
+    const r = result as { status: string; ride_id?: string; changed: boolean; reason?: string };
 
-    await supabase.from('trip_intents').update({ status: 'matched' }).in('id', [m.driver_intent_id, m.passenger_intent_id]);
+    if (r.changed) {
+      const who = await firstName(supabase, userId);
+      if (r.status === 'cancelled_by_driver' || r.status === 'cancelled_by_passenger') {
+        await notify(supabase, otherUserId, 'Carpool cancelled',
+          `${who} can't make the carpool. We're looking for another match.`, { screen: 'daily-commute' });
+      } else if (r.status === 'awaiting_other') {
+        await notify(supabase, otherUserId, `${who} accepted your carpool`,
+          `Accept too to lock in the ride on ${m.trip_date}.`, { screen: 'daily-commute' });
+      } else if (r.status === 'confirmed') {
+        const where = `${m.proposed_pickup_time?.slice(0, 5) ?? ''} at ${street(m.pickup_address)}`.trim();
+        const [driverName, passengerName] = isDriver
+          ? [who, await firstName(supabase, m.passenger_user_id)]
+          : [await firstName(supabase, m.driver_user_id), who];
+        const data = { screen: 'trip', rideId: r.ride_id };
+        await notify(supabase, m.driver_user_id, 'Carpool confirmed!', `You're picking up ${passengerName}: ${where}.`, data);
+        await notify(supabase, m.passenger_user_id, 'Carpool confirmed!', `${driverName} picks you up: ${where}.`, data);
+      } else if (r.status === 'expired' && r.reason === 'no_seats_left') {
+        await notify(supabase, m.passenger_user_id, 'That car is full now',
+          "The driver's seats were taken. We're looking for another match.", { screen: 'daily-commute' });
+      }
+    }
 
-    // Push BOTH — confirmed.
-    const driverName = await firstName(supabase, m.driver_user_id);
-    const passengerName = await firstName(supabase, m.passenger_user_id);
-    await notify(supabase, m.driver_user_id, 'Carpool confirmed!', `You're riding with ${passengerName} on ${m.trip_date}. You're all set!`);
-    await notify(supabase, m.passenger_user_id, 'Carpool confirmed!', `You're riding with ${driverName} on ${m.trip_date}. You're all set!`);
-
-    return respondJSON({ ok: true, status: 'confirmed', ride_id: rideData?.id });
+    return respondJSON({ ok: true, status: r.status, ride_id: r.ride_id ?? null, reason: r.reason ?? null });
   } catch (err) {
     return respondInternalError('respond-to-match', err);
   }

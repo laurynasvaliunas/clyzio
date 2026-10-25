@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
-import { tomorrowLocalISODate } from "../lib/localDate";
+import { localISODate } from "../lib/localDate";
+import { cancelRide } from "../lib/cancelRide";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -10,7 +11,6 @@ export type FlowStep =
   | "driver_details"
   | "driver_submitted"
   | "driver_review"
-  | "driver_detour"
   | "driver_waiting"
   | "driver_confirmed"
   | "passenger_details"
@@ -33,6 +33,10 @@ export interface TripIntent {
   work_long: number;
   status: "pending" | "matched" | "unmatched" | "expired";
   created_at: string;
+  // Migration 053: re-submitting a day starts a new generation; only the
+  // current generation's matches belong to this trip.
+  generation?: number;
+  departs_at?: string | null;
 }
 
 export interface TripIntentMatch {
@@ -52,6 +56,18 @@ export interface TripIntentMatch {
   detour_preference: "flexible" | "fixed" | null;
   custom_pickup_lat: number | null;
   custom_pickup_long: number | null;
+  // Where and when, planned with the match (migration 053). Null on older rows.
+  pickup_kind?: "route" | "door" | null;
+  pickup_at?: string | null;
+  walk_to_pickup_m?: number | null;
+  detour_km?: number | null;
+  detour_min?: number | null;
+  dropoff_lat?: number | null;
+  dropoff_long?: number | null;
+  dropoff_address?: string | null;
+  walk_from_dropoff_m?: number | null;
+  proposed_dropoff_time?: string | null;
+  shared_km?: number | null;
   // Symmetric approval (migration 021).
   driver_approved: boolean;
   passenger_approved: boolean;
@@ -73,12 +89,35 @@ export interface TripIntentMatch {
   peer_is_colleague?: boolean;
 }
 
+/** What last happened to your carpool, shown above the next step. */
+export type CarpoolOutcome =
+  | { kind: "partner_cancelled"; name: string | null }
+  | { kind: "trip_done"; tripDate: string };
+
+/** A carpool action the server refused, with its reason code. */
+export class CarpoolError extends Error {
+  constructor(public code: string, public rideId: string | null = null) {
+    super(code);
+    this.name = "CarpoolError";
+  }
+}
+
+async function functionError(error: unknown): Promise<CarpoolError | unknown> {
+  if (error instanceof FunctionsHttpError) {
+    const body = await error.context.json().catch(() => null);
+    if (body?.code) return new CarpoolError(body.code, body.ride_id ?? null);
+  }
+  return error;
+}
+
 // ─── Store interface ──────────────────────────────────────────────────────────
 
 interface DailyCommuteState {
   step: FlowStep;
   intent: TripIntent | null;
+  /** The trip's live matches (offers and the confirmed carpool). */
   matches: TripIntentMatch[];
+  outcome: CarpoolOutcome | null;
   isLoading: boolean;
   error: string | null;
 
@@ -105,23 +144,41 @@ interface DailyCommuteState {
     // Employees only: open this trip to commuters outside the company (045).
     open_to_independents?: boolean;
   }) => Promise<void>;
-  respondAsDriver: (params: {
-    accepted_ids: string[];
-    declined_ids?: string[];
-    detour_preference: "flexible" | "fixed";
-    custom_pickups?: Array<{ match_id: string; lat: number; lng: number }>;
-  }) => Promise<void>;
+  respondAsDriver: (params: { accepted_ids: string[]; declined_ids?: string[] }) => Promise<void>;
   respondAsPassenger: (params: { match_id: string; accepted: boolean }) => Promise<void>;
+  /** Close the trip ("Stop looking"). Refused while a carpool is confirmed. */
+  stopLooking: () => Promise<void>;
+  /** Cancel a confirmed carpool; you can plan a new trip right after. */
+  cancelCarpool: (rideId: string) => Promise<void>;
   /** Map-radar bridge: request a specific colleague → creates a pre-approved match. */
   requestCarpool: (targetUserId: string, requesterRole: "driver" | "rider", tripDate?: string) => Promise<void>;
   subscribeToMatches: () => () => void;
   reset: () => void;
 }
 
-// ─── Tomorrow helper ──────────────────────────────────────────────────────────
+const LIVE_OFFER = ["pending", "awaiting_other"];
+const RIDE_OVER = ["completed", "cancelled"];
 
-// Local calendar date, not UTC (see lib/localDate).
-const getTomorrowDate = tomorrowLocalISODate;
+/** The step a trip is at, from its live matches. */
+export function stepFor(role: "driver" | "passenger", matches: TripIntentMatch[]): FlowStep {
+  const isDriver = role === "driver";
+  const mine = (m: TripIntentMatch) => (isDriver ? m.driver_approved : m.passenger_approved);
+  const offers = matches.filter((m) => LIVE_OFFER.includes(m.status));
+  const confirmed = matches.some((m) => m.status === "confirmed");
+  if (isDriver) {
+    // New riders for a free seat come first, even with a passenger confirmed.
+    if (offers.some((m) => !mine(m))) return "driver_review";
+    if (confirmed) return "driver_confirmed";
+    if (offers.length > 0) return "driver_waiting";
+    return "driver_submitted";
+  }
+  if (confirmed) return "passenger_confirmed";
+  if (offers.some((m) => !mine(m))) return "passenger_review";
+  if (offers.length > 0) return "passenger_waiting";
+  return "passenger_submitted";
+}
+
+const MATCH_SELECT = "*";
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
@@ -129,6 +186,7 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
   step: "role_select",
   intent: null,
   matches: [],
+  outcome: null,
   isLoading: false,
   error: null,
   selectedRole: null,
@@ -142,14 +200,15 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { set({ isLoading: false }); return; }
 
-      const tomorrow = getTomorrowDate();
-
-      const { data: intent, error: intentError } = await supabase
+      // Your next trip from today on (local date) — a planner trip for today or
+      // next week, not only tomorrow's.
+      const { data: intents, error: intentError } = await supabase
         .from("trip_intents")
         .select("*")
         .eq("user_id", user.id)
-        .eq("trip_date", tomorrow)
-        .maybeSingle();
+        .gte("trip_date", localISODate())
+        .order("trip_date", { ascending: true })
+        .limit(7);
 
       if (intentError) {
         // Real DB/RLS error — don't wipe current step, just stop loading
@@ -157,80 +216,79 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
         return;
       }
 
-      if (!intent || intent.status === "expired") {
-        set({ step: "role_select", intent: null, matches: [], isLoading: false });
+      const rows = (intents ?? []) as TripIntent[];
+      const intent = rows.find((i) => i.status !== "expired") ?? null;
+      // Without an open trip: did the soonest one just end with a carpool?
+      const shown = intent ?? rows[0] ?? null;
+      if (!shown) {
+        set({ step: "role_select", intent: null, matches: [], outcome: null, isLoading: false });
         return;
       }
 
-      // Load matches — use intent ID to avoid RLS ambiguity with .or()
-      const matchFilter = intent.role === "driver"
-        ? supabase
-            .from("trip_intent_matches")
-            .select(`*, passenger_profile:profiles!trip_intent_matches_passenger_user_id_fkey(first_name, home_lat, home_long), driver_profile:profiles!trip_intent_matches_driver_user_id_fkey(first_name)`)
-            .eq("driver_intent_id", intent.id)
-        : supabase
-            .from("trip_intent_matches")
-            .select(`*, passenger_profile:profiles!trip_intent_matches_passenger_user_id_fkey(first_name, home_lat, home_long), driver_profile:profiles!trip_intent_matches_driver_user_id_fkey(first_name)`)
-            .eq("passenger_intent_id", intent.id);
+      const isDriver = shown.role === "driver";
+      let query = supabase
+        .from("trip_intent_matches")
+        .select(MATCH_SELECT)
+        .eq(isDriver ? "driver_intent_id" : "passenger_intent_id", shown.id);
+      // Only this trip's generation (053); older rows have no generation.
+      if (shown.generation != null) {
+        query = query.eq(isDriver ? "driver_generation" : "passenger_generation", shown.generation);
+      }
+      const { data: matchRows } = await query;
+      const all = (matchRows ?? []) as TripIntentMatch[];
 
-      const { data: matches } = await matchFilter;
+      // A confirmed carpool stays on screen until its ride is over.
+      const rideIds = all.filter((m) => m.status === "confirmed" && m.ride_id).map((m) => m.ride_id as string);
+      const rideStatus = new Map<string, string>();
+      if (rideIds.length > 0) {
+        const { data: rides } = await supabase.from("rides").select("id, status").in("id", rideIds);
+        for (const r of (rides ?? []) as Array<{ id: string; status: string }>) rideStatus.set(r.id, r.status);
+      }
+      const isLive = (m: TripIntentMatch) =>
+        LIVE_OFFER.includes(m.status) ||
+        (m.status === "confirmed" && !RIDE_OVER.includes(rideStatus.get(m.ride_id ?? "") ?? ""));
+      const live = all.filter(isLive);
 
-      const activeMatches = (matches ?? []).filter(
-        m => !["cancelled_by_driver", "cancelled_by_passenger", "expired"].includes(m.status)
-      );
-
-      const isDriver = intent.role === "driver";
+      // What happened last: the other person cancelled, or the trip is done.
+      let outcome: CarpoolOutcome | null = null;
+      const theirCancel = isDriver ? "cancelled_by_passenger" : "cancelled_by_driver";
+      const lastCancel = all
+        .filter((m) => m.status === theirCancel)
+        .sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1))[0];
+      if (!intent) {
+        if (all.some((m) => m.status === "confirmed" && rideStatus.get(m.ride_id ?? "") === "completed")) {
+          outcome = { kind: "trip_done", tripDate: shown.trip_date };
+        }
+      } else if (live.length === 0 && lastCancel) {
+        outcome = { kind: "partner_cancelled", name: null };
+      }
 
       // Resolve the OTHER person's display name/avatar via the is_peer_visible-
-      // gated get_public_profiles RPC. The direct profiles FK embed above returns
-      // null for non-same-company peers (RLS), which is why cards showed
-      // "Passenger"/"Driver". Pickup coords come from the match itself, not here.
-      const peerIds = Array.from(new Set(
-        activeMatches
-          .map(m => (isDriver ? m.passenger_user_id : m.driver_user_id))
-          .filter(Boolean) as string[]
-      ));
+      // gated get_public_profiles RPC (the direct profiles embed is RLS-blocked
+      // for non-same-company peers).
+      const peerOf = (m: TripIntentMatch) => (isDriver ? m.passenger_user_id : m.driver_user_id);
+      const peerIds = Array.from(new Set([...live, ...(lastCancel ? [lastCancel] : [])].map(peerOf).filter(Boolean)));
       if (peerIds.length > 0) {
         const { data: pubs } = await supabase.rpc("get_public_profiles", { p_ids: peerIds });
         const byId = new Map<string, any>((pubs ?? []).map((p: any) => [p.id, p]));
-        for (const m of activeMatches) {
-          const peer = byId.get(isDriver ? m.passenger_user_id : m.driver_user_id);
+        for (const m of live) {
+          const peer = byId.get(peerOf(m));
           if (!peer) continue;
           if (typeof peer.is_colleague === "boolean") m.peer_is_colleague = peer.is_colleague;
           const display = { first_name: peer.first_name, last_name: peer.last_name, avatar_url: peer.avatar_url };
           if (isDriver) m.passenger_profile = { ...(m.passenger_profile ?? {}), ...display };
           else m.driver_profile = { ...(m.driver_profile ?? {}), ...display };
         }
-      }
-
-      // Determine step from intent/match state
-      let step: FlowStep = "role_select";
-
-      if (intent.status === "pending") {
-        step = isDriver ? "driver_submitted" : "passenger_submitted";
-      } else if (intent.status === "matched" || intent.status === "unmatched") {
-        const confirmed = activeMatches.find(m => m.status === "confirmed");
-        if (confirmed) {
-          step = isDriver ? "driver_confirmed" : "passenger_confirmed";
-        } else if (isDriver) {
-          // Symmetric approval: the driver reviews any open match they haven't
-          // approved yet; once they have, they wait on the passenger.
-          const needsApproval = activeMatches.find(m => !m.driver_approved);
-          const waiting = activeMatches.find(m => m.driver_approved && !m.passenger_approved);
-          if (needsApproval) step = "driver_review";
-          else if (waiting) step = "driver_waiting";
-          else step = "driver_submitted"; // no open matches — back to submitted
-        } else {
-          // Passenger mirror of the same symmetric logic.
-          const needsApproval = activeMatches.find(m => !m.passenger_approved);
-          const waiting = activeMatches.find(m => m.passenger_approved && !m.driver_approved);
-          if (needsApproval) step = "passenger_review";
-          else if (waiting) step = "passenger_waiting";
-          else step = "passenger_submitted"; // no open matches — back to submitted
+        if (outcome?.kind === "partner_cancelled" && lastCancel) {
+          outcome = { kind: "partner_cancelled", name: byId.get(peerOf(lastCancel))?.first_name ?? null };
         }
       }
 
-      set({ intent, matches: activeMatches, step, isLoading: false });
+      if (!intent) {
+        set({ step: "role_select", intent: null, matches: [], outcome, isLoading: false });
+        return;
+      }
+      set({ intent, matches: live, step: stepFor(intent.role, live), outcome, isLoading: false });
     } catch (err) {
       set({ error: String(err), isLoading: false });
     }
@@ -240,37 +298,27 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const { data, error } = await supabase.functions.invoke("submit-trip-intent", {
-        body: params,
+        // The leaving moment needs the phone's time zone (053).
+        body: { tz_offset_minutes: new Date().getTimezoneOffset(), ...params },
       });
-
-      if (error) throw error;
+      if (error) throw await functionError(error);
 
       const step: FlowStep = params.role === "driver" ? "driver_submitted" : "passenger_submitted";
-      set({ intent: data.intent, step, isLoading: false });
+      set({ intent: data.intent, matches: [], outcome: null, step, isLoading: false });
     } catch (err) {
-      set({ error: String(err), isLoading: false });
+      set({ error: err instanceof CarpoolError ? null : String(err), isLoading: false });
       throw err;
     }
   },
 
-  // Both respond paths now go through the unified, symmetric `respond-to-match`
-  // edge function (migration 021). The driver/passenger method names are kept
-  // so the daily-commute screen's handlers don't have to change.
+  // Both respond paths go through the symmetric `respond-to-match` function
+  // (migrations 021, 053). The pickup is planned with the match.
   respondAsDriver: async (params) => {
     set({ isLoading: true, error: null });
     try {
       for (const matchId of params.accepted_ids) {
-        const cp = params.custom_pickups?.find((p) => p.match_id === matchId);
         const { error } = await supabase.functions.invoke("respond-to-match", {
-          body: {
-            match_id: matchId,
-            accepted: true,
-            detour_preference: params.detour_preference,
-            custom_pickup: cp ? { lat: cp.lat, lng: cp.lng } : undefined,
-            // M1: send the approver's UTC offset so the created ride's
-            // scheduled_at reflects the local wall-clock time, not UTC.
-            tz_offset_minutes: new Date().getTimezoneOffset(),
-          },
+          body: { match_id: matchId, accepted: true, tz_offset_minutes: new Date().getTimezoneOffset() },
         });
         if (error) throw error;
       }
@@ -307,6 +355,31 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
     }
   },
 
+  stopLooking: async () => {
+    const { intent } = get();
+    if (!intent) return;
+    set({ isLoading: true, error: null });
+    try {
+      const { error } = await supabase.functions.invoke("cancel-trip-intent", { body: { intent_id: intent.id } });
+      if (error) throw await functionError(error);
+      set({ step: "role_select", intent: null, matches: [], outcome: null, isLoading: false });
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
+    }
+  },
+
+  cancelCarpool: async (rideId) => {
+    set({ isLoading: true, error: null });
+    const outcome = await cancelRide(rideId);
+    if (!outcome.ok) {
+      set({ isLoading: false });
+      throw new Error(outcome.message);
+    }
+    // Your trip closed with the cancel: straight back to planning a new one.
+    set({ step: "role_select", intent: null, matches: [], outcome: null, isLoading: false });
+  },
+
   requestCarpool: async (targetUserId, requesterRole, tripDate) => {
     set({ isLoading: true, error: null });
     try {
@@ -314,13 +387,10 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
         body: { target_user_id: targetUserId, requester_role: requesterRole, trip_date: tripDate },
       });
       if (error) {
-        // Surface the function's code (trip_not_open, …_missing_home_or_work)
+        // Surface the function's code (peer_unavailable, trip_not_open, …)
         // instead of the generic "non-2xx status code" message.
-        if (error instanceof FunctionsHttpError) {
-          const body = await error.context.json().catch(() => null);
-          if (body?.code) throw new Error(body.code);
-        }
-        throw error;
+        const e = await functionError(error);
+        throw e instanceof CarpoolError ? new Error(e.code) : e;
       }
       await get().checkExistingIntent();
       set({ isLoading: false });
@@ -333,29 +403,16 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
   subscribeToMatches: () => {
     const { intent } = get();
     if (!intent) return () => {};
+    const refresh = () => { get().checkExistingIntent(); };
 
+    // Offers and answers on this trip, and the carpool ride itself (the other
+    // person cancelling or the driver ending it).
     const channel = supabase
       .channel(`trip_intent_matches_${intent.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "trip_intent_matches",
-          filter: `driver_intent_id=eq.${intent.id}`,
-        },
-        () => { get().checkExistingIntent(); }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "trip_intent_matches",
-          filter: `passenger_intent_id=eq.${intent.id}`,
-        },
-        () => { get().checkExistingIntent(); }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "trip_intent_matches", filter: `driver_intent_id=eq.${intent.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "trip_intent_matches", filter: `passenger_intent_id=eq.${intent.id}` }, refresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rides", filter: `driver_id=eq.${intent.user_id}` }, refresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rides", filter: `rider_id=eq.${intent.user_id}` }, refresh)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -365,6 +422,7 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
     step: "role_select",
     intent: null,
     matches: [],
+    outcome: null,
     isLoading: false,
     error: null,
     selectedRole: null,

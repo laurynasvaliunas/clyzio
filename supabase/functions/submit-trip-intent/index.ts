@@ -1,7 +1,21 @@
+/**
+ * submit-trip-intent — offer a ride or look for one on a day.
+ *
+ * Creates the day's carpool trip, or replaces it (migration 053's
+ * submit_trip_intent, one transaction): the old trip closes, its open matches
+ * are released — those people get a push and go back into matching — and the
+ * row reopens as a new generation. Refused with 409 has_confirmed_ride while a
+ * confirmed carpool exists that day: cancel the ride first.
+ *
+ * Matching starts by itself: the database calls daily-commute-matcher for a
+ * trip as soon as it's searching.
+ */
+
 import { corsHeaders } from '../_shared/cors.ts';
 import { verifyAuth } from '../_shared/auth.ts';
 import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
 import { parseBody, SubmitTripIntentSchema } from '../_shared/validate.ts';
+import { localDateISO, notifyReleased } from '../_shared/carpool.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -9,7 +23,8 @@ Deno.serve(async (req) => {
   }
 
   let userId: string;
-  let supabase;
+  // deno-lint-ignore no-explicit-any
+  let supabase: any;
   try {
     ({ userId, supabase } = await verifyAuth(req));
   } catch {
@@ -21,83 +36,37 @@ Deno.serve(async (req) => {
   const {
     role, passenger_capacity, departure_time, required_arrival_time, trip_date,
     origin_lat, origin_long, dest_lat, dest_long, origin_address, dest_address,
-    open_to_independents,
+    open_to_independents, tz_offset_minutes,
   } = parsed.data;
 
-  // When the planner supplies a TYPED origin + destination, those are the
-  // matching endpoints (the matcher compares home_/work_ columns, so we route
-  // the typed coords through them). Otherwise fall back to the profile commute.
-  const hasTyped =
-    origin_lat != null && origin_long != null && dest_lat != null && dest_long != null;
+  // Typed origin + destination from the planner are the matching endpoints;
+  // otherwise the profile's home → work commute.
+  const hasTyped = origin_lat != null && origin_long != null && dest_lat != null && dest_long != null;
 
   try {
-    // Matching endpoints: typed origin/dest when provided, else profile home/work.
-    let homeLat: number, homeLong: number, workLat: number, workLong: number;
-
-    if (hasTyped) {
-      homeLat = origin_lat!; homeLong = origin_long!;
-      workLat = dest_lat!;   workLong = dest_long!;
-    } else {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('home_lat, home_long, work_lat, work_long')
-        .eq('id', userId)
-        .single();
-
-      if (profileError) {
-        console.error('submit-trip-intent profile err:', profileError.message);
-        return respondError(500, 'internal_error', 'profile_query_failed');
-      }
-
-      if (!profile || profile.home_lat == null || profile.work_lat == null) {
-        return respondError(400, 'bad_request', 'missing_home_or_work_location');
-      }
-      homeLat = profile.home_lat; homeLong = profile.home_long;
-      workLat = profile.work_lat; workLong = profile.work_long;
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('home_lat, home_long, work_lat, work_long, company_id')
+      .eq('id', userId)
+      .single();
+    if (profileError) return respondInternalError('submit-trip-intent', profileError, 'profile_query_failed');
+    if (!hasTyped && (profile?.home_lat == null || profile?.work_lat == null)) {
+      return respondError(400, 'bad_request', 'missing_home_or_work_location');
     }
 
-    const targetDate = trip_date ?? (() => {
-      const d = new Date();
-      d.setDate(d.getDate() + 1);
-      return d.toISOString().split('T')[0];
-    })();
-
-    const { data: existing } = await supabase
-      .from('trip_intents')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('trip_date', targetDate)
-      .maybeSingle();
-
-    // Employees may open this trip to commuters outside their company
-    // (migration 045). Independents need no flag, so it stays false for them.
-    let openToIndependents = false;
-    if (open_to_independents) {
-      const { data: me } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('id', userId)
-        .single();
-      openToIndependents = me?.company_id != null;
-    }
-
-    const basePayload = {
+    const fields = {
       role,
-      open_to_independents: openToIndependents,
-      passenger_capacity: role === 'driver' ? (passenger_capacity ?? null) : null,
-      // departure_time is the LEAVING time for BOTH roles — the matcher pairs
-      // driver & passenger whose leaving times are within ±15 min.
+      passenger_capacity: role === 'driver' ? (passenger_capacity ?? 1) : null,
+      // The LEAVING time for both roles; the matcher compares it at the pickup.
       departure_time: departure_time ?? null,
-      // required_arrival_time stays optional (passenger display only).
       required_arrival_time: role === 'passenger' ? (required_arrival_time ?? null) : null,
-    };
-
-    // Matching endpoints + (when typed) the per-trip origin/dest record.
-    const endpointPayload = {
-      home_lat: homeLat,
-      home_long: homeLong,
-      work_lat: workLat,
-      work_long: workLong,
+      tz_offset_minutes: tz_offset_minutes ?? null,
+      // Employees may open the trip to commuters outside their company (045).
+      open_to_independents: !!open_to_independents && profile?.company_id != null,
+      home_lat: hasTyped ? origin_lat : profile.home_lat,
+      home_long: hasTyped ? origin_long : profile.home_long,
+      work_lat: hasTyped ? dest_lat : profile.work_lat,
+      work_long: hasTyped ? dest_long : profile.work_long,
       origin_lat: hasTyped ? origin_lat : null,
       origin_long: hasTyped ? origin_long : null,
       dest_lat: hasTyped ? dest_lat : null,
@@ -106,58 +75,24 @@ Deno.serve(async (req) => {
       dest_address: hasTyped ? (dest_address ?? null) : null,
     };
 
-    let intent;
-    if (existing) {
-      const { data, error } = await supabase
-        .from('trip_intents')
-        // Refresh the endpoints too when the planner sent a typed route, so
-        // changing the route for an already-submitted date actually updates it.
-        .update({ ...basePayload, status: 'pending', ...(hasTyped ? endpointPayload : {}) })
-        .eq('id', existing.id)
-        .select()
-        .single();
-      if (error) throw error;
-      intent = data;
-    } else {
-      const { data, error } = await supabase
-        .from('trip_intents')
-        .insert({
-          user_id: userId,
-          ...basePayload,
-          trip_date: targetDate,
-          ...endpointPayload,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      intent = data;
+    const { data, error } = await supabase.rpc('submit_trip_intent', {
+      p_user: userId,
+      p_trip_date: trip_date ?? localDateISO(1),
+      p_fields: fields,
+    });
+    if (error) {
+      if (error.message === 'has_confirmed_ride') {
+        return respondJSON(
+          { error: 'conflict', code: 'has_confirmed_ride', ride_id: error.details ?? null },
+          { status: 409 },
+        );
+      }
+      return respondInternalError('submit-trip-intent', error, 'intent_save_failed');
     }
 
-    // Instant matching: fire the matcher in targeted mode for THIS intent so a
-    // compatible counterpart is matched within seconds (delivered to both via
-    // the realtime subscription on trip_intent_matches + push). Fire-and-forget
-    // so the submit response stays fast; EdgeRuntime.waitUntil keeps the
-    // background request alive after we respond.
-    if (intent?.id) {
-      const fireMatch = fetch(
-        `${Deno.env.get('SUPABASE_URL')}/functions/v1/daily-commute-matcher`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-cron-secret': Deno.env.get('CRON_SHARED_SECRET') ?? '',
-          },
-          body: JSON.stringify({ trip_date: targetDate, new_intent_id: intent.id }),
-        },
-      ).catch((e) => { console.error('instant-match invoke failed:', e); });
-
-      try {
-        (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
-          .EdgeRuntime?.waitUntil?.(fireMatch);
-      } catch { /* waitUntil unavailable — request still fires, just not awaited */ }
-    }
-
-    return respondJSON({ intent });
+    const result = data as { intent: Record<string, unknown>; released: Array<{ partner_user_id: string }> };
+    await notifyReleased(supabase, userId, result.released ?? []);
+    return respondJSON({ intent: result.intent });
   } catch (err) {
     return respondInternalError('submit-trip-intent', err);
   }

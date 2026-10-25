@@ -8,8 +8,9 @@
  * (cancelled_by_<role>; the canceller's intent closes, the partner's goes back
  * into matching) — using auth.uid() to know who cancelled.
  *
- * What this function adds on top of a plain update: the partner's push, and an
- * immediate re-match attempt for the partner when their intent reopened.
+ * What this function adds on top of a plain update: the partner's push. The
+ * partner's re-match needs nothing here: since migration 053 the database
+ * calls the matcher for any trip that starts searching again.
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -84,11 +85,10 @@ Deno.serve(async (req) => {
       ride.driver_id === userId ? m.passenger_intent_id : m.driver_intent_id,
     );
     const tripDate: string | null = matches?.[0]?.trip_date ?? null;
-    const today = new Date().toISOString().split('T')[0];
 
-    // Which partner intents the trigger reopened for matching (future dates only
-    // are worth re-matching).
-    const { data: reopened } = partnerIntentIds.length > 0 && tripDate && tripDate > today
+    // Whether the trigger reopened the partner's trip for matching (it doesn't
+    // once the trip's time has passed), for the push wording.
+    const { data: reopened } = partnerIntentIds.length > 0
       ? await supabase.from('trip_intents').select('id').in('id', partnerIntentIds).eq('status', 'pending')
       : { data: [] };
 
@@ -109,23 +109,6 @@ Deno.serve(async (req) => {
         body: `${who} cancelled your carpool${when}.${keepLooking ? " We'll look for another match." : ''}`,
         data: keepLooking ? { screen: 'daily-commute' } : { screen: 'trip', rideId: ride_id },
       });
-    }
-
-    // Re-match the partner straight away (same targeted call submit-trip-intent
-    // makes). Fire-and-forget; the nightly run is the fallback.
-    for (const intent of reopened ?? []) {
-      const fire = fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/daily-commute-matcher`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-cron-secret': Deno.env.get('CRON_SHARED_SECRET') ?? '',
-        },
-        body: JSON.stringify({ trip_date: tripDate, new_intent_id: intent.id }),
-      }).catch((e) => { console.error('[cancel-ride] re-match failed:', e); });
-      try {
-        (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
-          .EdgeRuntime?.waitUntil?.(fire);
-      } catch { /* waitUntil unavailable — request still fires, just not awaited */ }
     }
 
     return respondJSON({ ok: true, partner_notified: !!partner?.expo_push_token && matchesPref });

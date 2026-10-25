@@ -1,3 +1,22 @@
+/**
+ * daily-commute-matcher — pairs drivers and riders for a day.
+ *
+ * Modes:
+ *   • targeted ({ new_intent_id }) — the usual path. Migration 053's triggers
+ *     call it whenever a trip starts searching (new, re-submitted, released by
+ *     a decline or cancel) or a driver's seat frees up. A rider gets the single
+ *     best driver; a driver gets the best riders for their free seats.
+ *   • batch ({ trip_date? }, 18:00 cron) — a sweep over everything still
+ *     searching for tomorrow, in case a targeted call was missed.
+ *   • nudge ({ nudge: true }, 13:30 cron) — "plan tomorrow" reminder.
+ *
+ * A rider fits a driver when the driver's route passes them on the way (pickup
+ * on the route within a short walk, or at their door for a small detour) and
+ * the driver reaches the pickup within ±15 min of the rider's leaving time —
+ * see _shared/route.ts. The database refuses anything else (seats, one live
+ * match per rider, closed trips), so racing runs can't double-book.
+ */
+
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.24.0';
 import { corsHeaders } from '../_shared/cors.ts';
@@ -6,103 +25,33 @@ import { respondJSON, respondError, respondInternalError } from '../_shared/resp
 import { parseBody, DailyCommuteMatcherSchema } from '../_shared/validate.ts';
 import { sendPush } from '../_shared/expoPush.ts';
 import { reverseGeocode, mapboxToken as getMapboxToken } from '../_shared/geocode.ts';
+import {
+  buildRoute,
+  distanceToRouteM,
+  type DrivingRoute,
+  fetchDrivingRoute,
+  type LngLat,
+  parseTimeToMinutes,
+  planRide,
+  type RidePlan,
+} from '../_shared/route.ts';
+import {
+  INTENT_COLUMNS,
+  type IntentRow,
+  localDateISO,
+  planColumns,
+  planSummary,
+  pushNewMatch,
+} from '../_shared/carpool.ts';
 
-// ─── Time helper ───────────────────────────────────────────────────────────────
-// Parse a "HH:MM" / "HH:MM:SS" TIME string to minutes-since-midnight, or null.
-function parseTimeToMinutes(t: string | null | undefined): number | null {
-  if (!t) return null;
-  const m = /^(\d{1,2}):(\d{2})/.exec(t);
-  if (!m) return null;
-  const h = Number(m[1]);
-  const min = Number(m[2]);
-  if (Number.isNaN(h) || Number.isNaN(min)) return null;
-  return h * 60 + min;
-}
-
-// ─── Geo helpers ─────────────────────────────────────────────────────────────
-
-function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function nearestOnSegment(p: [number, number], a: [number, number], b: [number, number]): [number, number] {
-  const dx = b[0] - a[0], dy = b[1] - a[1];
-  const len2 = dx * dx + dy * dy;
-  if (len2 === 0) return a;
-  const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len2));
-  return [a[0] + t * dx, a[1] + t * dy];
-}
-
-function nearestPointOnPolyline(home: [number, number], route: [number, number][]): [number, number] {
-  let best: { point: [number, number]; dist: number } = { point: route[0], dist: Infinity };
-  for (let i = 0; i < route.length - 1; i++) {
-    const c = nearestOnSegment(home, route[i], route[i + 1]);
-    const d = haversineKm(home[1], home[0], c[1], c[0]);
-    if (d < best.dist) best = { point: c, dist: d };
-  }
-  return best.point;
-}
-
-async function fetchMapboxRoute(
-  oLon: number, oLat: number, dLon: number, dLat: number, token: string,
-): Promise<[number, number][]> {
-  try {
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${oLon},${oLat};${dLon},${dLat}?geometries=geojson&access_token=${token}`;
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    const json = await res.json();
-    return json.routes?.[0]?.geometry?.coordinates ?? [];
-  } catch { return []; }
-}
-
-async function scoreMatch(
-  anthropic: Anthropic,
-  driver: { departure_time: string | null; home_lat: number; home_long: number; work_lat: number; work_long: number },
-  passenger: { required_arrival_time: string | null; home_lat: number; home_long: number; work_lat: number; work_long: number },
-  detourKm: number,
-): Promise<{ score: number; reasoning: string; proposed_departure: string; proposed_pickup_time: string }> {
-  const prompt = `You are a commute-match scorer for a carpooling app.
-
-Driver departs: ${driver.departure_time ?? 'flexible'}
-Passenger must arrive by: ${passenger.required_arrival_time ?? 'flexible'}
-Estimated detour for pickup: ${detourKm.toFixed(1)} km
-Driver commute distance: ${haversineKm(driver.home_lat, driver.home_long, driver.work_lat, driver.work_long).toFixed(1)} km
-Passenger commute distance: ${haversineKm(passenger.home_lat, passenger.home_long, passenger.work_lat, passenger.work_long).toFixed(1)} km
-
-Respond with ONLY valid JSON (no markdown):
-{"score":<0-100>,"reasoning":"<one sentence>","proposed_departure":"<HH:MM>","proposed_pickup_time":"<HH:MM>"}`;
-
-  try {
-    const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 200,
-      messages: [{ role: 'user', content: prompt }],
-    });
-    return JSON.parse((msg.content[0] as { type: string; text: string }).text);
-  } catch {
-    return {
-      score: 70,
-      reasoning: 'Route directions appear compatible based on proximity.',
-      proposed_departure: driver.departure_time ?? '08:00',
-      proposed_pickup_time: driver.departure_time ?? '08:15',
-    };
-  }
-}
+/** Straight-line corridor around the driver's home→work line worth routing. */
+const CORRIDOR_M = 3000;
+/** A trip whose leaving time passed this long ago isn't matched any more. */
+const LATE_MS = 15 * 60 * 1000;
 
 /**
- * Auth gate: accept either a valid user JWT (for on-demand runs from the app)
- * OR a matching `x-cron-secret` header (for scheduled cron invocations).
- *
- * Historically this function fell back to a service-role client when no auth
- * header was present — a CRITICAL anonymous DB-bypass vector. That fallback is
- * GONE. Configure `CRON_SHARED_SECRET` in project secrets and attach the
- * header in your cron job definition.
+ * Auth gate: a valid user JWT (on-demand runs from the app) or the
+ * `x-cron-secret` header (cron jobs and migration 053's triggers).
  */
 async function authorise(req: Request): Promise<SupabaseClient | Response> {
   const cronSecret = Deno.env.get('CRON_SHARED_SECRET');
@@ -114,8 +63,6 @@ async function authorise(req: Request): Promise<SupabaseClient | Response> {
       { auth: { persistSession: false } },
     );
   }
-
-  // Otherwise require a valid user JWT
   try {
     const { supabase } = await verifyAuth(req);
     return supabase;
@@ -124,232 +71,317 @@ async function authorise(req: Request): Promise<SupabaseClient | Response> {
   }
 }
 
-// ─── Pair evaluation (shared by batch + instant modes) ─────────────────────────
+const home = (i: IntentRow): LngLat => [i.home_long, i.home_lat];
+const work = (i: IntentRow): LngLat => [i.work_long, i.work_lat];
+const pairKey = (d: { id: string; generation: number }, p: { id: string; generation: number }) =>
+  `${d.id}:${d.generation}:${p.id}:${p.generation}`;
+const notLate = (i: IntentRow) => !i.departs_at || Date.parse(i.departs_at) > Date.now() - LATE_MS;
 
-/**
- * Evaluate one driver↔passenger pair: same-company/cross-org visibility, geo
- * proximity, AI compatibility, then insert a trip_intent_matches row. Idempotent
- * via the (driver_intent_id, passenger_intent_id) unique index — a duplicate is a
- * no-op. Returns true only when a NEW match row was created.
- */
-async function evaluatePair(
-  supabase: SupabaseClient,
-  anthropic: Anthropic,
-  mapboxToken: string,
-  driver: any,
-  passenger: any,
-  tripDate: string,
-): Promise<boolean> {
-  // Trip-level rule (migration 045): colleagues, two public independents, or an
-  // independent + an employee whose own intent is open. Fail closed — a pair
-  // that can't be checked is not matched.
-  const { data: canPair, error: pairErr } = await supabase.rpc('can_pair_intents', {
-    p_driver_intent: driver.id,
-    p_passenger_intent: passenger.id,
-  });
-  if (pairErr || canPair !== true) return false;
+interface Candidate {
+  driver: IntentRow;
+  rider: IntentRow;
+  plan: RidePlan;
+  driverDepartMin: number;
+}
 
-  // Hard ±15 min leaving-time gate: both sides give a departure (leaving) time;
-  // pair only if they leave within 15 minutes of each other (e.g. rider 08:00
-  // and driver 08:15 → match). Both times are required — a missing time can't be
-  // verified, so it is not a match.
-  const dMin = parseTimeToMinutes(driver.departure_time);
-  const pMin = parseTimeToMinutes(passenger.departure_time);
-  if (dMin == null || pMin == null || Math.abs(dMin - pMin) > 15) return false;
+/** One matcher run: caches driver routes so each is fetched from Mapbox once. */
+class MatchRun {
+  private routes = new Map<string, Promise<DrivingRoute | null>>();
+  private tried = new Set<string>();
+  created = 0;
 
-  // Deterministic location gate: BOTH endpoints must be within 200 m — the home
-  // (pickup) points AND the work (arrival) points. A genuine shared commute.
-  const PROX_KM = 0.2; // 200 m
-  const homeDist = haversineKm(driver.home_lat, driver.home_long, passenger.home_lat, passenger.home_long);
-  const workDist = haversineKm(driver.work_lat, driver.work_long, passenger.work_lat, passenger.work_long);
-  if (homeDist > PROX_KM || workDist > PROX_KM) return false;
+  constructor(
+    private supabase: SupabaseClient,
+    private anthropic: Anthropic,
+    private token: string,
+  ) {}
 
-  const driverRoute = await fetchMapboxRoute(
-    driver.home_long, driver.home_lat, driver.work_long, driver.work_lat, mapboxToken,
-  );
-
-  let pickupLon: number, pickupLat: number;
-  if (driverRoute.length > 1) {
-    const nearest = nearestPointOnPolyline([passenger.home_long, passenger.home_lat], driverRoute as [number, number][]);
-    pickupLon = nearest[0];
-    pickupLat = nearest[1];
-  } else {
-    pickupLon = passenger.home_long;
-    pickupLat = passenger.home_lat;
+  /** Remembers which pairs were already offered in these generations. */
+  async loadTried(intentIds: string[]): Promise<void> {
+    if (intentIds.length === 0) return;
+    const { data } = await this.supabase
+      .from('trip_intent_matches')
+      .select('driver_intent_id, driver_generation, passenger_intent_id, passenger_generation')
+      .or(`driver_intent_id.in.(${intentIds.join(',')}),passenger_intent_id.in.(${intentIds.join(',')})`);
+    for (const m of data ?? []) {
+      this.tried.add(`${m.driver_intent_id}:${m.driver_generation}:${m.passenger_intent_id}:${m.passenger_generation}`);
+    }
   }
 
-  const detourKm = Math.max(
-    0,
-    haversineKm(driver.home_lat, driver.home_long, pickupLat, pickupLon) +
-      haversineKm(pickupLat, pickupLon, driver.work_lat, driver.work_long) -
-      haversineKm(driver.home_lat, driver.home_long, driver.work_lat, driver.work_long),
-  );
+  private route(driver: IntentRow): Promise<DrivingRoute | null> {
+    let r = this.routes.get(driver.id);
+    if (!r) {
+      r = fetchDrivingRoute([home(driver), work(driver)], this.token);
+      this.routes.set(driver.id, r);
+    }
+    return r;
+  }
 
-  // Matching is deterministic on location + time (above). The AI score is kept
-  // only to populate the reasoning / proposed times on the match row — it no
-  // longer gates the match.
-  const scored = await scoreMatch(anthropic, driver, passenger, detourKm);
+  /** Does this rider fit this driver's trip, and how well? */
+  async evaluate(driver: IntentRow, rider: IntentRow): Promise<Candidate | null> {
+    if (driver.user_id === rider.user_id || driver.trip_date !== rider.trip_date) return null;
+    if (this.tried.has(pairKey(driver, rider))) return null;
+    const driverDepartMin = parseTimeToMinutes(driver.departure_time);
+    const riderDepartMin = parseTimeToMinutes(rider.departure_time);
+    if (driverDepartMin == null || riderDepartMin == null) return null;
 
-  const pickupAddress = await reverseGeocode(pickupLon, pickupLat, mapboxToken);
+    // Cheap straight-line pre-filter before any API call.
+    const line = buildRoute([home(driver), work(driver)]);
+    if (distanceToRouteM(line, home(rider)) > CORRIDOR_M || distanceToRouteM(line, work(rider)) > CORRIDOR_M) {
+      return null;
+    }
+    if (riderDepartMin < driverDepartMin - 15 || riderDepartMin > driverDepartMin + line.durationS / 60 + 30) {
+      return null;
+    }
 
-  // ON CONFLICT DO NOTHING via upsert+ignoreDuplicates; .select() returns the
-  // row only when it was actually inserted (empty on duplicate).
-  const { data: inserted, error: matchInsertError } = await supabase
-    .from('trip_intent_matches')
-    .upsert(
+    // Trip-level rule (migration 045): colleagues, public independents, or an
+    // employee's trip opened to independents. Fail closed.
+    const { data: canPair, error } = await this.supabase.rpc('can_pair_intents', {
+      p_driver_intent: driver.id,
+      p_passenger_intent: rider.id,
+    });
+    if (error || canPair !== true) return null;
+
+    const route = await this.route(driver);
+    if (!route) return null;
+    const plan = await planRide(
+      route,
       {
-        driver_intent_id: driver.id,
-        passenger_intent_id: passenger.id,
-        driver_user_id: driver.user_id,
-        passenger_user_id: passenger.user_id,
-        trip_date: tripDate,
-        ai_compatibility_score: scored.score,
-        ai_reasoning: scored.reasoning,
-        proposed_departure: scored.proposed_departure,
-        proposed_pickup_time: scored.proposed_pickup_time,
-        pickup_lat: pickupLat,
-        pickup_long: pickupLon,
+        origin: home(rider),
+        destination: work(rider),
+        departMin: riderDepartMin,
+        // A rider who hides their address only gets meeting points on the route.
+        doorAllowed: rider.profiles?.share_pickup_address !== false,
+      },
+      driverDepartMin,
+      (via) => fetchDrivingRoute([home(driver), via, work(driver)], this.token),
+    );
+    return plan ? { driver, rider, plan, driverDepartMin } : null;
+  }
+
+  /** One sentence for the match card; the plain summary when the AI is slow or down. */
+  private async reasoning(plan: RidePlan): Promise<string> {
+    const plain = planSummary(plan);
+    try {
+      const ask = this.anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 80,
+        messages: [{
+          role: 'user',
+          content:
+            'Rewrite this carpool match summary as one friendly sentence of at most 20 words. ' +
+            `Keep every number exactly as given and add no new facts: "${plain}"`,
+        }],
+      });
+      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000));
+      const msg = await Promise.race([ask, timeout]);
+      const text = (msg?.content?.[0] as { text?: string } | undefined)?.text?.trim();
+      return text && text.length < 200 ? text : plain;
+    } catch {
+      return plain;
+    }
+  }
+
+  /** Offers the match. False when the database refused it (seat taken meanwhile, …). */
+  async create(c: Candidate): Promise<boolean> {
+    const cols = planColumns(c.driver, c.plan, c.driverDepartMin);
+    const [pickupAddress, dropoffAddress, reasoning] = await Promise.all([
+      reverseGeocode(c.plan.pickup[0], c.plan.pickup[1], this.token),
+      reverseGeocode(c.plan.dropoff[0], c.plan.dropoff[1], this.token),
+      this.reasoning(c.plan),
+    ]);
+    const { data, error } = await this.supabase
+      .from('trip_intent_matches')
+      .insert({
+        driver_intent_id: c.driver.id,
+        passenger_intent_id: c.rider.id,
+        driver_user_id: c.driver.user_id,
+        passenger_user_id: c.rider.user_id,
+        trip_date: c.driver.trip_date,
+        ...cols,
         pickup_address: pickupAddress,
-        // Symmetric approval (migration 021): auto-matches start with neither
-        // side approved. Both must approve (any order) to confirm the ride.
+        dropoff_address: dropoffAddress,
+        ai_reasoning: reasoning,
+        // Symmetric approval (migration 021): both approve, in any order.
         status: 'pending',
         driver_approved: false,
         passenger_approved: false,
-      },
-      { onConflict: 'driver_intent_id,passenger_intent_id', ignoreDuplicates: true },
-    )
-    .select('id');
-
-  if (matchInsertError) {
-    console.error('match insert error:', matchInsertError);
-    return false;
+      })
+      .select('id')
+      .maybeSingle();
+    this.tried.add(pairKey(c.driver, c.rider));
+    if (error || !data) {
+      if (error) console.log('[matcher] match refused:', error.message);
+      return false;
+    }
+    this.created++;
+    await pushNewMatch(c.driver, c.rider, cols, pickupAddress);
+    return true;
   }
-  return Array.isArray(inserted) && inserted.length > 0;
 }
 
-/**
- * Push both sides of a freshly-created match. Symmetric framing (migration
- * 021): each side is asked to APPROVE — neither has to wait for the other to
- * go first, and the ride confirms once both have approved.
- */
-async function pushMatch(driver: any, passenger: any): Promise<void> {
-  const passengerName = passenger.profiles?.first_name ?? 'a passenger';
-  const driverName = driver.profiles?.first_name ?? 'a driver';
-  if (driver.profiles?.expo_push_token) {
+/** Open trips for a day: riders still searching, drivers with a free seat. */
+async function openPool(supabase: SupabaseClient, tripDate: string) {
+  const { data, error } = await supabase
+    .from('trip_intents')
+    .select(INTENT_COLUMNS)
+    .eq('trip_date', tripDate)
+    .in('status', ['pending', 'matched']);
+  if (error) throw error;
+  const intents = ((data ?? []) as unknown as IntentRow[]).filter(notLate);
+
+  const riders = intents.filter((i) => i.role === 'passenger' && i.status === 'pending');
+  const drivers: Array<IntentRow & { free: number }> = [];
+  for (const d of intents.filter((i) => i.role === 'driver')) {
+    const free = d.status === 'pending'
+      ? (d.passenger_capacity ?? 1)
+      : (((await supabase.rpc('carpool_free_seats', { p_intent: d.id })).data as number | null) ?? 0);
+    if (free > 0) drivers.push({ ...d, free });
+  }
+  return { riders, drivers };
+}
+
+// ─── Targeted ─────────────────────────────────────────────────────────────────
+
+async function runTargeted(run: MatchRun, supabase: SupabaseClient, intentId: string): Promise<Response> {
+  const { data: me } = await supabase
+    .from('trip_intents')
+    .select(INTENT_COLUMNS)
+    .eq('id', intentId)
+    .maybeSingle();
+  const ni = me as unknown as IntentRow | null;
+  if (!ni || !['pending', 'matched'].includes(ni.status) || !notLate(ni)) {
+    return respondJSON({ ok: true, targeted: true, matches_created: 0, note: 'intent_not_open' });
+  }
+
+  const { riders, drivers } = await openPool(supabase, ni.trip_date);
+
+  if (ni.role === 'passenger') {
+    if (ni.status !== 'pending') {
+      return respondJSON({ ok: true, targeted: true, matches_created: 0, note: 'rider_has_match' });
+    }
+    await run.loadTried([ni.id]);
+    const found: Candidate[] = [];
+    for (const d of drivers) {
+      const c = await run.evaluate(d, ni);
+      if (c) found.push(c);
+    }
+    // One offer at a time for a rider: the best fit; the next if a seat went meanwhile.
+    found.sort((a, b) => a.plan.cost - b.plan.cost);
+    for (const c of found) {
+      if (await run.create(c)) break;
+    }
+  } else {
+    const me2 = drivers.find((d) => d.id === ni.id);
+    if (!me2) {
+      return respondJSON({ ok: true, targeted: true, matches_created: 0, note: 'no_free_seats' });
+    }
+    await run.loadTried([ni.id]);
+    const found: Candidate[] = [];
+    for (const r of riders) {
+      const c = await run.evaluate(me2, r);
+      if (c) found.push(c);
+    }
+    found.sort((a, b) => a.plan.cost - b.plan.cost);
+    let left = me2.free;
+    for (const c of found) {
+      if (left <= 0) break;
+      if (await run.create(c)) left--;
+    }
+  }
+
+  return respondJSON({ ok: true, targeted: true, matches_created: run.created });
+}
+
+// ─── Batch sweep ──────────────────────────────────────────────────────────────
+
+async function runBatch(run: MatchRun, supabase: SupabaseClient, tripDate: string): Promise<Response> {
+  // Once per day (a double cron fire must not double-push).
+  const { error: claimError } = await supabase.from('matcher_runs').insert({ run_date: tripDate });
+  if (claimError) return respondJSON({ skipped: true, trip_date: tripDate });
+
+  const { riders, drivers } = await openPool(supabase, tripDate);
+  await run.loadTried([...riders, ...drivers].map((i) => i.id));
+  console.log(`matcher: ${drivers.length}d vs ${riders.length}p for ${tripDate}`);
+
+  // Every feasible pair, then the cheapest first: each rider once, each driver
+  // up to their free seats.
+  const all: Candidate[] = [];
+  for (const d of drivers) {
+    for (const r of riders) {
+      const c = await run.evaluate(d, r);
+      if (c) all.push(c);
+    }
+  }
+  all.sort((a, b) => a.plan.cost - b.plan.cost);
+  const seats = new Map(drivers.map((d) => [d.id, d.free]));
+  const placed = new Set<string>();
+  for (const c of all) {
+    if (placed.has(c.rider.id) || (seats.get(c.driver.id) ?? 0) <= 0) continue;
+    if (await run.create(c)) {
+      placed.add(c.rider.id);
+      seats.set(c.driver.id, (seats.get(c.driver.id) ?? 1) - 1);
+    }
+  }
+
+  // Riders still searching keep searching; tell them once tonight.
+  for (const r of riders) {
+    if (placed.has(r.id)) continue;
+    const prof = r.profiles;
+    if (!prof?.expo_push_token || prof.notification_prefs?.matches === false) continue;
     await sendPush({
-      to: driver.profiles.expo_push_token,
-      title: 'Carpool match found!',
-      body: `You matched with ${passengerName}. Open Clyzio to approve and ride together.`,
+      to: prof.expo_push_token,
+      title: 'Still looking for your carpool',
+      body: "No driver on your route yet for tomorrow. We'll tell you as soon as someone joins.",
       data: { screen: 'daily-commute' },
     });
   }
-  if (passenger.profiles?.expo_push_token) {
-    await sendPush({
-      to: passenger.profiles.expo_push_token,
-      title: 'Carpool match found!',
-      body: `You matched with ${driverName}. Open Clyzio to approve and ride together.`,
-      data: { screen: 'daily-commute' },
-    });
-  }
+
+  await supabase.from('matcher_runs').update({
+    completed_at: new Date().toISOString(),
+    intents_processed: riders.length + drivers.length,
+    matches_created: run.created,
+  }).eq('run_date', tripDate);
+
+  return respondJSON({
+    ok: true,
+    trip_date: tripDate,
+    intents_processed: riders.length + drivers.length,
+    matches_created: run.created,
+  });
 }
 
-/**
- * Instant/targeted mode: match ONE newly-submitted intent against the nearest
- * viable opposite-role intent for its trip_date, and create the match row
- * immediately. Both parties' realtime subscriptions on trip_intent_matches fire
- * on the same INSERT, so the match appears the same second; push covers
- * backgrounded users. Bypasses the daily matcher_runs date-claim entirely.
- */
-async function runTargeted(
-  supabase: SupabaseClient,
-  anthropic: Anthropic,
-  mapboxToken: string,
-  newIntentId: string,
-): Promise<Response> {
-  const { data: ni, error } = await supabase
-    .from('trip_intents')
-    .select('*, profiles(first_name, expo_push_token)')
-    .eq('id', newIntentId)
-    .eq('status', 'pending')
-    .single();
-
-  if (error || !ni) {
-    return respondJSON({ ok: true, targeted: true, matches_created: 0, note: 'intent_not_pending' });
-  }
-
-  const oppositeRole = ni.role === 'driver' ? 'passenger' : 'driver';
-  const { data: pool } = await supabase
-    .from('trip_intents')
-    .select('*, profiles(first_name, expo_push_token)')
-    .eq('trip_date', ni.trip_date)
-    .eq('status', 'pending')
-    .eq('role', oppositeRole)
-    .neq('user_id', ni.user_id);
-
-  // Try nearest candidates first; one solid match is enough for the instant path.
-  const sorted = (pool ?? []).slice().sort(
-    (a: any, b: any) =>
-      haversineKm(ni.home_lat, ni.home_long, a.home_lat, a.home_long) -
-      haversineKm(ni.home_lat, ni.home_long, b.home_lat, b.home_long),
-  );
-
-  let created = 0;
-  for (const cand of sorted) {
-    const driver = ni.role === 'driver' ? ni : cand;
-    const passenger = ni.role === 'driver' ? cand : ni;
-    const matched = await evaluatePair(supabase, anthropic, mapboxToken, driver, passenger, ni.trip_date);
-    if (!matched) continue;
-    created++;
-    await pushMatch(driver, passenger);
-    await supabase.from('trip_intents').update({ status: 'matched' }).in('id', [driver.id, passenger.id]);
-    break;
-  }
-
-  return respondJSON({ ok: true, targeted: true, matches_created: created });
-}
+// ─── Nudge ────────────────────────────────────────────────────────────────────
 
 /**
- * 3:30 PM nudge (PDF D7): push commuters who haven't planned tomorrow yet.
- *
- * Cohort = profiles with a push token + a home location set, who have NO
- * scheduled/requested/active ride for tomorrow. Gentle, once-a-day reminder.
- * Idempotency reuses matcher_runs with a `nudge:<date>` sentinel so a double
- * cron fire doesn't double-push.
+ * 13:30 nudge (PDF D7): push commuters who haven't planned tomorrow yet —
+ * no ride and no carpool trip for that day. Once a day (matcher_runs claim).
  */
 async function runNudge(supabase: SupabaseClient): Promise<Response> {
-  const tomorrow = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
-  })();
-
-  // Idempotency claim (sentinel date string distinct from the matcher's).
-  const claimKey = `nudge:${tomorrow}`;
-  const { error: claimError } = await supabase
-    .from('matcher_runs')
-    .insert({ run_date: claimKey });
+  const tomorrow = localDateISO(1);
+  const { error: claimError } = await supabase.from('matcher_runs').insert({ run_date: `nudge:${tomorrow}` });
   if (claimError) {
     return respondJSON({ ok: true, nudge: true, skipped: true, trip_date: tomorrow });
   }
 
   const dayStart = `${tomorrow}T00:00:00.000Z`;
   const dayEnd = `${tomorrow}T23:59:59.999Z`;
-
-  // Users who already have a ride scheduled for tomorrow → exclude.
-  const { data: planned } = await supabase
-    .from('rides')
-    .select('rider_id, driver_id')
-    .in('status', ['scheduled', 'requested', 'active'])
-    .gte('scheduled_at', dayStart)
-    .lte('scheduled_at', dayEnd);
-
+  const [{ data: planned }, { data: trips }] = await Promise.all([
+    supabase
+      .from('rides')
+      .select('rider_id, driver_id')
+      .in('status', ['scheduled', 'requested', 'active'])
+      .gte('scheduled_at', dayStart)
+      .lte('scheduled_at', dayEnd),
+    supabase.from('trip_intents').select('user_id').eq('trip_date', tomorrow).neq('status', 'expired'),
+  ]);
   const plannedIds = new Set<string>();
   for (const r of planned ?? []) {
     if (r.rider_id) plannedIds.add(r.rider_id);
     if (r.driver_id) plannedIds.add(r.driver_id);
   }
+  for (const t of trips ?? []) plannedIds.add(t.user_id);
 
-  // Candidate commuters: have a push token + a home location.
   const { data: candidates } = await supabase
     .from('profiles')
     .select('id, expo_push_token')
@@ -358,8 +390,7 @@ async function runNudge(supabase: SupabaseClient): Promise<Response> {
 
   let pushed = 0;
   for (const c of candidates ?? []) {
-    if (plannedIds.has(c.id)) continue;
-    if (!c.expo_push_token) continue;
+    if (plannedIds.has(c.id) || !c.expo_push_token) continue;
     await sendPush({
       to: c.expo_push_token,
       title: 'Plan tomorrow’s commute',
@@ -368,7 +399,6 @@ async function runNudge(supabase: SupabaseClient): Promise<Response> {
     });
     pushed++;
   }
-
   return respondJSON({ ok: true, nudge: true, pushed, trip_date: tomorrow });
 }
 
@@ -386,118 +416,16 @@ Deno.serve(async (req) => {
   const parsed = await parseBody(req, DailyCommuteMatcherSchema);
   if (!parsed.ok) return parsed.response;
 
-  const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
-  const mapboxToken = getMapboxToken();
+  const run = new MatchRun(
+    supabase,
+    new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' }),
+    getMapboxToken(),
+  );
 
   try {
-    // Nudge mode: the 3:30 PM "plan tomorrow" reminder cohort.
-    if (parsed.data.nudge) {
-      return await runNudge(supabase);
-    }
-
-    // Instant mode: a single newly-submitted intent fired this run. Match it
-    // now and return — no date-claim, no full batch.
-    if (parsed.data.new_intent_id) {
-      return await runTargeted(supabase, anthropic, mapboxToken, parsed.data.new_intent_id);
-    }
-
-    const tomorrow = (() => {
-      const d = new Date();
-      d.setDate(d.getDate() + 1);
-      return d.toISOString().split('T')[0];
-    })();
-    const tripDate: string = parsed.data.trip_date ?? tomorrow;
-
-    // Idempotency
-    const { error: claimError } = await supabase
-      .from('matcher_runs')
-      .insert({ run_date: tripDate });
-    if (claimError) {
-      return respondJSON({ skipped: true, trip_date: tripDate });
-    }
-
-    const { data: intents, error: intentsError } = await supabase
-      .from('trip_intents')
-      .select('*, profiles(first_name, expo_push_token)')
-      .eq('trip_date', tripDate)
-      .eq('status', 'pending');
-
-    if (intentsError) throw intentsError;
-
-    const drivers = (intents ?? []).filter((i: { role: string }) => i.role === 'driver');
-    const passengers = (intents ?? []).filter((i: { role: string }) => i.role === 'passenger');
-
-    console.log(`matcher: ${drivers.length}d vs ${passengers.length}p for ${tripDate}`);
-
-    let matchesCreated = 0;
-    const matchedPassengerIds = new Set<string>();
-
-    for (const driver of drivers) {
-      const before = matchesCreated;
-      const passengerTokensToNotify: string[] = [];
-
-      for (const passenger of passengers) {
-        if (matchedPassengerIds.has(passenger.id)) continue;
-
-        const matched = await evaluatePair(supabase, anthropic, mapboxToken, driver, passenger, tripDate);
-        if (!matched) continue;
-
-        matchesCreated++;
-        matchedPassengerIds.add(passenger.id);
-        if (passenger.profiles?.expo_push_token) {
-          passengerTokensToNotify.push(passenger.profiles.expo_push_token);
-        }
-      }
-
-      if (matchesCreated > before) {
-        await supabase.from('trip_intents').update({ status: 'matched' }).eq('id', driver.id);
-        if (driver.profiles?.expo_push_token) {
-          const count = matchesCreated - before;
-          await sendPush({
-            to: driver.profiles.expo_push_token,
-            title: 'Carpool matches found!',
-            body: `You matched with ${count} passenger${count > 1 ? 's' : ''} for tomorrow. Open Clyzio to approve and ride together.`,
-            data: { screen: 'daily-commute' },
-          });
-        }
-        for (const token of passengerTokensToNotify) {
-          await sendPush({
-            to: token,
-            title: 'Carpool match found!',
-            body: 'You matched with a driver for tomorrow. Open Clyzio to approve and ride together.',
-            data: { screen: 'daily-commute' },
-          });
-        }
-      }
-    }
-
-    // Mark unmatched passengers
-    for (const passenger of passengers) {
-      if (!matchedPassengerIds.has(passenger.id)) {
-        await supabase.from('trip_intents').update({ status: 'unmatched' }).eq('id', passenger.id);
-        if (passenger.profiles?.expo_push_token) {
-          await sendPush({
-            to: passenger.profiles.expo_push_token,
-            title: 'No match today',
-            body: "We couldn't find a carpool match for tomorrow. Try again tomorrow!",
-            data: { screen: 'daily-commute' },
-          });
-        }
-      }
-    }
-
-    await supabase.from('matcher_runs').update({
-      completed_at: new Date().toISOString(),
-      intents_processed: (intents ?? []).length,
-      matches_created: matchesCreated,
-    }).eq('run_date', tripDate);
-
-    return respondJSON({
-      ok: true,
-      trip_date: tripDate,
-      intents_processed: (intents ?? []).length,
-      matches_created: matchesCreated,
-    });
+    if (parsed.data.nudge) return await runNudge(supabase);
+    if (parsed.data.new_intent_id) return await runTargeted(run, supabase, parsed.data.new_intent_id);
+    return await runBatch(run, supabase, parsed.data.trip_date ?? localDateISO(1));
   } catch (err) {
     return respondInternalError('daily-commute-matcher', err);
   }

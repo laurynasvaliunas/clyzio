@@ -89,6 +89,9 @@ verify_jwt = false
 [functions.request-carpool]
 verify_jwt = true
 
+[functions.cancel-trip-intent]
+verify_jwt = true
+
 [functions.respond-to-match]
 verify_jwt = true
 

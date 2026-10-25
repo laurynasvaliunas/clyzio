@@ -20,3 +20,14 @@ export function tomorrowLocalISODate(now: Date = new Date()): string {
   d.setDate(d.getDate() + 1);
   return localISODate(d);
 }
+
+/**
+ * "Today" / "Tomorrow" / "Tue 27 Oct" for a YYYY-MM-DD trip date — carpool
+ * trips can be for any day, so screens no longer assume tomorrow.
+ */
+export function dayLabel(isoDate: string, now: Date = new Date()): string {
+  if (isoDate === localISODate(now)) return "Today";
+  if (isoDate === tomorrowLocalISODate(now)) return "Tomorrow";
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
