@@ -752,7 +752,7 @@ export default function AIPlannerScreen() {
         {!hasLocations && !profileLoadError && (
           <TouchableOpacity
             style={styles.completionBanner}
-            onPress={() => router.push("/settings/edit-profile")}
+            onPress={() => router.push("/settings/edit-profile?section=places")}
             accessibilityRole="button"
             accessibilityLabel="Set up your commute profile"
           >

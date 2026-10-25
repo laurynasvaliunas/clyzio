@@ -241,14 +241,14 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Commute Section (PDF F1) — My Places + My Garage. Both open Edit
-            Profile, which holds the address fields and the garage editor. */}
+        {/* Commute Section (PDF F1) — My Places + My Garage. Both open Profile
+            scrolled to their section (address fields / garage editor). */}
         <Reanimated.View entering={sectionEntering(0)} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: TC.textSecondary }]}>Commute</Text>
 
           <TouchableOpacity
             style={[styles.settingItem, { backgroundColor: TC.surface }]}
-            onPress={handleEditProfile}
+            onPress={() => router.push("/settings/edit-profile?section=places")}
             accessibilityRole="button"
             accessibilityLabel="My Places - edit your home and work addresses"
           >
@@ -261,7 +261,7 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={[styles.settingItem, { backgroundColor: TC.surface }]}
-            onPress={handleEditProfile}
+            onPress={() => router.push("/settings/edit-profile?section=garage")}
             accessibilityRole="button"
             accessibilityLabel="My Garage - add or edit your vehicles"
           >
@@ -281,7 +281,7 @@ export default function SettingsScreen() {
             <View style={[styles.iconBox, { backgroundColor: COLORS.primary + "20" }]}>
               <User size={20} color={COLORS.primary} />
             </View>
-            <Text style={[styles.settingLabel, { color: TC.text }]}>Edit Profile</Text>
+            <Text style={[styles.settingLabel, { color: TC.text }]}>Profile</Text>
             <ChevronRight size={20} color={TC.textSecondary} />
           </TouchableOpacity>
 

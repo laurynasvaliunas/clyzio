@@ -1,8 +1,9 @@
+import { useCallback, useRef } from "react";
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
-import ProfileEditor from "../../components/ProfileEditor";
+import ProfileEditor, { type ProfileSection } from "../../components/ProfileEditor";
 import { GlowBackdrop } from "../../components/ui";
 
 // Ambient light across the top of the screen (decorative).
@@ -16,6 +17,9 @@ const GLOW_TOP = { bottom: undefined, height: 420 } as const;
  * (settings menu, ai-planner CTA) and the legacy `?setup=1` first-run flow
  * keep working: setup mode flips `commute_setup_done` on save and lands on
  * the Map; normal mode goes back.
+ *
+ * `?section=garage | places` (Settings → My Garage / My Places) opens the
+ * screen scrolled to that section.
  */
 
 const COLORS = {
@@ -27,8 +31,22 @@ const COLORS = {
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { setup } = useLocalSearchParams<{ setup?: string }>();
+  const { setup, section } = useLocalSearchParams<{ setup?: string; section?: string }>();
   const isSetup = setup === "1"; // first-run: this is the final step before the Map
+  const target: ProfileSection | null = section === "garage" || section === "places" ? section : null;
+
+  // Scroll to the requested section once, as soon as it has laid out (the
+  // form renders after the profile loads).
+  const scrollRef = useRef<ScrollView>(null);
+  const scrolledRef = useRef(false);
+  const handleSectionLayout = useCallback(
+    (s: ProfileSection, y: number) => {
+      if (s !== target || scrolledRef.current) return;
+      scrolledRef.current = true;
+      requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true }));
+    },
+    [target],
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -38,11 +56,12 @@ export default function EditProfileScreen() {
         <TouchableOpacity accessibilityRole="button" accessibilityLabel="Go back" style={styles.backButton} onPress={() => router.back()}>
           <ArrowLeft size={24} color={COLORS.dark} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={styles.headerTitle}>Profile</Text>
         <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -50,6 +69,7 @@ export default function EditProfileScreen() {
       >
         <ProfileEditor
           setupMode={isSetup}
+          onSectionLayout={target ? handleSectionLayout : undefined}
           onSaved={() => {
             // First-run: last setup step → land on the Map. Otherwise go back.
             if (isSetup) router.replace("/(tabs)" as any);

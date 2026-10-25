@@ -87,6 +87,9 @@ interface ProfileData {
   primary_vehicle_id: string | null;
 }
 
+/** Sections a host can scroll to (Settings → My Garage / My Places). */
+export type ProfileSection = "garage" | "places";
+
 export interface ProfileEditorProps {
   /** First-run mode: saving also flips profiles.commute_setup_done. */
   setupMode?: boolean;
@@ -105,6 +108,8 @@ export interface ProfileEditorProps {
   onExtraSave?: () => Promise<void>;
   /** Overrides the save button label. */
   saveLabel?: string;
+  /** Reports where a section starts (y within the editor) so a host can scroll to it. */
+  onSectionLayout?: (section: ProfileSection, y: number) => void;
 }
 
 export default function ProfileEditor({
@@ -113,6 +118,7 @@ export default function ProfileEditor({
   extraSections,
   onExtraSave,
   saveLabel,
+  onSectionLayout,
 }: ProfileEditorProps) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -664,7 +670,7 @@ export default function ProfileEditor({
       </View>
 
       {/* My Garage */}
-      <View style={styles.section}>
+      <View style={styles.section} onLayout={(e) => onSectionLayout?.("garage", e.nativeEvent.layout.y)}>
         <View style={styles.sectionHeader}>
           <Car size={18} color={COLORS.primary} />
           <Text style={styles.sectionTitle}>My Garage</Text>
@@ -681,8 +687,8 @@ export default function ProfileEditor({
         />
       </View>
 
-      {/* Commute Details */}
-      <View style={styles.section}>
+      {/* Commute Details (Settings → My Places) */}
+      <View style={styles.section} onLayout={(e) => onSectionLayout?.("places", e.nativeEvent.layout.y)}>
         <View style={styles.sectionHeader}>
           <MapPin size={18} color={COLORS.primary} />
           <Text style={styles.sectionTitle}>Commute Details</Text>
