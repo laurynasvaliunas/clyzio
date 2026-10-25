@@ -19,6 +19,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BrandHeader from "../../components/BrandHeader";
 import TripPlannerModal from "../../components/TripPlannerModal";
+import { MatchOnMap } from "../../components/PartnerMarkers";
 import AISuggestionChip from "../../components/AISuggestionChip";
 import CarpoolMatchModal from "../../components/CarpoolMatchModal";
 import CommuteHomeCard, { type PlanDay, type PlannedRideSummary } from "../../components/CommuteHomeCard";
@@ -1540,6 +1541,14 @@ export default function MapScreen() {
               peer={peer}
               onPress={() => setSelectedIntentPeer(peer)}
             />
+          ))}
+
+        {/* MY MATCHES: pickup point + partner (approximate start area; live
+            from 15 min before a confirmed ride's pickup). */}
+        {!searchMode && intent && matches
+          .filter((m) => m.status === "pending" || m.status === "awaiting_other" || m.status === "confirmed")
+          .map((m) => (
+            <MatchOnMap key={m.id} match={m} iDrive={intent.role === "driver"} />
           ))}
       </MapView>
 

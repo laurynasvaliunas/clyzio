@@ -30,6 +30,7 @@ import { useManagerStore } from "../store/useManagerStore";
 import { useNotificationToastStore } from "../store/useNotificationToastStore";
 import IncomingSuggestionBanner from "../components/IncomingSuggestionBanner";
 import InAppNotificationToast from "../components/InAppNotificationToast";
+import LiveLocationSharer from "../components/LiveLocationSharer";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { initSentry, setSentryUser, clearSentryUser, captureError, Sentry } from "../lib/sentry";
 import { elevation as ELEVATION } from "../lib/theme/tokens";
@@ -578,6 +579,9 @@ function RootLayoutContent() {
         </Stack>
         <IncomingSuggestionBanner />
         <InAppNotificationToast />
+        {/* Shares this phone's position with a carpool partner from 15 min
+            before pickup, while the app is open. Renders nothing. */}
+        <LiveLocationSharer />
       </View>
     </SafeAreaProvider>
   );

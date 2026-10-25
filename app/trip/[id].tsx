@@ -24,6 +24,17 @@ import { useTheme } from "../../contexts/ThemeContext";
 import * as Location from "expo-location";
 import { MessageCircle, Shield, X, Phone, AlertTriangle, Circle, MapPin, ChevronLeft, Leaf, Star } from "lucide-react-native";
 import { modeIconFor } from "../../components/ModeIcon";
+import { PartnerMarker } from "../../components/PartnerMarkers";
+import {
+  ageLabel,
+  liveOpensAt,
+  LIVE_RIDE_STATUSES,
+  LIVE_STALE_MS,
+  useLiveWindowOpen,
+  useMatchPoints,
+  usePartnerPosition,
+} from "../../lib/liveLocation";
+import { useLiveShareStore } from "../../store/useLiveShareStore";
 import ChatModal from "../../components/ChatModal";
 import SOSSheet from "../../components/SOSSheet";
 import RatingSheet from "../../components/RatingSheet";
@@ -86,6 +97,7 @@ const COLORS = {
   gray700: "#5A6A6F",   // ink-3
   red: "#DC2626",       // clay
   blue: "#00565A",
+  green: "#059669",     // leaf
 };
 
 export default function TripScreen() {
@@ -432,6 +444,25 @@ export default function TripScreen() {
     }
   };
 
+  // ── Partner on the map (052) ─────────────────────────────────────────────
+  // Before the trip: their approximate start area. From 15 min before pickup:
+  // their live position, while their Clyzio is open.
+  const isCarpool = !!ride?.driver_id && !!ride?.rider_id;
+  const partnerUserId =
+    ride && currentUserId ? (ride.driver_id === currentUserId ? ride.rider_id : ride.driver_id) : null;
+  const meetingPoints = useMatchPoints(isCarpool && ride ? { rideId: ride.id } : null);
+  const liveOpen = useLiveWindowOpen(isCarpool ? ride?.scheduled_at : null, ride?.status);
+  const partnerLive = usePartnerPosition(ride?.id, partnerUserId, liveOpen);
+  const sharingHere = useLiveShareStore((s) => !!ride && s.sharingRideIds.includes(ride.id));
+  const needsLocation = useLiveShareStore((s) => s.needsPermission);
+  const pokeSharer = useLiveShareStore((s) => s.poke);
+
+  const handleShareLocation = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status === "granted") pokeSharer();
+    else showToast({ title: "Location is off", message: "Allow location for Clyzio in Settings to share it.", type: "warning" });
+  };
+
   if (isLoading) {
     if (loadFailed) {
       return (
@@ -615,6 +646,16 @@ export default function TripScreen() {
           <PointAnnotation id="destination" coordinate={[ride.dest_long, ride.dest_lat]}>
             <View collapsable={false} style={[styles.markerDot, { backgroundColor: COLORS.red }]} />
           </PointAnnotation>
+
+          {/* Partner: approximate start area, live from 15 min before pickup. */}
+          {isCarpool && partnerUserId && (
+            <PartnerMarker
+              id={partnerUserId}
+              name={partner?.first_name ?? (isDriver ? "Passenger" : "Driver")}
+              start={meetingPoints?.partnerStart ?? null}
+              live={partnerLive}
+            />
+          )}
         </MapView>
 
         {/* Back Button Overlay */}
@@ -742,6 +783,54 @@ export default function TripScreen() {
                   {partner?.car_model && ` • ${partner.car_model}`}
                 </Text>
               </View>
+            </View>
+          )}
+
+          {/* Live locations (052) */}
+          {isCarpool && LIVE_RIDE_STATUSES.includes(ride.status) && !!ride.scheduled_at && (
+            <View style={styles.liveCard}>
+              {liveOpen ? (
+                <>
+                  <View style={styles.liveRow}>
+                    <View
+                      style={[
+                        styles.liveDot,
+                        {
+                          backgroundColor:
+                            partnerLive && Date.now() - new Date(partnerLive.updatedAt).getTime() < LIVE_STALE_MS
+                              ? COLORS.green
+                              : COLORS.gray400,
+                        },
+                      ]}
+                    />
+                    <Text style={styles.liveText}>
+                      {partnerLive
+                        ? `${partnerName} · location updated ${ageLabel(partnerLive.updatedAt)}`
+                        : `${partnerName}'s location appears when they open Clyzio`}
+                    </Text>
+                  </View>
+                  {sharingHere ? (
+                    <Text style={styles.liveSub}>You're sharing your live location until the ride ends.</Text>
+                  ) : needsLocation ? (
+                    <TouchableOpacity
+                      style={styles.liveShareBtn}
+                      onPress={handleShareLocation}
+                      accessibilityRole="button"
+                      accessibilityLabel="Share my location"
+                    >
+                      <MapPin size={16} color={COLORS.primary} />
+                      <Text style={styles.liveShareText}>Share my location</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </>
+              ) : (
+                <View style={styles.liveRow}>
+                  <MapPin size={16} color={COLORS.gray700} />
+                  <Text style={styles.liveText}>
+                    {`Live locations turn on at ${liveOpensAt(ride.scheduled_at)}, 15 min before pickup.`}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -1152,6 +1241,31 @@ const styles = StyleSheet.create({
   },
 
   // 3. Partner Card (Conditional)
+  liveCard: {
+    backgroundColor: COLORS.gray50,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.gray200,
+    gap: 8,
+  },
+  liveRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  liveDot: { width: 10, height: 10, borderRadius: 5 },
+  liveText: { flex: 1, fontSize: 14, fontWeight: "600", color: COLORS.dark },
+  liveSub: { fontSize: 13, color: COLORS.gray700 },
+  liveShareBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+  },
+  liveShareText: { fontSize: 14, fontWeight: "600", color: COLORS.primary },
   partnerCard: {
     flexDirection: "row",
     alignItems: "center",
