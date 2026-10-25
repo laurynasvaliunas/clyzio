@@ -3,11 +3,11 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   Alert,
   Platform,
 } from "react-native";
+import { KeyboardScroll } from "../components/ui/KeyboardScroll";
 import { Text, TextInput } from "../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -85,7 +85,7 @@ function CountdownTimer({ targetHour = 17 }: { targetHour?: number }) {
 
 function RoleSelectStep({ onSelect }: { onSelect: (role: "driver" | "passenger") => void }) {
   return (
-    <ScrollView contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
+    <KeyboardScroll contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Tomorrow's Commute</Text>
       <Text style={styles.stepSubtitle}>{getTomorrow()}</Text>
       <Text style={styles.stepDescription}>How are you getting to work tomorrow?</Text>
@@ -109,7 +109,7 @@ function RoleSelectStep({ onSelect }: { onSelect: (role: "driver" | "passenger")
         </View>
         <ChevronLeft size={20} color={COLORS.gray} style={{ transform: [{ rotate: "180deg" }] }} />
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 
@@ -139,7 +139,7 @@ function DriverDetailsStep({
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
+    <KeyboardScroll contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Driver Details</Text>
       <Text style={styles.stepSubtitle}>{getTomorrow()}</Text>
 
@@ -203,7 +203,7 @@ function DriverDetailsStep({
           <Text style={styles.primaryBtnText}>Submit Intent</Text>
         )}
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 
@@ -329,7 +329,7 @@ function DriverReviewStep({
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
+    <KeyboardScroll contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Passenger Matches</Text>
       <Text style={styles.stepDescription}>
         {pending.length} match{pending.length !== 1 ? "es" : ""} found for tomorrow. Select who to accept.
@@ -384,7 +384,7 @@ function DriverReviewStep({
           <Text style={styles.primaryBtnText}>Confirm Selections</Text>
         )}
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 
@@ -402,7 +402,7 @@ function DriverDetourStep({
   const [choice, setChoice] = useState<"flexible" | "fixed">("flexible");
 
   return (
-    <ScrollView contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
+    <KeyboardScroll contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Route Preference</Text>
       <Text style={styles.stepDescription}>
         How flexible are you with your driving route?
@@ -446,7 +446,7 @@ function DriverDetourStep({
           <Text style={styles.primaryBtnText}>Confirm &amp; Notify Passengers</Text>
         )}
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 
@@ -532,7 +532,7 @@ function DriverConfirmedStep({ matches, onChat }: { matches: TripIntentMatch[]; 
   const router = useRouter();
   const confirmed = matches.filter(m => m.status === "confirmed");
   return (
-    <ScrollView contentContainerStyle={styles.centeredStep} showsVerticalScrollIndicator={false}>
+    <KeyboardScroll contentContainerStyle={styles.centeredStep} showsVerticalScrollIndicator={false}>
       <View style={styles.bigCheckWrap}>
         <CheckCircle size={64} color={COLORS.green} />
       </View>
@@ -561,7 +561,7 @@ function DriverConfirmedStep({ matches, onChat }: { matches: TripIntentMatch[]; 
           )}
         </View>
       ))}
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 
@@ -585,7 +585,7 @@ function PassengerDetailsStep({
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
+    <KeyboardScroll contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Leaving Time</Text>
       <Text style={styles.stepSubtitle}>{getTomorrow()}</Text>
       <Text style={styles.stepDescription}>What time do you want to leave? We'll match you with a driver leaving within 15 minutes.</Text>
@@ -629,7 +629,7 @@ function PassengerDetailsStep({
           <Text style={styles.primaryBtnText}>Find a Driver</Text>
         )}
       </TouchableOpacity>
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 
@@ -666,7 +666,7 @@ function PassengerReviewStep({
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
+    <KeyboardScroll contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Driver Match Found!</Text>
       <Text style={styles.stepDescription}>Review your match for tomorrow.</Text>
 
@@ -718,7 +718,7 @@ function PassengerReviewStep({
           )}
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </KeyboardScroll>
   );
 }
 

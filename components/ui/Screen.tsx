@@ -1,5 +1,7 @@
 import React from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
+import { StyleSheet, View, ViewStyle } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { KeyboardScroll } from './KeyboardScroll';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getPalette } from '../../lib/theme/tokens';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -37,8 +39,7 @@ export function Screen({
   const Wrap = keyboardAvoiding ? KeyboardAvoidingView : View;
 
   const body = scroll ? (
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
+    <KeyboardScroll
       contentContainerStyle={[
         padded && styles.padded,
         contentContainerStyle,
@@ -46,7 +47,7 @@ export function Screen({
       showsVerticalScrollIndicator={false}
     >
       {children}
-    </ScrollView>
+    </KeyboardScroll>
   ) : (
     <View style={[styles.flex, padded && styles.padded, contentContainerStyle]}>{children}</View>
   );
@@ -55,7 +56,7 @@ export function Screen({
     <SafeAreaView edges={edges} style={[styles.flex, { backgroundColor: p.background }, style]}>
       {glow ? <GlowBackdrop variant={glow} /> : null}
       <Wrap
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         style={styles.flex}
       >
         {body}

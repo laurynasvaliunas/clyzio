@@ -5,10 +5,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   Platform,
-  KeyboardAvoidingView,
-  ScrollView,
   Image,
 } from "react-native";
+import { KeyboardScroll } from "../../components/ui/KeyboardScroll";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Text, TextInput } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -172,9 +172,9 @@ export default function ProfileSetupScreen() {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="padding"
       >
-        <ScrollView
+        <KeyboardScroll
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
@@ -247,7 +247,7 @@ export default function ProfileSetupScreen() {
               />
             </View>
           </View>
-        </ScrollView>
+        </KeyboardScroll>
 
         <View style={styles.footer}>
           <TouchableOpacity

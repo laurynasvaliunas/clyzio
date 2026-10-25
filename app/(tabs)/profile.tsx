@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
   ActivityIndicator,
   Animated,
@@ -13,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { LevelGem } from "../../components/three";
+import { KeyboardScroll, ADDRESS_FIELD_OFFSET } from "../../components/ui/KeyboardScroll";
 import { GlowBackdrop } from "../../components/ui";
 import { LogOut, Check, Settings, CalendarRange } from "lucide-react-native";
 import { supabase } from "../../lib/supabase";
@@ -271,11 +271,11 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
       <GlowBackdrop variant="brand" style={styles.screenGlow} />
-      <ScrollView
+      {/* Address fields open a suggestion list, so keep room for it above the keyboard. */}
+      <KeyboardScroll
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        bottomOffset={ADDRESS_FIELD_OFFSET}
       >
         {/* Header with Settings */}
         <View style={styles.headerRow}>
@@ -356,7 +356,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         <View style={{ height: TAB_SCREEN_BOTTOM_PADDING }} />
-      </ScrollView>
+      </KeyboardScroll>
     </SafeAreaView>
   );
 }

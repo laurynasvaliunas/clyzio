@@ -17,7 +17,12 @@ import {
  * file instead. A style that sets its own `fontFamily` (e.g. monospace) is
  * left alone. Screens import these instead of react-native's — same props,
  * same refs, same types.
+ *
+ * Text follows the phone's text-size setting up to 1.4× (a screen can pass
+ * its own `maxFontSizeMultiplier`): large accessibility sizes still grow, but
+ * buttons, cards and the tab bar don't break on small phones.
  */
+const MAX_FONT_SCALE = 1.4;
 const FAMILY: Record<string, string> = {
   "100": "Nunito_200ExtraLight",
   "200": "Nunito_200ExtraLight",
@@ -53,12 +58,15 @@ export function withAppFont(style: StyleProp<TextStyle>): StyleProp<TextStyle> {
   ];
 }
 
-export const Text = forwardRef<RNText, TextProps>(function AppText({ style, ...rest }, ref) {
-  return <RNText ref={ref} {...rest} style={withAppFont(style)} />;
+export const Text = forwardRef<RNText, TextProps>(function AppText({ style, maxFontSizeMultiplier = MAX_FONT_SCALE, ...rest }, ref) {
+  return <RNText ref={ref} maxFontSizeMultiplier={maxFontSizeMultiplier} {...rest} style={withAppFont(style)} />;
 });
 export type Text = RNText;
 
-export const TextInput = forwardRef<RNTextInput, TextInputProps>(function AppTextInput({ style, ...rest }, ref) {
-  return <RNTextInput ref={ref} {...rest} style={withAppFont(style)} />;
+export const TextInput = forwardRef<RNTextInput, TextInputProps>(function AppTextInput(
+  { style, maxFontSizeMultiplier = MAX_FONT_SCALE, ...rest },
+  ref,
+) {
+  return <RNTextInput ref={ref} maxFontSizeMultiplier={maxFontSizeMultiplier} {...rest} style={withAppFont(style)} />;
 });
 export type TextInput = RNTextInput;

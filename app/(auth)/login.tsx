@@ -5,10 +5,9 @@ import {
   ActivityIndicator,
   Image,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
 } from "react-native";
+import { KeyboardScroll } from "../../components/ui/KeyboardScroll";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Text, TextInput } from "../../components/ui/AppText";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -57,6 +56,7 @@ export default function LoginScreen() {
   const [companyMatch, setCompanyMatch] = useState<string | null>(null);
   const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "done">("idle");
   const domainCache = useRef<Map<string, string | null>>(new Map());
+  const passwordRef = useRef<TextInput>(null);
 
   // Company-invite deep link (clyzio://join/<token> routes here with the invited
   // email). Pre-fill + lock the email so the signup email matches the invite
@@ -248,9 +248,9 @@ export default function LoginScreen() {
     <GlowBackdrop variant="brand" style={styles.glow} />
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
     >
-      <ScrollView
+      <KeyboardScroll
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -300,6 +300,11 @@ export default function LoginScreen() {
             value={email}
             onChangeText={setEmail}
             editable={!inviteToken}
+            textContentType="emailAddress"
+            autoComplete="email"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            blurOnSubmit={false}
             testID="login-email"
             accessibilityLabel="Email address"
           />
@@ -340,12 +345,17 @@ export default function LoginScreen() {
         <View style={styles.inputWrap}>
           <Lock size={20} color={COLORS.gray} style={styles.inputIcon} />
           <TextInput
+            ref={passwordRef}
             style={styles.input}
             placeholder="Enter your password"
             placeholderTextColor={COLORS.gray}
             secureTextEntry={!showPassword}
             value={password}
             onChangeText={setPassword}
+            textContentType={isSignUp ? "newPassword" : "password"}
+            autoComplete={isSignUp ? "new-password" : "current-password"}
+            returnKeyType="go"
+            onSubmitEditing={handleAuth}
             testID="login-password"
             accessibilityLabel="Password"
           />
@@ -456,7 +466,7 @@ export default function LoginScreen() {
             Use your work email to join your company's eco team!
           </Text>
         </View>
-      </ScrollView>
+      </KeyboardScroll>
     </KeyboardAvoidingView>
     </SafeAreaView>
   );

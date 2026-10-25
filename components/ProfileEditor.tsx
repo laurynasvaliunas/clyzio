@@ -595,6 +595,10 @@ export default function ProfileEditor({
             placeholderTextColor={COLORS.gray}
             value={profile.first_name}
             onChangeText={(v) => updateField("first_name", v)}
+            autoCapitalize="words"
+            textContentType="givenName"
+            autoComplete="given-name"
+            returnKeyType="next"
           />
         </View>
 
@@ -606,6 +610,10 @@ export default function ProfileEditor({
             placeholderTextColor={COLORS.gray}
             value={profile.last_name}
             onChangeText={(v) => updateField("last_name", v)}
+            autoCapitalize="words"
+            textContentType="familyName"
+            autoComplete="family-name"
+            returnKeyType="next"
           />
         </View>
 
@@ -618,6 +626,8 @@ export default function ProfileEditor({
               placeholder=""
               placeholderTextColor={COLORS.gray}
               keyboardType="phone-pad"
+              textContentType="telephoneNumber"
+              autoComplete="tel"
               value={profile.phone}
               onChangeText={(v) => updateField("phone", v)}
             />

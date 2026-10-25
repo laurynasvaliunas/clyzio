@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
 import ProfileEditor, { type ProfileSection } from "../../components/ProfileEditor";
+import { KeyboardScroll, ADDRESS_FIELD_OFFSET } from "../../components/ui/KeyboardScroll";
 import { GlowBackdrop } from "../../components/ui";
 
 // Ambient light across the top of the screen (decorative).
@@ -61,12 +62,12 @@ export default function EditProfileScreen() {
         <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView
+      {/* Address fields open a suggestion list, so keep room for it above the keyboard. */}
+      <KeyboardScroll
         ref={scrollRef}
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        bottomOffset={ADDRESS_FIELD_OFFSET}
       >
         <ProfileEditor
           setupMode={isSetup}
@@ -78,7 +79,7 @@ export default function EditProfileScreen() {
           }}
         />
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </KeyboardScroll>
     </SafeAreaView>
   );
 }

@@ -185,6 +185,9 @@ jest.mock("expo-image-picker", () => ({
 // Mock DateTimePicker
 jest.mock("@react-native-community/datetimepicker", () => ({ default: () => null }));
 
+// Keyboard handling (native module) — the library ships its own Jest mock.
+jest.mock("react-native-keyboard-controller", () => require("react-native-keyboard-controller/jest"));
+
 // Mock expo-haptics
 jest.mock("expo-haptics", () => ({
   // Like the real API these return promises: callers .catch() them.

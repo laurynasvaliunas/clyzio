@@ -31,6 +31,7 @@ import { useNotificationToastStore } from "../store/useNotificationToastStore";
 import IncomingSuggestionBanner from "../components/IncomingSuggestionBanner";
 import InAppNotificationToast from "../components/InAppNotificationToast";
 import LiveLocationSharer from "../components/LiveLocationSharer";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import {
   useFonts,
   Nunito_200ExtraLight,
@@ -618,11 +619,15 @@ function RootLayoutContent() {
 function RootLayout() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <ToastProvider>
-          <RootLayoutContent />
-        </ToastProvider>
-      </ThemeProvider>
+      {/* Keeps the focused field above the keyboard on every screen and
+          platform (Android edge-to-edge included). */}
+      <KeyboardProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <RootLayoutContent />
+          </ToastProvider>
+        </ThemeProvider>
+      </KeyboardProvider>
     </ErrorBoundary>
   );
 }

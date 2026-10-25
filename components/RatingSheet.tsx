@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, View, StyleSheet, Pressable, Alert } from "react-native";
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { TextInput } from "./ui/AppText";
 import { Star } from 'lucide-react-native';
 import { Text, Button, Badge, Card } from './ui';
@@ -95,8 +96,16 @@ export default function RatingSheet({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={[styles.backdrop, { backgroundColor: p.overlay }]}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+      statusBarTranslucent
+      navigationBarTranslucent
+    >
+      {/* The sheet rises with the keyboard, so the comment field stays visible. */}
+      <KeyboardAvoidingView behavior="padding" style={[styles.backdrop, { backgroundColor: p.overlay }]}>
         <Card style={styles.sheet} elevation="lg">
           <Text variant="title">{t('rating.title')}</Text>
           <Text variant="body" tone="secondary" style={{ marginTop: spacing[2] }}>
@@ -162,7 +171,7 @@ export default function RatingSheet({
             fullWidth
           />
         </Card>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

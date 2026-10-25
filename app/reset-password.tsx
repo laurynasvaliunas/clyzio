@@ -4,10 +4,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
 } from "react-native";
+import { KeyboardScroll } from "../components/ui/KeyboardScroll";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Text, TextInput } from "../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -142,8 +141,8 @@ export default function ResetPasswordScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <GlowBackdrop variant="brand" style={GLOW_TOP} />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+        <KeyboardScroll contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.iconWrap}>
             <ShieldCheck size={40} color={COLORS.primary} />
           </View>
@@ -217,7 +216,7 @@ export default function ResetPasswordScreen() {
               </TouchableOpacity>
             </>
           )}
-        </ScrollView>
+        </KeyboardScroll>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

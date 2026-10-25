@@ -194,6 +194,10 @@ export default function AddressInput({
           onFocus={handleFocus}
           onBlur={handleBlur}
           returnKeyType="search"
+          autoCapitalize="words"
+          autoCorrect={false}
+          textContentType="fullStreetAddress"
+          autoComplete="street-address"
         />
 
         {suggestions.length > 0 && (

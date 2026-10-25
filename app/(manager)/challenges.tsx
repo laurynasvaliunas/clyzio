@@ -7,6 +7,7 @@ import {
   Switch,
   Modal,
 } from "react-native";
+import { KeyboardScroll } from "../../components/ui/KeyboardScroll";
 import { Text, TextInput } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -183,7 +184,7 @@ export default function ChallengesScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalScroll}>
+          <KeyboardScroll style={styles.modalScroll}>
             <Text style={styles.fieldLabel}>Title *</Text>
             <TextInput
               style={styles.input}
@@ -267,7 +268,7 @@ export default function ChallengesScreen() {
             </TouchableOpacity>
 
             <View style={{ height: 40 }} />
-          </ScrollView>
+          </KeyboardScroll>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>

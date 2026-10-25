@@ -4,10 +4,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Platform,
-  KeyboardAvoidingView,
   Keyboard,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -342,7 +341,7 @@ export default function PlacesScreen() {
 
       {/* Search bars */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
         style={styles.formWrap}
       >
         <View style={[styles.field, { zIndex: 200 }]}>

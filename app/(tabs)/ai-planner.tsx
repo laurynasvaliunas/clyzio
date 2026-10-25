@@ -1,13 +1,13 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   View,
-  ScrollView,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Keyboard,
   Alert,
 } from "react-native";
+import { KeyboardScroll, ADDRESS_FIELD_OFFSET } from "../../components/ui/KeyboardScroll";
 import { Text, TextInput } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -689,7 +689,7 @@ export default function AIPlannerScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <KeyboardScroll style={styles.scroll} showsVerticalScrollIndicator={false} bottomOffset={ADDRESS_FIELD_OFFSET}>
 
         {profileLoadError && (
           <View style={[styles.errorCard, { backgroundColor: TC.surface }]}>
@@ -945,7 +945,7 @@ export default function AIPlannerScreen() {
         )}
 
         <View style={{ height: TAB_SCREEN_BOTTOM_PADDING }} />
-      </ScrollView>
+      </KeyboardScroll>
 
       {/* Carpool Match Modal */}
       <CarpoolMatchModal

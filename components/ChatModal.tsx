@@ -4,12 +4,12 @@ import {
   Modal,
   TouchableOpacity,
   FlatList,
-  KeyboardAvoidingView,
   Platform,
   StyleSheet,
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { Text, TextInput } from "./ui/AppText";
 import { Send, X } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
@@ -175,11 +175,13 @@ export default function ChatModal({
       animationType="slide"
       transparent={false}
       onRequestClose={onClose}
+      // Edge-to-edge Android: the modal spans the system bars like the app.
+      statusBarTranslucent
+      navigationBarTranslucent
     >
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        behavior="padding"
       >
         {/* Header */}
         <View style={styles.header}>

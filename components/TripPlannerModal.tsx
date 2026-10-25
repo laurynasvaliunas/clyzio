@@ -4,14 +4,14 @@ import {
   TouchableOpacity,
   Modal,
   StyleSheet,
-  Dimensions,
   Animated,
-  KeyboardAvoidingView,
   Platform,
   Keyboard,
-  ScrollView,
   ActivityIndicator,
+  useWindowDimensions,
 } from "react-native";
+import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
+import { KeyboardScroll, ADDRESS_FIELD_OFFSET } from "./ui/KeyboardScroll";
 import { Text, TextInput } from "./ui/AppText";
 import {
   Car,
@@ -43,10 +43,17 @@ import OpenTripToggle from "./OpenTripToggle";
 
 import { MAPBOX_TOKEN } from "../lib/config";
 import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
-const { height } = Dimensions.get("window");
-// Fixed sheet height once the mode section is visible, so toggling
-// Solo/Driver/Rider swaps inner content without resizing (and jumping) the sheet.
-const SHEET_HEIGHT = height * 0.85;
+/**
+ * Sheet size for the current window and keyboard. Once the mode section is
+ * visible the sheet has a fixed height, so toggling Solo/Driver/Rider swaps
+ * inner content without resizing (and jumping) it. With the keyboard up the
+ * sheet never grows past the space between the status bar and the keyboard —
+ * it used to keep its 85 % height and push the address fields off the top.
+ */
+export function plannerSheetSize(windowHeight: number, keyboardHeight: number, topInset: number) {
+  const maxHeight = Math.min(windowHeight * 0.92, windowHeight - keyboardHeight - topInset - 8);
+  return { fixedHeight: Math.min(windowHeight * 0.85, maxHeight), maxHeight };
+}
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
@@ -103,8 +110,19 @@ interface CustomAddressInputProps {
   onSelect: (data: { description: string; location: { lat: number; lng: number } }) => void;
   inputRef?: React.RefObject<TextInput | null>;
   initialValue?: string;
+  /** Keyboard return key: "next" jumps to `onSubmitEditing`'s field. */
+  returnKeyType?: "next" | "done";
+  onSubmitEditing?: () => void;
 }
-const CustomAddressInput = ({ placeholder, icon, onSelect, inputRef, initialValue }: CustomAddressInputProps) => {
+const CustomAddressInput = ({
+  placeholder,
+  icon,
+  onSelect,
+  inputRef,
+  initialValue,
+  returnKeyType = "done",
+  onSubmitEditing,
+}: CustomAddressInputProps) => {
   const [text, setText] = useState(initialValue ?? "");
   const [results, setResults] = useState<any[]>([]);
   const [isFocused, setIsFocused] = useState(false);
@@ -151,8 +169,13 @@ const CustomAddressInput = ({ placeholder, icon, onSelect, inputRef, initialValu
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           placeholderTextColor={COLORS.gray}
-          autoCapitalize="none"
+          autoCapitalize="words"
           autoCorrect={false}
+          textContentType="fullStreetAddress"
+          autoComplete="street-address"
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
+          blurOnSubmit={returnKeyType === "done"}
         />
       </View>
 
@@ -195,6 +218,13 @@ interface TripPlannerModalProps {
 const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, onTripStart, initialMode, initialOrigin, initialDest, initialDate }) => {
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
+  // Live sizes: the window can change (split screen, rotation, Android
+  // resizing) and the keyboard takes part of it while typing.
+  const { height } = useWindowDimensions();
+  const keyboardHeight = useKeyboardState((k) => (k.isVisible ? k.height : 0));
+  const keyboardOpen = keyboardHeight > 0;
+  const sheetSize = plannerSheetSize(height, keyboardHeight, insets.top);
+  const destInputRef = useRef<TextInput>(null);
   // Tab bar height = standard 49px + device bottom safe area (home indicator)
   const TAB_BAR_HEIGHT = 49 + insets.bottom;
   const [step, setStep] = useState<"location" | "mode">("location");
@@ -685,9 +715,12 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       animationType="slide"
       onRequestClose={handleClose}
       statusBarTranslucent
+      // Edge-to-edge Android: the modal window spans the nav bar too, so the
+      // keyboard library measures the same frame as the rest of the app.
+      navigationBarTranslucent
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior="padding"
         style={styles.sheetWrapper}
         pointerEvents="box-none"
       >
@@ -700,7 +733,12 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         </Animated.View>
 
         <Animated.View
-          style={[styles.sheet, modeReady && { height: SHEET_HEIGHT }, { transform: [{ translateY: minimizeTranslate }] }]}
+          style={[
+            styles.sheet,
+            { maxHeight: sheetSize.maxHeight },
+            modeReady && { height: sheetSize.fixedHeight },
+            { transform: [{ translateY: minimizeTranslate }] },
+          ]}
           onLayout={(e) => { sheetHeightRef.current = e.nativeEvent.layout.height; }}
         >
           {/* ── Handle — tap to minimize/expand ── */}
@@ -737,11 +775,12 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
 
           {/* ── Scrollable body — hidden while minimized (state is preserved) ── */}
           {!isMinimized && (
-          <ScrollView
+          <KeyboardScroll
             style={modeReady ? styles.scrollFill : undefined}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 120 }}
+            // The focused address AND its suggestion list stay above the keyboard.
+            bottomOffset={ADDRESS_FIELD_OFFSET}
+            contentContainerStyle={{ paddingBottom: keyboardOpen ? 24 : 120 }}
           >
             {/* ── Role selector (top) — Solo, Driver, Rider are all handled
                  inline in this sheet. ── */}
@@ -777,6 +816,8 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
               placeholder="Origin"
               icon={<Navigation2 size={20} color={COLORS.green} />}
               initialValue={originDescription}
+              returnKeyType="next"
+              onSubmitEditing={() => destInputRef.current?.focus()}
               onSelect={(data) => {
                 setOriginDescription(data.description);
                 setOriginCoords({ lat: data.location.lat, lng: data.location.lng });
@@ -789,6 +830,8 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                 <CustomAddressInput
                   placeholder="School / Kindergarten stop"
                   icon={<School size={20} color={COLORS.accent} />}
+                  returnKeyType="next"
+                  onSubmitEditing={() => destInputRef.current?.focus()}
                   onSelect={(data) => {
                     setWaypointDescription(data.description);
                     setWaypointCoords({ lat: data.location.lat, lng: data.location.lng });
@@ -821,6 +864,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
               key={`dest-${addressMountKey}`}
               placeholder="Destination"
               icon={<MapPin size={20} color={COLORS.red} />}
+              inputRef={destInputRef}
               initialValue={destDescription}
               onSelect={(data) => {
                 setDestDescription(data.description);
@@ -1090,11 +1134,12 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
 
               </>
             )}
-          </ScrollView>
+          </KeyboardScroll>
           )}
 
-          {/* Submit button — pinned to bottom, hidden while minimized */}
-          {!isMinimized && modeReady && (
+          {/* Submit button — pinned to bottom, hidden while minimized and while
+              typing (the keyboard needs the room; it returns when it closes). */}
+          {!isMinimized && modeReady && !keyboardOpen && (
             <View style={styles.submitBtn}>
               {role !== "solo" ? (
                 <TouchableOpacity
@@ -1144,7 +1189,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     paddingHorizontal: 24,
     paddingBottom: 32,
-    maxHeight: height * 0.92,
     boxShadow: ELEVATION.light.e3,
   },
   // Lets the body fill the fixed-height sheet (modeReady) and scroll, instead of
