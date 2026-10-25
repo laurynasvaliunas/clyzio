@@ -92,6 +92,9 @@ verify_jwt = true
 [functions.respond-to-match]
 verify_jwt = true
 
+[functions.send-message]
+verify_jwt = true
+
 [functions.transit-routes]
 verify_jwt = true
 

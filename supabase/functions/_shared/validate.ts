@@ -159,3 +159,12 @@ export const TransitRoutesSchema = z.object({
   dest_long: lon,
   departure_time: z.string().optional(), // ISO; defaults to now server-side
 });
+
+// Chat between matched commuters (migration 051): a thread is a match or a ride.
+export const SendMessageSchema = z
+  .object({
+    match_id: uuid.optional(),
+    ride_id: uuid.optional(),
+    content: z.string().trim().min(1).max(1000),
+  })
+  .refine((b) => !!b.match_id !== !!b.ride_id, { message: 'exactly one of match_id / ride_id' });

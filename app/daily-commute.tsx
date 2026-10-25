@@ -11,7 +11,7 @@ import {
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
   Car,
   Users,
@@ -23,6 +23,7 @@ import {
   Plus,
   MapPin,
   AlertCircle,
+  MessageCircle,
 } from "lucide-react-native";
 import { useDailyCommuteStore, TripIntentMatch } from "../store/useDailyCommuteStore";
 import OpenTripToggle from "../components/OpenTripToggle";
@@ -32,6 +33,8 @@ import { useTheme } from "../contexts/ThemeContext";
 import { getThemeColors } from "../lib/theme";
 import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
 import { GlowBackdrop } from "../components/ui";
+import ChatModal from "../components/ChatModal";
+import type { ChatThread } from "../lib/chat";
 
 // Ambient light across the top of the screen (decorative).
 const GLOW_TOP = { bottom: undefined, height: 420 } as const;
@@ -254,6 +257,35 @@ function SubmittedStep({ role, onSeeOptions }: { role: "driver" | "passenger"; o
   );
 }
 
+// ─── Chat ─────────────────────────────────────────────────────────────────────
+
+type OnChat = (match: TripIntentMatch) => void;
+
+/** "Message <name>": matched people can talk before either approves. */
+function MessageButton({
+  name,
+  onPress,
+  centered = false,
+}: {
+  name: string;
+  onPress: () => void;
+  /** In the centred waiting / confirmed steps. */
+  centered?: boolean;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.messageBtn, centered && { alignSelf: "center" }]}
+      onPress={onPress}
+      activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={`Message ${name}`}
+    >
+      <MessageCircle size={16} color={COLORS.primary} />
+      <Text style={styles.messageBtnText}>Message {name}</Text>
+    </TouchableOpacity>
+  );
+}
+
 // ─── Step: Driver Review ──────────────────────────────────────────────────────
 
 /** Employees see this on matches with commuters outside their company (045). */
@@ -270,11 +302,13 @@ function DriverReviewStep({
   onConfirm,
   isLoading,
   hasCompany,
+  onChat,
 }: {
   matches: TripIntentMatch[];
   onConfirm: (acceptedIds: string[], declinedIds: string[]) => void;
   isLoading: boolean;
   hasCompany: boolean;
+  onChat: OnChat;
 }) {
   // Symmetric approval: the driver reviews any open match they haven't yet
   // approved (regardless of whether the passenger has approved already).
@@ -326,6 +360,10 @@ function DriverReviewStep({
                 {!!match.ai_reasoning && (
                   <Text style={styles.matchReasoning} numberOfLines={2}>{match.ai_reasoning}</Text>
                 )}
+                <MessageButton
+                  name={match.passenger_profile?.first_name ?? "passenger"}
+                  onPress={() => onChat(match)}
+                />
               </View>
             </View>
             <View style={[styles.matchCheckbox, accepted && styles.matchCheckboxChecked]}>
@@ -431,9 +469,10 @@ interface WaitingStepProps {
   matches: TripIntentMatch[];
   onWithdraw: (matchIds: string[]) => void;
   busy: boolean;
+  onChat: OnChat;
 }
 
-function DriverWaitingStep({ matches, onWithdraw, busy }: WaitingStepProps) {
+function DriverWaitingStep({ matches, onWithdraw, busy, onChat }: WaitingStepProps) {
   // Driver has approved; waiting on the passenger to approve too.
   const waiting = matches.filter(m => m.driver_approved && !m.passenger_approved && m.status === "awaiting_other");
   return (
@@ -444,6 +483,9 @@ function DriverWaitingStep({ matches, onWithdraw, busy }: WaitingStepProps) {
         You approved {waiting.length} passenger{waiting.length !== 1 ? "s" : ""}. Waiting for them to approve too.
       </Text>
       <Text style={styles.stepHint}>The ride is confirmed once you both approve. You'll be notified.</Text>
+      {waiting.map((m) => (
+        <MessageButton key={m.id} centered name={m.passenger_profile?.first_name ?? "passenger"} onPress={() => onChat(m)} />
+      ))}
       <TouchableOpacity
         style={[styles.declineBtn, styles.withdrawBtn]}
         onPress={() => confirmWithdraw(waiting.map((m) => m.id), onWithdraw)}
@@ -459,7 +501,7 @@ function DriverWaitingStep({ matches, onWithdraw, busy }: WaitingStepProps) {
 
 // ─── Step: Passenger Waiting ──────────────────────────────────────────────────
 
-function PassengerWaitingStep({ matches, onWithdraw, busy }: WaitingStepProps) {
+function PassengerWaitingStep({ matches, onWithdraw, busy, onChat }: WaitingStepProps) {
   // Passenger has approved; waiting on the driver to approve too.
   const waiting = matches.filter(m => m.passenger_approved && !m.driver_approved && m.status === "awaiting_other");
   const driverName = waiting[0]?.driver_profile?.first_name ?? "your driver";
@@ -471,6 +513,7 @@ function PassengerWaitingStep({ matches, onWithdraw, busy }: WaitingStepProps) {
         You approved the carpool with {driverName}. Waiting for them to approve too.
       </Text>
       <Text style={styles.stepHint}>The ride is confirmed once you both approve. You'll be notified.</Text>
+      {waiting[0] && <MessageButton centered name={driverName} onPress={() => onChat(waiting[0])} />}
       <TouchableOpacity
         style={[styles.declineBtn, styles.withdrawBtn]}
         onPress={() => confirmWithdraw(waiting.map((m) => m.id), onWithdraw)}
@@ -486,7 +529,7 @@ function PassengerWaitingStep({ matches, onWithdraw, busy }: WaitingStepProps) {
 
 // ─── Step: Driver Confirmed ───────────────────────────────────────────────────
 
-function DriverConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
+function DriverConfirmedStep({ matches, onChat }: { matches: TripIntentMatch[]; onChat: OnChat }) {
   const router = useRouter();
   const confirmed = matches.filter(m => m.status === "confirmed");
   return (
@@ -507,6 +550,7 @@ function DriverConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
               </Text>
             </View>
           </View>
+          <MessageButton centered name={match.passenger_profile?.first_name ?? "passenger"} onPress={() => onChat(match)} />
           {match.ride_id && (
             <TouchableOpacity
               style={styles.primaryBtn}
@@ -597,11 +641,13 @@ function PassengerReviewStep({
   onRespond,
   isLoading,
   hasCompany,
+  onChat,
 }: {
   matches: TripIntentMatch[];
   onRespond: (matchId: string, accepted: boolean) => void;
   isLoading: boolean;
   hasCompany: boolean;
+  onChat: OnChat;
 }) {
   // Symmetric approval: the passenger reviews any open match they haven't yet
   // approved (whether or not the driver has approved already).
@@ -642,6 +688,7 @@ function PassengerReviewStep({
             {!!match.ai_reasoning && (
               <Text style={styles.matchReasoning} numberOfLines={3}>{match.ai_reasoning}</Text>
             )}
+            <MessageButton name={match.driver_profile?.first_name ?? "driver"} onPress={() => onChat(match)} />
           </View>
         </View>
       </View>
@@ -678,7 +725,7 @@ function PassengerReviewStep({
 
 // ─── Step: Passenger Confirmed ────────────────────────────────────────────────
 
-function PassengerConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
+function PassengerConfirmedStep({ matches, onChat }: { matches: TripIntentMatch[]; onChat: OnChat }) {
   const router = useRouter();
   const confirmed = matches.find(m => m.status === "confirmed");
   return (
@@ -698,6 +745,7 @@ function PassengerConfirmedStep({ matches }: { matches: TripIntentMatch[] }) {
               </Text>
             </View>
           </View>
+          <MessageButton centered name={confirmed.driver_profile?.first_name ?? "driver"} onPress={() => onChat(confirmed)} />
           {confirmed.ride_id && (
             <TouchableOpacity
               style={styles.primaryBtn}
@@ -744,14 +792,42 @@ export default function DailyCommuteScreen() {
 
   // Employees get the per-trip "open to commuters outside my company" switch.
   const [hasCompany, setHasCompany] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setUserId(user.id);
       const { data } = await supabase.from("profiles").select("company_id").eq("id", user.id).maybeSingle();
       setHasCompany(data?.company_id != null);
     })().catch(() => undefined);
   }, []);
+
+  // Chat with a match. Before the ride exists the thread is the match; after,
+  // the ride (which carries the earlier messages too).
+  const [chat, setChat] = useState<{ thread: ChatThread; name: string } | null>(null);
+  const openChat = useCallback(
+    (m: TripIntentMatch) => {
+      const iDrive = m.driver_user_id === userId;
+      const peer = iDrive ? m.passenger_profile : m.driver_profile;
+      setChat({
+        thread: m.ride_id ? { rideId: m.ride_id } : { matchId: m.id },
+        name: peer?.first_name ?? (iDrive ? "your passenger" : "your driver"),
+      });
+    },
+    [userId],
+  );
+
+  // Chat push (/daily-commute?openChat=<matchId>): open it once the match loads.
+  const { openChat: openChatId } = useLocalSearchParams<{ openChat?: string }>();
+  const openedChatRef = useRef(false);
+  useEffect(() => {
+    if (openedChatRef.current || !openChatId || !userId) return;
+    const m = matches.find((x) => x.id === openChatId);
+    if (!m) return;
+    openedChatRef.current = true;
+    openChat(m);
+  }, [openChatId, userId, matches, openChat]);
 
   // Withdrawing = declining through respond-to-match, which tells the other
   // side. (There was no way to take back an approval before.)
@@ -893,7 +969,7 @@ export default function DailyCommuteScreen() {
       )}
       {step === "driver_submitted" && <SubmittedStep role="driver" onSeeOptions={() => router.replace("/(tabs)")} />}
       {step === "driver_review" && (
-        <DriverReviewStep matches={matches} onConfirm={handleDriverReviewConfirm} isLoading={isLoading} hasCompany={hasCompany} />
+        <DriverReviewStep matches={matches} onConfirm={handleDriverReviewConfirm} isLoading={isLoading} hasCompany={hasCompany} onChat={openChat} />
       )}
       {step === "driver_detour" && (
         <DriverDetourStep
@@ -903,20 +979,30 @@ export default function DailyCommuteScreen() {
         />
       )}
       {step === "driver_waiting" && (
-        <DriverWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} />
+        <DriverWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} onChat={openChat} />
       )}
-      {step === "driver_confirmed" && <DriverConfirmedStep matches={matches} />}
+      {step === "driver_confirmed" && <DriverConfirmedStep matches={matches} onChat={openChat} />}
       {step === "passenger_details" && (
         <PassengerDetailsStep onSubmit={handlePassengerDetailsSubmit} isLoading={isLoading} hasCompany={hasCompany} />
       )}
       {step === "passenger_submitted" && <SubmittedStep role="passenger" onSeeOptions={() => router.replace("/(tabs)")} />}
       {step === "passenger_review" && (
-        <PassengerReviewStep matches={matches} onRespond={handlePassengerRespond} isLoading={isLoading} hasCompany={hasCompany} />
+        <PassengerReviewStep matches={matches} onRespond={handlePassengerRespond} isLoading={isLoading} hasCompany={hasCompany} onChat={openChat} />
       )}
       {step === "passenger_waiting" && (
-        <PassengerWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} />
+        <PassengerWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} onChat={openChat} />
       )}
-      {step === "passenger_confirmed" && <PassengerConfirmedStep matches={matches} />}
+      {step === "passenger_confirmed" && <PassengerConfirmedStep matches={matches} onChat={openChat} />}
+
+      {chat && userId && (
+        <ChatModal
+          visible
+          onClose={() => setChat(null)}
+          thread={chat.thread}
+          currentUserId={userId}
+          partnerName={chat.name}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -1256,6 +1342,24 @@ const styles = StyleSheet.create({
   },
 
   // ── Confirmed card ──
+  messageBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    marginTop: 10,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.white,
+  },
+  messageBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.primary,
+  },
   confirmedCard: {
     flexDirection: "row",
     alignItems: "center",

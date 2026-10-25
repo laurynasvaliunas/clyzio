@@ -115,6 +115,7 @@ export function notificationToRoute(data: NotificationData): string | null {
   if (!screen) return null;
 
   const rideId = typeof (data as any).rideId === 'string' ? (data as any).rideId : null;
+  const matchId = typeof (data as any).matchId === 'string' ? (data as any).matchId : null;
   const code = typeof (data as any).code === 'string' ? (data as any).code : null;
 
   switch (screen) {
@@ -123,8 +124,11 @@ export function notificationToRoute(data: NotificationData): string | null {
     case 'trip-match':
     case 'trip':
       return rideId ? `/trip/${rideId}` : null;
+    // Chat push from send-message: a ride's thread lives on the trip screen;
+    // a match's (before the ride exists) on the daily-commute screen.
     case 'chat':
-      return rideId ? `/trip/${rideId}?openChat=1` : null;
+      if (rideId) return `/trip/${rideId}?openChat=1`;
+      return matchId ? `/daily-commute?openChat=${encodeURIComponent(matchId)}` : null;
     case 'rating':
       return rideId ? `/trip/${rideId}?openRating=1` : null;
     case 'invite':

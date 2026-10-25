@@ -768,8 +768,9 @@ export default function TripScreen() {
         {ride.status !== "completed" && ride.status !== "cancelled" && (
           <View style={[styles.stickyActionFooter, { paddingBottom: insets.bottom + 20 }]}>
             <View style={styles.actionGrid}>
-              {/* CONDITIONAL: Chat button only for Driver/Rider (NOT Solo) */}
-              {!isSoloTrip && partner && (
+              {/* Chat for carpools (driver + rider). Not gated on `partner`: the
+                  name lookup can come back empty, and the chat works without it. */}
+              {!isSoloTrip && (
                 <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => setShowChatModal(true)}
@@ -806,7 +807,7 @@ export default function TripScreen() {
         <ChatModal
           visible={showChatModal}
           onClose={() => setShowChatModal(false)}
-          rideId={id as string}
+          thread={{ rideId: id as string }}
           currentUserId={currentUserId}
           partnerName={partnerName}
         />

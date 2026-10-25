@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Send, X } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
+import { type ChatThread, threadKey, sendChatMessage } from "../lib/chat";
 import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
 
 // Editorial reskin — paper/ink palette.
@@ -28,7 +29,8 @@ const COLORS = {
 
 interface Message {
   id: number;
-  ride_id: string;
+  ride_id: string | null;
+  match_id: string | null;
   sender_id: string;
   content: string;
   created_at: string;
@@ -37,7 +39,8 @@ interface Message {
 interface ChatModalProps {
   visible: boolean;
   onClose: () => void;
-  rideId: string;
+  /** A match (from the moment two people are matched) or a ride. */
+  thread: ChatThread;
   currentUserId: string;
   partnerName: string;
 }
@@ -45,10 +48,11 @@ interface ChatModalProps {
 export default function ChatModal({
   visible,
   onClose,
-  rideId,
+  thread,
   currentUserId,
   partnerName,
 }: ChatModalProps) {
+  const { column, id: threadId } = threadKey(thread);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -56,21 +60,21 @@ export default function ChatModal({
 
   // Fetch messages
   useEffect(() => {
-    if (!visible || !rideId) return;
+    if (!visible || !threadId) return;
 
     fetchMessages();
     // `subscribeToMessages` returns the cleanup function — previously the
     // return value was thrown away, leaking one realtime channel per mount.
     const unsubscribe = subscribeToMessages();
     return unsubscribe;
-  }, [visible, rideId]);
+  }, [visible, column, threadId]);
 
   const fetchMessages = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("messages")
       .select("*")
-      .eq("ride_id", rideId)
+      .eq(column, threadId)
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -83,18 +87,20 @@ export default function ChatModal({
 
   const subscribeToMessages = () => {
     const subscription = supabase
-      .channel(`messages:${rideId}`)
+      .channel(`messages:${column}:${threadId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `ride_id=eq.${rideId}`,
+          filter: `${column}=eq.${threadId}`,
         },
         (payload) => {
           if (__DEV__) { console.log("New chat message received"); }
-          setMessages((prev) => [...prev, payload.new as Message]);
+          const incoming = payload.new as Message;
+          // Skip one the initial fetch already returned.
+          setMessages((prev) => (prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]));
           // Auto-scroll to bottom
           setTimeout(() => {
             flatListRef.current?.scrollToEnd({ animated: true });
@@ -111,21 +117,15 @@ export default function ChatModal({
   const sendMessage = async () => {
     if (!inputText.trim()) return;
 
-    const newMessage = {
-      ride_id: rideId,
-      sender_id: currentUserId,
-      content: inputText.trim(),
-    };
-
     const draft = inputText;
     setInputText(""); // Clear optimistically; restored below if the send fails
 
-    const { error } = await supabase.from("messages").insert(newMessage);
-
-    if (error) {
-      console.error("Error sending message:", error);
+    // send-message also pushes the other person. The message itself arrives
+    // through the realtime subscription, like theirs do.
+    const outcome = await sendChatMessage(thread, currentUserId, draft.trim());
+    if (!outcome.ok) {
       setInputText((current) => current || draft);
-      Alert.alert("Message not sent", "Check your connection and try again.");
+      Alert.alert("Message not sent", outcome.message);
     }
   };
 
@@ -186,7 +186,7 @@ export default function ChatModal({
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerTitle}>Chat with {partnerName}</Text>
-            <Text style={styles.headerSubtitle}>Visible only to people on this ride</Text>
+            <Text style={styles.headerSubtitle}>Only the two of you can see this</Text>
           </View>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <X size={24} color={COLORS.gray700} />
@@ -222,7 +222,8 @@ export default function ChatModal({
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder=""
+            placeholder="Type a message"
+            accessibilityLabel="Type a message"
             placeholderTextColor={COLORS.gray400}
             value={inputText}
             onChangeText={setInputText}
