@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type ToastType = "co2" | "trip" | "carpool" | "badge" | "reminder" | "info";
+export type ToastType = "co2" | "trip" | "carpool" | "badge" | "reminder" | "info" | "chat";
 
 export interface ToastItem {
   id: string;

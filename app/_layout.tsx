@@ -14,7 +14,7 @@ import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
-import { parseLink, notificationToRoute } from "../lib/deepLinks";
+import { parseLink, notificationToRoute, isAnnouncedInApp } from "../lib/deepLinks";
 import { nextRouteAfterAuth } from "../lib/permissionsPriming";
 import { WELCOME_SEEN_KEY } from "./welcome";
 import { ThemeProvider, useTheme } from "../contexts/ThemeContext";
@@ -31,6 +31,7 @@ import { useNotificationToastStore } from "../store/useNotificationToastStore";
 import IncomingSuggestionBanner from "../components/IncomingSuggestionBanner";
 import InAppNotificationToast from "../components/InAppNotificationToast";
 import LiveLocationSharer from "../components/LiveLocationSharer";
+import ChatWatcher from "../components/ChatWatcher";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import {
   useFonts,
@@ -496,6 +497,9 @@ function RootLayoutContent() {
     // Intercept incoming notifications → show styled in-app toast instead of system banner
     notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
       const { title, body, data } = notification.request.content;
+      // Chat messages are announced in-app by ChatWatcher (straight from the
+      // database), so a foreground chat push would only duplicate it.
+      if (isAnnouncedInApp(data as any)) return;
       if (title) {
         pushToast({
           title: title as string,
@@ -611,6 +615,8 @@ function RootLayoutContent() {
         {/* Shares this phone's position with a carpool partner from 15 min
             before pickup, while the app is open. Renders nothing. */}
         <LiveLocationSharer />
+        {/* New chat messages anywhere in the app: toast + unread badges. */}
+        <ChatWatcher />
       </View>
     </SafeAreaProvider>
   );

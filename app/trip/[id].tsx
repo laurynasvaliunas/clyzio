@@ -35,6 +35,8 @@ import {
   usePartnerPosition,
 } from "../../lib/liveLocation";
 import { useLiveShareStore } from "../../store/useLiveShareStore";
+import { useChatStore } from "../../store/useChatStore";
+import { UnreadBadge } from "../../components/ui/UnreadBadge";
 import ChatModal from "../../components/ChatModal";
 import SOSSheet from "../../components/SOSSheet";
 import RatingSheet from "../../components/RatingSheet";
@@ -456,6 +458,7 @@ export default function TripScreen() {
   const sharingHere = useLiveShareStore((s) => !!ride && s.sharingRideIds.includes(ride.id));
   const needsLocation = useLiveShareStore((s) => s.needsPermission);
   const pokeSharer = useLiveShareStore((s) => s.poke);
+  const chatUnread = useChatStore((s) => (ride ? (s.unread[`ride:${ride.id}`] ?? 0) : 0));
 
   const handleShareLocation = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -856,7 +859,10 @@ export default function TripScreen() {
                   style={styles.actionButton}
                   onPress={() => setShowChatModal(true)}
                 >
-                  <MessageCircle size={24} color={COLORS.primary} />
+                  <View>
+                    <MessageCircle size={24} color={COLORS.primary} />
+                    <UnreadBadge count={chatUnread} style={styles.chatBadge} />
+                  </View>
                   <Text style={styles.actionButtonText}>Chat</Text>
                 </TouchableOpacity>
               )}
@@ -1331,6 +1337,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     boxShadow: "inset 0px -3px 0px rgba(11,37,64,0.06), 0px 8px 18px rgba(11,37,64,0.08)",
   },
+  chatBadge: { position: "absolute", top: -8, right: -12 },
   actionButtonDanger: {
     borderColor: COLORS.red + "30",
   },

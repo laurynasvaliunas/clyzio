@@ -28,6 +28,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BrandHeader from "../../components/BrandHeader";
 import TripPlannerModal from "../../components/TripPlannerModal";
 import { MatchOnMap } from "../../components/PartnerMarkers";
+import { useChatStore } from "../../store/useChatStore";
+import { UnreadBadge } from "../../components/ui/UnreadBadge";
 import AISuggestionChip from "../../components/AISuggestionChip";
 import CarpoolMatchModal from "../../components/CarpoolMatchModal";
 import CommuteHomeCard, { type PlanDay, type PlannedRideSummary } from "../../components/CommuteHomeCard";
@@ -565,6 +567,13 @@ export default function MapScreen() {
 
   // ✅ DAILY COMMUTE INTENT STATE
   const { intent, matches, checkExistingIntent, requestCarpool } = useDailyCommuteStore();
+  // Unread messages in my matches' chats (dot on the carpool pill).
+  const matchChatUnread = useChatStore((s) =>
+    matches.reduce(
+      (n, m) => n + (s.unread[`match:${m.id}`] ?? 0) + (m.ride_id ? (s.unread[`ride:${m.ride_id}`] ?? 0) : 0),
+      0,
+    ),
+  );
 
   /**
    * ✅ AUTO-CENTER TO USER LOCATION ON MOUNT
@@ -1669,6 +1678,7 @@ export default function MapScreen() {
                   </Text>
                 )}
               </View>
+              <UnreadBadge count={matchChatUnread} style={{ marginRight: 4 }} />
               <ChevronRight size={14} color={textColor} style={{ opacity: 0.7 }} />
             </TouchableOpacity>
           );

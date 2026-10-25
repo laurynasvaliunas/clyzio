@@ -33,6 +33,8 @@ import { getThemeColors } from "../lib/theme";
 import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
 import { GlowBackdrop } from "../components/ui";
 import ChatModal from "../components/ChatModal";
+import { useChatStore, selectUnreadFor } from "../store/useChatStore";
+import { UnreadBadge } from "../components/ui/UnreadBadge";
 import type { ChatThread } from "../lib/chat";
 
 // Ambient light across the top of the screen (decorative).
@@ -265,12 +267,18 @@ function MessageButton({
   name,
   onPress,
   centered = false,
+  match,
 }: {
   name: string;
   onPress: () => void;
   /** In the centred waiting / confirmed steps. */
   centered?: boolean;
+  /** The match this chat belongs to: shows its unread count. */
+  match?: TripIntentMatch;
 }) {
+  const unread = useChatStore(
+    selectUnreadFor(match ? [`match:${match.id}`, match.ride_id ? `ride:${match.ride_id}` : null] : []),
+  );
   return (
     <TouchableOpacity
       style={[styles.messageBtn, centered && { alignSelf: "center" }]}
@@ -281,6 +289,7 @@ function MessageButton({
     >
       <MessageCircle size={16} color={COLORS.primary} />
       <Text style={styles.messageBtnText}>Message {name}</Text>
+      <UnreadBadge count={unread} />
     </TouchableOpacity>
   );
 }
@@ -360,6 +369,7 @@ function DriverReviewStep({
                   <Text style={styles.matchReasoning} numberOfLines={2}>{match.ai_reasoning}</Text>
                 )}
                 <MessageButton
+                  match={match}
                   name={match.passenger_profile?.first_name ?? "passenger"}
                   onPress={() => onChat(match)}
                 />
@@ -483,7 +493,7 @@ function DriverWaitingStep({ matches, onWithdraw, busy, onChat }: WaitingStepPro
       </Text>
       <Text style={styles.stepHint}>The ride is confirmed once you both approve. You'll be notified.</Text>
       {waiting.map((m) => (
-        <MessageButton key={m.id} centered name={m.passenger_profile?.first_name ?? "passenger"} onPress={() => onChat(m)} />
+        <MessageButton key={m.id} centered match={m} name={m.passenger_profile?.first_name ?? "passenger"} onPress={() => onChat(m)} />
       ))}
       <TouchableOpacity
         style={[styles.declineBtn, styles.withdrawBtn]}
@@ -512,7 +522,7 @@ function PassengerWaitingStep({ matches, onWithdraw, busy, onChat }: WaitingStep
         You approved the carpool with {driverName}. Waiting for them to approve too.
       </Text>
       <Text style={styles.stepHint}>The ride is confirmed once you both approve. You'll be notified.</Text>
-      {waiting[0] && <MessageButton centered name={driverName} onPress={() => onChat(waiting[0])} />}
+      {waiting[0] && <MessageButton centered match={waiting[0]} name={driverName} onPress={() => onChat(waiting[0])} />}
       <TouchableOpacity
         style={[styles.declineBtn, styles.withdrawBtn]}
         onPress={() => confirmWithdraw(waiting.map((m) => m.id), onWithdraw)}
@@ -549,7 +559,7 @@ function DriverConfirmedStep({ matches, onChat }: { matches: TripIntentMatch[]; 
               </Text>
             </View>
           </View>
-          <MessageButton centered name={match.passenger_profile?.first_name ?? "passenger"} onPress={() => onChat(match)} />
+          <MessageButton centered match={match} name={match.passenger_profile?.first_name ?? "passenger"} onPress={() => onChat(match)} />
           {match.ride_id && (
             <TouchableOpacity
               style={styles.primaryBtn}
@@ -687,7 +697,7 @@ function PassengerReviewStep({
             {!!match.ai_reasoning && (
               <Text style={styles.matchReasoning} numberOfLines={3}>{match.ai_reasoning}</Text>
             )}
-            <MessageButton name={match.driver_profile?.first_name ?? "driver"} onPress={() => onChat(match)} />
+            <MessageButton match={match} name={match.driver_profile?.first_name ?? "driver"} onPress={() => onChat(match)} />
           </View>
         </View>
       </View>
@@ -744,7 +754,7 @@ function PassengerConfirmedStep({ matches, onChat }: { matches: TripIntentMatch[
               </Text>
             </View>
           </View>
-          <MessageButton centered name={confirmed.driver_profile?.first_name ?? "driver"} onPress={() => onChat(confirmed)} />
+          <MessageButton centered match={confirmed} name={confirmed.driver_profile?.first_name ?? "driver"} onPress={() => onChat(confirmed)} />
           {confirmed.ride_id && (
             <TouchableOpacity
               style={styles.primaryBtn}

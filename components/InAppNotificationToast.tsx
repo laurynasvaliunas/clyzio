@@ -17,6 +17,7 @@ import {
   Trophy,
   Bell,
   MapPin,
+  MessageCircle,
   X,
 } from "lucide-react-native";
 import { ToastItem, useNotificationToastStore } from "../store/useNotificationToastStore";
@@ -34,6 +35,7 @@ const TYPE_CONFIG: Record<
   badge:    { icon: Trophy,  iconColor: "#F59E0B", accentColor: "#F59E0B", bg: "#FFFBEB" },
   reminder: { icon: Bell,    iconColor: "#D97706", accentColor: "#D97706", bg: "#FFFBEB" },
   info:     { icon: Car,     iconColor: "#007C89", accentColor: "#007C89", bg: "#E3FAFB" },
+  chat:     { icon: MessageCircle, iconColor: "#0B2540", accentColor: "#09E0E8", bg: "#E3FAFB" },
 };
 
 function ToastCard({ item }: { item: ToastItem }) {

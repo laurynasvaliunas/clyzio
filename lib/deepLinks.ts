@@ -152,3 +152,12 @@ export function notificationToRoute(data: NotificationData): string | null {
       return null;
   }
 }
+
+/**
+ * Pushes the app already announces in-app while it's open, so a foreground
+ * copy of them would only duplicate the toast: chat messages come straight
+ * from the database via components/ChatWatcher.
+ */
+export function isAnnouncedInApp(data: NotificationData): boolean {
+  return !!data && typeof data === 'object' && (data as { screen?: unknown }).screen === 'chat';
+}

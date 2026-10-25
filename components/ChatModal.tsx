@@ -14,6 +14,7 @@ import { Text, TextInput } from "./ui/AppText";
 import { Send, X } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
 import { type ChatThread, threadKey, sendChatMessage } from "../lib/chat";
+import { useChatStore, type ThreadKey } from "../store/useChatStore";
 import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
 
 // Editorial reskin — paper/ink palette.
@@ -56,6 +57,15 @@ export default function ChatModal({
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(true);
   const flatListRef = useRef<FlatList>(null);
+
+  // While open, this chat is read: clear its unread badge and keep new
+  // messages from raising toasts (components/ChatWatcher).
+  useEffect(() => {
+    if (!visible || !threadId) return;
+    const keys = [`${column === "ride_id" ? "ride" : "match"}:${threadId}` as ThreadKey];
+    useChatStore.getState().openChat(keys);
+    return () => useChatStore.getState().closeChat(keys);
+  }, [visible, column, threadId]);
 
   // Fetch messages
   useEffect(() => {

@@ -5,6 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-na
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Map, Calendar, BarChart3, User, LucideIcon } from "lucide-react-native";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useChatStore, selectTotalUnread } from "../../store/useChatStore";
 import { editorial, elevation, fun, motion } from "../../lib/theme";
 
 // Floating friendly tab bar (2026-10 Waze-style redesign): a white pill with a
@@ -44,6 +45,8 @@ export default function TabsLayout() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const bottomGap = Math.max(insets.bottom - 10, 12);
+  // Unread chat messages, visible from every tab (ChatWatcher counts them).
+  const unreadChats = useChatStore(selectTotalUnread);
 
   return (
     <Tabs
@@ -88,7 +91,14 @@ export default function TabsLayout() {
         name="activity"
         options={{
           title: "Activity",
-          tabBarAccessibilityLabel: "Activity tab",
+          tabBarAccessibilityLabel: unreadChats > 0 ? `Activity tab, ${unreadChats} unread messages` : "Activity tab",
+          tabBarBadge: unreadChats > 0 ? (unreadChats > 9 ? "9+" : unreadChats) : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: "#DC2626",
+            color: "#FFFFFF",
+            fontFamily: "Nunito_800ExtraBold",
+            fontSize: 11,
+          },
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={Calendar} color={color} focused={focused} isDark={isDark} />
           ),
