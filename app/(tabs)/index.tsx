@@ -1,15 +1,23 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Animated,
   Share,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import Mapbox, { MapView, Camera, PointAnnotation, MarkerView, ShapeSource, LineLayer, UserLocation, StyleImport } from "@rnmapbox/maps";
-import { MAP_HEADING, MAP_PITCH, MAP_STYLE_3D, boundsWithPadding, standardConfig } from "../../lib/map3d";
+import {
+  MAP_HEADING,
+  MAP_PITCH,
+  MAP_STYLE_3D,
+  ROUTE_CASING_STYLE,
+  ROUTE_LINE_STYLE,
+  boundsWithPadding,
+  standardConfig,
+} from "../../lib/map3d";
 import { Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
@@ -49,16 +57,16 @@ if (IS_MAPBOX_TOKEN_VALID) {
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 // Keys preserved so every COLORS.* reference in this screen restyles in place.
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",   // cyan
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",   // cyan
   accent: "#F59E0B",    // sun (dialed-down ochre)
   white: "#FFFFFF",     // ivory card surface
   gray: "#8B989C",      // ink-4
-  dark: "#003D40",      // teal
+  dark: "#0B2540",      // teal
   green: "#059669",     // leaf
-  black: "#0B1A1F",     // ink
-  background: "#F7F9FA",// paper
-  overlay: "rgba(11,26,31,0.32)",
+  black: "#0B2540",     // ink
+  background: "#F4FAFB",// paper
+  overlay: "rgba(11,37,64,0.32)",
 };
 
 type SearchStatus = 'idle' | 'searching' | 'waiting' | 'matched';
@@ -346,7 +354,7 @@ function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = fal
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
+            <ActivityIndicator size="small" color="#0B2540" />
           ) : (
             <Text style={styles.requestBtnText}>
               {searchMode === 'rider' ? 'Request ride' : 'Offer pickup'}
@@ -442,7 +450,7 @@ function IntentPeerCard({
           accessibilityLabel={isDriver ? 'Ask for a seat in their car' : 'Offer them a seat in your car'}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
+            <ActivityIndicator size="small" color="#0B2540" />
           ) : (
             <Text style={styles.requestBtnText}>
               {isDriver ? 'Ask to ride along' : 'Offer a pickup'}
@@ -1462,12 +1470,12 @@ export default function MapScreen() {
               id="defaultRouteLine"
               slot="middle"
               style={{
-                lineColor: isDark ? "#7FD3D6" : COLORS.primary,
-                lineWidth: 4,
+                lineColor: COLORS.primary,
+                lineWidth: 5,
                 lineJoin: "round",
                 lineCap: "round",
-                lineOpacity: 0.8,
-                lineDasharray: [2, 1.5],
+                lineOpacity: 0.85,
+                lineDasharray: [1.2, 1.4],
                 lineEmissiveStrength: 1,
               }}
             />
@@ -1500,22 +1508,9 @@ export default function MapScreen() {
               properties: {},
             }}
           >
-            {/* Soft teal glow under the route, then a white casing and the line. */}
-            <LineLayer
-              id="routeGlow"
-              slot="middle"
-              style={{ lineColor: "#0E8C93", lineWidth: 16, lineBlur: 10, lineOpacity: 0.45, lineJoin: "round", lineCap: "round", lineEmissiveStrength: 1 }}
-            />
-            <LineLayer
-              id="routeLineCasing"
-              slot="middle"
-              style={{ lineColor: "#FFFFFF", lineWidth: 8, lineJoin: "round", lineCap: "round", lineOpacity: 0.85, lineEmissiveStrength: 1 }}
-            />
-            <LineLayer
-              id="routeLine"
-              slot="middle"
-              style={{ lineColor: isDark ? "#7FD3D6" : "#00565A", lineWidth: 4.5, lineJoin: "round", lineCap: "round", lineEmissiveStrength: 1 }}
-            />
+            {/* Waze-style: white casing under a thick bright line. */}
+            <LineLayer id="routeLineCasing" slot="middle" style={ROUTE_CASING_STYLE} />
+            <LineLayer id="routeLine" slot="middle" style={ROUTE_LINE_STYLE} />
           </ShapeSource>
         )}
 
@@ -1560,7 +1555,7 @@ export default function MapScreen() {
         style={[styles.mapMask, { opacity: mapMaskOpacity }]}
       >
         <LinearGradient
-          colors={["#00565A", "#003D40"]}
+          colors={["#007C89", "#0B2540"]}
           style={StyleSheet.absoluteFill}
         />
         <Image
@@ -1632,10 +1627,10 @@ export default function MapScreen() {
               : (needsMyApproval[0].driver_profile?.first_name ?? "a driver");
             label = `Matched with ${otherName}`;
             sublabel = "Tap to approve & ride together";
-            icon = <Car size={14} color="#003D40" />;
+            icon = <Car size={14} color="#0B2540" />;
           } else if (awaitingOther.length > 0) {
             // This user approved; waiting on the other side.
-            pillColor = "#00565A";
+            pillColor = "#007C89";
             const otherName = isDriver
               ? (awaitingOther[0].passenger_profile?.first_name ?? "passenger")
               : (awaitingOther[0].driver_profile?.first_name ?? "driver");
@@ -1644,7 +1639,7 @@ export default function MapScreen() {
             icon = <Users size={14} color="#fff" />;
           } else if (intent.status === "pending") {
             // Submitted, matching runs instantly — no fixed wait time.
-            pillColor = "#00565A";
+            pillColor = "#007C89";
             label = isDriver ? "Driver intent submitted" : "Passenger intent submitted";
             sublabel = "Matching now…";
             icon = isDriver ? <Car size={14} color="#fff" /> : <Users size={14} color="#fff" />;
@@ -1652,7 +1647,7 @@ export default function MapScreen() {
             return null;
           }
 
-          const textColor = pillColor === "#F59E0B" ? "#003D40" : "#fff";
+          const textColor = pillColor === "#F59E0B" ? "#0B2540" : "#fff";
           const seatsLabel = isDriver && intent.passenger_capacity != null
             ? ` · ${confirmedMatches.length}/${intent.passenger_capacity} seats`
             : "";
@@ -1885,15 +1880,16 @@ const styles = StyleSheet.create({
   },
 
   // ===== HOME / WORK PLACE PINS (Stage 2) =====
+  // Friendly round map bubbles (white rim, soft drop shadow).
   placePin: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 25,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
     borderColor: "#FFFFFF",
-    boxShadow: ELEVATION.light.e3,
+    boxShadow: "0px 4px 10px rgba(11,37,64,0.25)",
   },
 
   // ===== ACTIVE TRIP CARD =====
@@ -1903,7 +1899,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 20,
     flexDirection: "row",
     alignItems: "center",
@@ -1966,7 +1962,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 22,
+    borderRadius: 28,
     borderWidth: 1,
     gap: 12,
     boxShadow: ELEVATION.light.e4,
@@ -1974,8 +1970,8 @@ const styles = StyleSheet.create({
   emptyStateIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(0,86,90,0.12)",
+    borderRadius: 22,
+    backgroundColor: "rgba(0,124,137,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -2004,28 +2000,29 @@ const styles = StyleSheet.create({
     right: 16,
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 28,
     backgroundColor: COLORS.white,
     alignItems: "center",
     justifyContent: "center",
     boxShadow: ELEVATION.light.e3,
   },
   myLocationBtnDark: {
-    backgroundColor: "#0B1A1F",
+    backgroundColor: "#0B2540",
   },
   // ===== MAPBOX MARKER DOTS =====
   markerDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
+    width: 20,
+    height: 20,
+    borderRadius: 12,
+    borderWidth: 3,
     borderColor: COLORS.white,
+    boxShadow: "0px 3px 8px rgba(11,37,64,0.25)",
   },
   // ===== CUSTOM MARKER STYLES =====
   customMarker: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 25,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
@@ -2041,10 +2038,10 @@ const styles = StyleSheet.create({
   intentPeerAvatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 28,
     borderWidth: 2.5,
     borderColor: COLORS.white,
-    backgroundColor: "#E6F1F2",
+    backgroundColor: "#E3FAFB",
     boxShadow: ELEVATION.light.e2,
   },
   intentPeerInitialWrap: {
@@ -2062,7 +2059,7 @@ const styles = StyleSheet.create({
     bottom: -3,
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -2072,7 +2069,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#E6F1F2",
+    backgroundColor: "#E3FAFB",
     boxShadow: depth.embossLight,
   },
   intentCardInitial: {
@@ -2089,7 +2086,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + "14",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 15,
     alignSelf: "flex-start",
     marginTop: 6,
   },
@@ -2117,7 +2114,7 @@ const styles = StyleSheet.create({
   matchHandle: {
     width: 40,
     height: 5,
-    backgroundColor: "#EDF1F2",
+    backgroundColor: "#EEF6F7",
     borderRadius: 3,
     alignSelf: "center",
     marginBottom: 16,
@@ -2163,7 +2160,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent + "20",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 15,
     alignSelf: "flex-start",
     marginTop: 6,
   },
@@ -2175,14 +2172,14 @@ const styles = StyleSheet.create({
   matchCloseBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: COLORS.gray + "15",
     alignItems: "center",
     justifyContent: "center",
   },
   matchRouteContainer: {
     backgroundColor: COLORS.gray + "08",
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 16,
   },
@@ -2233,24 +2230,24 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   requestBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#09E0E8",
     paddingVertical: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: "center",
-    boxShadow: ELEVATION.light.e3,
+    boxShadow: "inset 0px -4px 0px rgba(11,37,64,0.16), 0px 10px 24px rgba(9,224,232,0.45)",
   },
   requestBtnDisabled: {
     opacity: 0.6,
   },
   requestBtnText: {
-    color: COLORS.white,
+    color: "#0B2540",
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
   },
   viewProfileBtn: {
     backgroundColor: COLORS.white,
     paddingVertical: 14,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: "center",
     borderWidth: 1.5,
     borderColor: COLORS.primary,
@@ -2312,7 +2309,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.green + "20",
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 25,
     marginTop: 16,
   },
   matchCountText: {
@@ -2327,7 +2324,7 @@ const styles = StyleSheet.create({
   cancelSearchBtn: {
     backgroundColor: COLORS.gray,
     paddingVertical: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
@@ -2339,16 +2336,16 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   viewMatchesBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#09E0E8",
     paddingVertical: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: "center",
-    boxShadow: ELEVATION.light.e3,
+    boxShadow: "inset 0px -4px 0px rgba(11,37,64,0.16), 0px 10px 24px rgba(9,224,232,0.45)",
   },
   viewMatchesBtnText: {
-    color: COLORS.white,
+    color: "#0B2540",
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
   },
 
   // ===== AI MATCH BUTTON =====
@@ -2356,15 +2353,15 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 170,
     alignSelf: "center",
-    backgroundColor: COLORS.dark,
+    backgroundColor: "#09E0E8",
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 24,
-    boxShadow: ELEVATION.light.e3,
+    borderRadius: 30,
+    boxShadow: "inset 0px -4px 0px rgba(11,37,64,0.16), 0px 10px 24px rgba(9,224,232,0.45)",
   },
   aiMatchBtnText: {
-    color: COLORS.white,
+    color: "#0B2540",
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "800",
   },
 });

@@ -8,23 +8,24 @@ import * as THREE from 'three';
 
 /** Brand colours as three.js expects them (sRGB hex; three converts). */
 export const C3 = {
-  teal: '#00565A',
-  tealLight: '#0E8C93',
-  tealDeep: '#003D40',
+  // The logo's cyan family (2026-10 friendly redesign) — keys kept.
+  teal: '#00B8C4',
+  tealLight: '#09E0E8',
+  tealDeep: '#007C89',
   mint: '#34D399',
-  leaf: '#059669',
-  leafLight: '#4ADE80',
-  sage: '#9CCFA6',
-  sun: '#F59E0B',
-  sunLight: '#FCD34D',
-  sand: '#D9C9A3',
-  snow: '#F4F7F7',
+  leaf: '#10B981',
+  leafLight: '#6EE7A0',
+  sage: '#9CDFAE',
+  sun: '#FFD23F',
+  sunLight: '#FFE98A',
+  sand: '#F2E3B3',
+  snow: '#F7FBFC',
   white: '#FFFFFF',
-  paper: '#EEF3F4',
-  slate: '#2B3A3F',
-  ink: '#0B1A1F',
-  clay: '#DC2626',
-  sky: '#BFE6EA',
+  paper: '#EEF7F8',
+  slate: '#3A4F66',
+  ink: '#0B2540',
+  clay: '#F04438',
+  sky: '#C8F4F7',
 } as const;
 
 /** Deterministic PRNG (mulberry32) — scenes look the same on every render. */

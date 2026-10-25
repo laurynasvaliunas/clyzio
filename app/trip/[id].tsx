@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -13,13 +12,14 @@ import {
   ScrollView,
   Share,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "../../lib/supabase";
 // Gamification math (XP per trip, level math, badge thresholds) lives
 // server-side in the `complete-trip` edge function. See audit C2.
 import Mapbox, { MapView, Camera, PointAnnotation, ShapeSource, LineLayer, UserLocation, StyleImport } from "@rnmapbox/maps";
-import { MAP_STYLE_3D, standardConfig } from "../../lib/map3d";
+import { MAP_HEADING, MAP_PITCH, MAP_STYLE_3D, ROUTE_CASING_STYLE, ROUTE_LINE_STYLE, standardConfig } from "../../lib/map3d";
 import { useTheme } from "../../contexts/ThemeContext";
 import * as Location from "expo-location";
 import { MessageCircle, Shield, X, Phone, AlertTriangle, Circle, MapPin, ChevronLeft, Leaf, Star } from "lucide-react-native";
@@ -87,16 +87,16 @@ if (IS_MAPBOX_TOKEN_VALID) {
 const SOLO_MODES = new Set(["public", "my_car", "bike", "ebike", "walking", "taxi", "moto", "nomotor"]);
 
 const COLORS = {
-  primary: "#00565A",   // cyan
+  primary: "#007C89",   // cyan
   accent: "#F59E0B",    // sun
-  dark: "#0B1A1F",      // ink
+  dark: "#0B2540",      // ink
   white: "#FFFFFF",
-  gray50: "#F7F9FA",    // paper
-  gray200: "#EDF1F2",   // paper-2
+  gray50: "#F4FAFB",    // paper
+  gray200: "#EEF6F7",   // paper-2
   gray400: "#8B989C",   // ink-4
-  gray700: "#5A6A6F",   // ink-3
+  gray700: "#5B6B7A",   // ink-3
   red: "#DC2626",       // clay
-  blue: "#00565A",
+  blue: "#007C89",
   green: "#059669",     // leaf
 };
 
@@ -575,14 +575,14 @@ export default function TripScreen() {
         <MapView
           ref={mapRef}
           style={styles.map}
-          // 3D city at dusk (night in dark mode); flat Dark if Standard fails.
-          styleURL={flatMap ? Mapbox.StyleURL.Dark : MAP_STYLE_3D}
+          // Flat friendly daylight map; Street style if Standard fails.
+          styleURL={flatMap ? Mapbox.StyleURL.Street : MAP_STYLE_3D}
           onMapLoadingError={() => setFlatMap(true)}
           logoEnabled
           attributionEnabled
           scaleBarEnabled={false} // sat beside the back button
         >
-          {!flatMap && <StyleImport id="basemap" existing config={standardConfig(isDark ? "night" : "dusk")} />}
+          {!flatMap && <StyleImport id="basemap" existing config={standardConfig(isDark ? "night" : "day")} />}
           <Camera
             ref={cameraRef}
             defaultSettings={{
@@ -591,8 +591,8 @@ export default function TripScreen() {
                 (ride.origin_lat + ride.dest_lat) / 2,
               ],
               zoomLevel: 12,
-              pitch: 55,
-              heading: -20,
+              pitch: MAP_PITCH,
+              heading: MAP_HEADING,
             }}
           />
 
@@ -614,16 +614,8 @@ export default function TripScreen() {
               properties: {},
             }}
           >
-            <LineLayer
-              id="routeGlow"
-              slot="middle"
-              style={{ lineColor: "#34D399", lineWidth: 16, lineBlur: 10, lineOpacity: 0.4, lineJoin: "round", lineCap: "round", lineEmissiveStrength: 1 }}
-            />
-            <LineLayer
-              id="routeLine"
-              slot="middle"
-              style={{ lineColor: "#7FD3D6", lineWidth: 4.5, lineJoin: "round", lineCap: "round", lineEmissiveStrength: 1 }}
-            />
+            <LineLayer id="routeLineCasing" slot="middle" style={ROUTE_CASING_STYLE} />
+            <LineLayer id="routeLine" slot="middle" style={ROUTE_LINE_STYLE} />
           </ShapeSource>
 
           {/* Origin Marker */}
@@ -1036,7 +1028,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     backgroundColor: COLORS.primary,
-    borderRadius: 20,
+    borderRadius: 25,
   },
   backButtonAltText: {
     color: COLORS.white,
@@ -1053,11 +1045,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   markerDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
+    width: 20,
+    height: 20,
+    borderRadius: 12,
+    borderWidth: 3,
     borderColor: "#FFFFFF",
+    boxShadow: "0px 3px 8px rgba(11,37,64,0.25)",
   },
   backButtonOverlay: {
     position: "absolute",
@@ -1066,9 +1059,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 28,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(11,26,31,0.08)",
+    borderColor: "rgba(11,37,64,0.08)",
     alignItems: "center",
     justifyContent: "center",
     boxShadow: ELEVATION.light.e2,
@@ -1080,7 +1073,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 25,
     boxShadow: ELEVATION.light.e2,
   },
   distanceBadgeText: {
@@ -1158,12 +1151,12 @@ const styles = StyleSheet.create({
   // 2. Route Card (Timeline Style)
   routeCard: {
     backgroundColor: COLORS.gray50,
-    borderRadius: 22,
+    borderRadius: 28,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.gray200,
-    boxShadow: "inset 0px 1px 2px rgba(255,255,255,0.9), 0px 6px 16px rgba(11,26,31,0.05)",
+    boxShadow: "inset 0px 1px 2px rgba(255,255,255,0.9), 0px 6px 16px rgba(11,37,64,0.05)",
   },
   routeRow: {
     flexDirection: "row",
@@ -1225,7 +1218,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 16, // was flush against the partner card below
     minHeight: 48,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#09E0E8",
     paddingVertical: 14,
     borderRadius: 28,
     alignItems: "center",
@@ -1235,15 +1228,15 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(255,255,255,0.22)",
   },
   endTripBtnText: {
-    color: COLORS.white,
+    color: "#0B2540",
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "800",
   },
 
   // 3. Partner Card (Conditional)
   liveCard: {
     backgroundColor: COLORS.gray50,
-    borderRadius: 18,
+    borderRadius: 22,
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
@@ -1271,8 +1264,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.gray50,
     padding: 16,
-    borderRadius: 22,
-    boxShadow: "inset 0px 1px 2px rgba(255,255,255,0.9), 0px 6px 16px rgba(11,26,31,0.05)",
+    borderRadius: 28,
+    boxShadow: "inset 0px 1px 2px rgba(255,255,255,0.9), 0px 6px 16px rgba(11,37,64,0.05)",
     marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.gray200,
@@ -1325,23 +1318,25 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12,
   },
+  // Round, chunky Waze-style action tiles.
   actionButton: {
     flex: 1,
+    minHeight: 72,
     backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.gray200,
-    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "#E3FAFB",
+    borderRadius: 28,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: depth.embossLight,
+    boxShadow: "inset 0px -3px 0px rgba(11,37,64,0.06), 0px 8px 18px rgba(11,37,64,0.08)",
   },
   actionButtonDanger: {
     borderColor: COLORS.red + "30",
   },
   actionButtonText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "800",
     color: COLORS.dark,
     marginTop: 6,
   },
@@ -1373,7 +1368,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.gray50,
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 12,
   },
   safetyOptionText: {
@@ -1385,7 +1380,7 @@ const styles = StyleSheet.create({
   safetyCloseBtn: {
     backgroundColor: COLORS.gray200,
     paddingVertical: 14,
-    borderRadius: 16,
+    borderRadius: 20,
     marginTop: 8,
   },
   safetyCloseBtnText: {
@@ -1418,14 +1413,14 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "rgba(0,86,90,0.08)",
+    backgroundColor: "rgba(0,124,137,0.08)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 24,
   },
   confirmButton: {
     minHeight: 56,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#09E0E8",
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 28,
@@ -1436,9 +1431,9 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(255,255,255,0.22)",
   },
   confirmButtonText: {
-    color: COLORS.white,
+    color: "#0B2540",
     fontSize: 17,
-    fontWeight: "700",
+    fontWeight: "800",
     textAlign: "center",
   },
   notYetText: {
@@ -1451,7 +1446,7 @@ const styles = StyleSheet.create({
   completedSummary: {
     backgroundColor: COLORS.gray50,
     padding: 20,
-    borderRadius: 20,
+    borderRadius: 25,
     alignItems: "center",
   },
   completedTitle: {
@@ -1481,7 +1476,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 15,
     borderWidth: 2,
     borderColor: COLORS.gray200,
   },

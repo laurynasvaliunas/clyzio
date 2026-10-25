@@ -16,8 +16,8 @@ import { View, StyleSheet } from "react-native";
  */
 
 const COLORS = {
-  filled: "#003D40",     // teal — completed/current
-  empty: "#EDF1F2",      // paper-2 — pending
+  filled: "#09E0E8",     // logo cyan — completed/current
+  empty: "#EEF6F7",      // paper-2 — pending
 };
 
 interface Props {
@@ -65,11 +65,11 @@ const styles = StyleSheet.create({
     width: 26,
     backgroundColor: COLORS.filled,
     // Lit pill: a soft teal glow + highlight so progress reads as "on".
-    boxShadow: "inset 0px 1px 1px rgba(255,255,255,0.35), 0px 2px 6px rgba(0,61,64,0.30)",
+    boxShadow: "inset 0px -2px 0px rgba(11,37,64,0.14), 0px 2px 6px rgba(9,224,232,0.45)",
   },
   empty: {
     width: 8,
     backgroundColor: COLORS.empty,
-    boxShadow: "inset 0px 1px 2px rgba(11,26,31,0.10)",
+    boxShadow: "inset 0px 1px 2px rgba(11,37,64,0.10)",
   },
 });

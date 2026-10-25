@@ -1,9 +1,7 @@
 import React, { useState, useRef, useEffect, memo } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
-  TextInput,
   Modal,
   StyleSheet,
   Dimensions,
@@ -14,6 +12,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
+import { Text, TextInput } from "./ui/AppText";
 import {
   Car,
   Users,
@@ -51,12 +50,12 @@ const SHEET_HEIGHT = height * 0.85;
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",   // cyan
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",   // cyan
   white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
-  lightGray: "#EDF1F2", // paper-2
-  dark: "#003D40",      // teal
+  lightGray: "#EEF6F7", // paper-2
+  dark: "#0B2540",      // teal
   accent: "#F59E0B",    // sun
   green: "#059669",     // leaf
   red: "#DC2626",       // clay
@@ -1104,7 +1103,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                   disabled={isSubmittingCarpool}
                 >
                   {isSubmittingCarpool ? (
-                    <ActivityIndicator color="white" />
+                    <ActivityIndicator color="#0B2540" />
                   ) : (
                     <Text style={styles.btnText}>
                       {role === "driver" ? "Offer ride" : "Find a match"}
@@ -1161,8 +1160,8 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 5,
-    backgroundColor: "#EDF1F2",
-    borderRadius: 10,
+    backgroundColor: "#EEF6F7",
+    borderRadius: 12,
   },
   header: {
     flexDirection: 'row',
@@ -1204,7 +1203,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.lightGray,
-    borderRadius: 16,
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 14,
     gap: 12,
@@ -1220,7 +1219,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: "white",
-    borderRadius: 12,
+    borderRadius: 15,
     padding: 8,
     maxHeight: 200,
     zIndex: 1000,
@@ -1244,7 +1243,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: GAP,
     backgroundColor: COLORS.lightGray,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 5,
   },
   roleSelectorItem: {
@@ -1253,7 +1252,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 12,
     paddingHorizontal: 6,
-    borderRadius: 12,
+    borderRadius: 15,
     gap: 4,
     minHeight: 64,
   },
@@ -1297,7 +1296,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 12,
     backgroundColor: COLORS.lightGray,
-    borderRadius: 12,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: COLORS.primary,
   },
@@ -1319,7 +1318,7 @@ const styles = StyleSheet.create({
   stepperBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 25,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.primary + "14",
@@ -1370,7 +1369,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: GAP,
     borderWidth: 2,
     borderColor: COLORS.lightGray,
@@ -1383,7 +1382,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -1444,7 +1443,7 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 12,
     backgroundColor: COLORS.white,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 2,
     borderColor: COLORS.lightGray,
   },
@@ -1493,22 +1492,26 @@ const styles = StyleSheet.create({
   },
 
   // Button
+  // Bright cyan pill with a chunky edge (navy label), like the app's other CTAs.
   btn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 16,
-    paddingVertical: 16,
+    backgroundColor: "#09E0E8",
+    borderRadius: 999,
+    paddingVertical: 17,
     alignItems: "center",
-    boxShadow: ELEVATION.light.e3,
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1.5,
+    borderTopColor: "rgba(255,255,255,0.45)",
   },
   btnDisabled: {
-    backgroundColor: COLORS.gray, // solid — 0.5 opacity let the list show through
-    shadowOpacity: 0,
-    shadowOffset: { width: 0, height: 2 },
+    // Solid light grey — 0.5 opacity let the list show through.
+    backgroundColor: "#DCE7EA",
+    boxShadow: "none",
+    borderTopWidth: 0,
   },
   btnText: {
-    color: "white",
-    fontSize: 17,
-    fontWeight: "700",
+    color: "#0B2540",
+    fontSize: 18,
+    fontWeight: "800",
   },
 
   // Waypoint buttons
@@ -1520,7 +1523,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: COLORS.lightGray,
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: GAP,
     gap: 8,
   },
@@ -1546,7 +1549,7 @@ const styles = StyleSheet.create({
   // Divider between location section and mode section
   modeSectionDivider: {
     height: 1,
-    backgroundColor: "#EDF1F2",
+    backgroundColor: "#EEF6F7",
     marginBottom: GAP,
   },
 
@@ -1555,8 +1558,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: "#E6F1F2",
-    borderRadius: 12,
+    backgroundColor: "#E3FAFB",
+    borderRadius: 15,
     paddingVertical: 12,
     paddingHorizontal: 14,
     marginBottom: GAP,
@@ -1564,7 +1567,7 @@ const styles = StyleSheet.create({
   tripInsightText: {
     flex: 1,
     fontSize: 13,
-    color: "#003D40",
+    color: "#0B2540",
     lineHeight: 18,
   },
 });

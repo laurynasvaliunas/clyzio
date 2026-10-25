@@ -1,5 +1,6 @@
 import React, { Component, ReactNode } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { Text } from "./ui/AppText";
 import { Ionicons } from "@expo/vector-icons";
 import { Sentry } from "../lib/sentry";
 import { depth } from "../lib/theme/tokens";
@@ -59,7 +60,7 @@ class ErrorBoundary extends Component<Props, State> {
         <View style={styles.container}>
           <View style={styles.content}>
             <View style={styles.iconContainer}>
-              <Ionicons name="warning-outline" size={64} color="#00565A" />
+              <Ionicons name="warning-outline" size={64} color="#007C89" />
             </View>
             <Text style={styles.title}>Something went wrong</Text>
             <Text style={styles.message}>
@@ -92,7 +93,7 @@ class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#003D40",
+    backgroundColor: "#0B2540",
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 999,
-    backgroundColor: "rgba(0,86,90,0.12)",
+    backgroundColor: "rgba(0,124,137,0.12)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 28,
@@ -133,15 +134,15 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   button: {
-    backgroundColor: "#00565A",
+    backgroundColor: "#007C89",
     paddingVertical: 14,
     paddingHorizontal: 40,
-    borderRadius: 12,
+    borderRadius: 15,
   },
   buttonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#003D40",
+    color: "#0B2540",
   },
 });
 

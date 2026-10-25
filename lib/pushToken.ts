@@ -17,7 +17,7 @@ async function getPushTokenIfPermitted(): Promise<string | undefined> {
       name: "default",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#00565A",
+      lightColor: "#007C89",
     });
   }
 

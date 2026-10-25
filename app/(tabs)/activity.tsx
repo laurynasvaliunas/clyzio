@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   FlatList,
   ScrollView,
@@ -13,6 +12,7 @@ import {
   UIManager,
   RefreshControl,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
 import { format, isToday, isTomorrow, parseISO } from "date-fns";
@@ -47,19 +47,19 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",   // cyan
-  primaryDark: "#003D40",// teal
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",   // cyan
+  primaryDark: "#0B2540",// teal
   accent: "#F59E0B",    // sun
-  dark: "#003D40",      // teal
-  light: "#E6F1F2",     // cyan-fog
-  background: "#F7F9FA",// paper
+  dark: "#0B2540",      // teal
+  light: "#E3FAFB",     // cyan-fog
+  background: "#F4FAFB",// paper
   white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
-  textSecondary: "#5A6A6F", // ink-3
+  textSecondary: "#5B6B7A", // ink-3
   red: "#DC2626",       // clay
   green: "#059669",     // leaf
-  black: "#0B1A1F",     // ink
+  black: "#0B2540",     // ink
 };
 
 interface Ride {
@@ -181,9 +181,9 @@ function UpcomingCard({ item, userId, onPress, onComplete, onCancel, completing 
           activeOpacity={0.8}
         >
           {completing ? (
-            <ActivityIndicator size="small" color={COLORS.white} />
+            <ActivityIndicator size="small" color="#0B2540" />
           ) : (
-            <CheckCircle2 size={16} color={COLORS.white} />
+            <CheckCircle2 size={16} color="#0B2540" />
           )}
           <Text style={styles.completeBtnText}>
             {completing ? "Saving..." : "Mark Complete"}
@@ -689,10 +689,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   tabActive: {
-    backgroundColor: COLORS.primary,
-    boxShadow: "0px 4px 12px rgba(0,86,90,0.30)",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.22)",
+    backgroundColor: "#09E0E8",
+    boxShadow: "inset 0px -3px 0px rgba(11,37,64,0.14), 0px 6px 14px rgba(9,224,232,0.35)",
+    borderTopWidth: 1.5,
+    borderTopColor: "rgba(255,255,255,0.45)",
   },
   glow: { bottom: undefined, height: 360 },
   tabText: {
@@ -701,7 +701,8 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted
   },
   tabTextActive: {
-    color: COLORS.white
+    color: "#0B2540",
+    fontWeight: "800",
   },
   
   // ===== LOADING & LIST =====
@@ -719,10 +720,10 @@ const styles = StyleSheet.create({
   // ===== CARD SHARED =====
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 28,
     padding: 16,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(11,26,31,0.06)",
+    borderColor: "rgba(11,37,64,0.06)",
     boxShadow: ELEVATION.light.e3,
   },
   cardCancelled: {
@@ -783,7 +784,7 @@ const styles = StyleSheet.create({
   routeDotLine: {
     width: 2,
     flex: 1,
-    backgroundColor: "#EDF1F2",
+    backgroundColor: "#EEF6F7",
     marginVertical: 3,
     minHeight: 14,
   },
@@ -838,7 +839,7 @@ const styles = StyleSheet.create({
   modeCircle: {
     width: 38,
     height: 38,
-    borderRadius: 19,
+    borderRadius: 24,
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -885,9 +886,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     minHeight: 48, // was ~41 pt — under the 44 pt minimum
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#09E0E8",
     paddingVertical: 12,
-    borderRadius: 24, // pill, like the app's other primary buttons
+    borderRadius: 30, // pill, like the app's other primary buttons
     boxShadow: depth.ctaGlow,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.22)",
@@ -897,8 +898,8 @@ const styles = StyleSheet.create({
   },
   completeBtnText: {
     fontSize: 14,
-    color: COLORS.white,
-    fontWeight: "700",
+    color: "#0B2540",
+    fontWeight: "800",
   },
   cancelBtn: {
     flexDirection: "row",
@@ -923,7 +924,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#EDF1F2",
+    borderTopColor: "#EEF6F7",
   },
 
   // Partner row
@@ -934,12 +935,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#EDF1F2",
+    borderTopColor: "#EEF6F7",
   },
   partnerAvatar: {
     width: 30,
     height: 30,
-    borderRadius: 15,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -963,7 +964,7 @@ const styles = StyleSheet.create({
   modeIcon: {
     width: 38,
     height: 38,
-    borderRadius: 19,
+    borderRadius: 24,
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -1019,7 +1020,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.green + "15",
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 10,
+    borderRadius: 12,
   },
   co2Text: {
     fontSize: 14,
@@ -1057,7 +1058,7 @@ const styles = StyleSheet.create({
   },
   emptyButton: {
     minHeight: 56,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#09E0E8",
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 28,
@@ -1067,9 +1068,9 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(255,255,255,0.22)",
   },
   emptyButtonText: { 
-    color: COLORS.white, 
+    color: "#0B2540", 
     fontSize: 16, 
-    fontWeight: "700" 
+    fontWeight: "800"
   },
 });
 

@@ -148,8 +148,8 @@ export const MODES: LocalMode[] = [
   { id: "walking",  label: "Walking",          icon: "walk",    co2PerKm: 0,     speedKmh: 5,  costPerKm: 0,    color: "#059669", tag: "Zero Emissions", tagColor: "#059669" },
   { id: "bike",     label: "Bike",             icon: "bike",    co2PerKm: 0,     speedKmh: 15, costPerKm: 0,    color: "#D97706", tag: "Most Eco",       tagColor: "#D97706" },
   { id: "ebike",    label: "E-bike / E-scooter", icon: "bike",    co2PerKm: 0.023, speedKmh: 22, costPerKm: 0.03, color: "#7C3AED", tag: "Fastest Green",  tagColor: "#7C3AED" },
-  { id: "public",   label: "Public transport", icon: "bus",     co2PerKm: 0.04,  speedKmh: 25, costPerKm: 0.05, color: "#00676D", tag: "Best Balance",   tagColor: "#00676D" },
-  { id: "carpool",  label: "Carpool",          icon: "carpool", co2PerKm: 0.096, speedKmh: 35, costPerKm: 0.10, color: "#00565A", tag: "Social & Green", tagColor: "#00565A" },
+  { id: "public",   label: "Public transport", icon: "bus",     co2PerKm: 0.04,  speedKmh: 25, costPerKm: 0.05, color: "#0095A3", tag: "Best Balance",   tagColor: "#0095A3" },
+  { id: "carpool",  label: "Carpool",          icon: "carpool", co2PerKm: 0.096, speedKmh: 35, costPerKm: 0.10, color: "#007C89", tag: "Social & Green", tagColor: "#007C89" },
 ];
 
 // Default fallback (petrol solo car) — use getFuelBaseCO2() for user-specific baseline

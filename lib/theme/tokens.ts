@@ -4,24 +4,35 @@
  * Everything the app renders (StyleSheet, NativeWind, Tailwind themes) is
  * derived from this file. Do NOT redefine hex values in components.
  *
- * Brand identity is Deep Teal (#00565A) on white — the "pro app" re-theme
- * (2026-07). One brand hue + sharp semantic colors; the earlier warm-paper /
- * cyan editorial palette was consolidated into this set. If anything
- * references another brand hex, migrate it here.
+ * Brand identity (2026-10 "friendly" redesign, Waze-like): the logo's bright
+ * cyan + sunny yellow on white, navy ink, rounded type (Nunito, via
+ * components/ui/AppText). Bright cyan is a FILL colour — always with navy text
+ * (9.5:1); white text and small cyan text use `primary` (#007C89, 4.95:1).
+ * If anything references another brand hex, migrate it here.
  */
 
 export const brand = {
-  primary: '#00565A',
-  primaryDark: '#003D40',
-  primaryDarker: '#002B2E',
+  primary: '#007C89',
+  primaryDark: '#0B2540',
+  primaryDarker: '#071A2E',
   accent: '#F59E0B',
+} as const;
+
+/** The logo's colours. Bright fills carry navy text, never white. */
+export const fun = {
+  cyan: '#09E0E8',
+  cyanSoft: '#7CF0F4',
+  cyanTint: '#E3FAFB',
+  sun: '#FFDE5A',
+  sunTint: '#FFF6CC',
+  navy: '#0B2540',
 } as const;
 
 export const semantic = {
   success: '#059669',
   warning: '#D97706',
   danger: '#DC2626',
-  info: '#00565A',
+  info: '#007C89',
 } as const;
 
 /** Light backgrounds / borders / dark text for status banners and pills. */
@@ -45,8 +56,8 @@ export const semanticTint = {
  * re-pointed onto this system so the base theme propagates to every existing
  * `useThemeColors` consumer.
  */
-// App-wide typography uses the platform system font (SF Pro / Roboto) — no
-// custom family is set; weight carries the hierarchy.
+// App-wide typography is Nunito (rounded), applied by components/ui/AppText,
+// which maps these weights to the matching font files.
 export const weights = {
   regular: '400',
   medium: '500',
@@ -57,25 +68,25 @@ export const weights = {
 
 export const editorial = {
   // Surfaces — screen bg reads white; cards are true white on top of it.
-  paper: '#F7F9FA',
-  paper2: '#EDF1F2',
-  paper3: '#E2E8EA',
+  paper: '#F4FAFB',
+  paper2: '#EEF6F7',
+  paper3: '#E1ECEE',
   ivory: '#FFFFFF',
   white: '#FFFFFF',
-  // Ink
-  ink: '#0B1A1F',
-  ink2: '#243439',
-  ink3: '#5A6A6F',
+  // Ink (navy)
+  ink: '#0B2540',
+  ink2: '#22364D',
+  ink3: '#5B6B7A',
   ink4: '#8B989C',
-  hairline: 'rgba(11,26,31,0.10)',
-  hairline2: 'rgba(11,26,31,0.05)',
-  // Brand — one deep-teal hue (keys kept from the cyan era for compat)
-  cyan: '#00565A',
-  cyan2: '#00676D',
-  teal: '#003D40',
-  teal2: '#00565A',
-  cyanMist: '#E6F1F2',
-  cyanFog: '#E6F1F2',
+  hairline: 'rgba(11,37,64,0.10)',
+  hairline2: 'rgba(11,37,64,0.05)',
+  // Brand — deep cyan for text/icons on white (keys kept for compat)
+  cyan: '#007C89',
+  cyan2: '#0095A3',
+  teal: '#0B2540',
+  teal2: '#007C89',
+  cyanMist: '#E3FAFB',
+  cyanFog: '#E3FAFB',
   // Accents — sharp semantic set
   sun: '#F59E0B',
   leaf: '#059669',
@@ -112,10 +123,10 @@ export const palette = {
     textSecondary: editorial.ink3,
     textMuted: editorial.ink4,
     border: editorial.hairline,
-    borderStrong: 'rgba(11,26,31,0.18)',
+    borderStrong: 'rgba(11,37,64,0.18)',
     inputBg: editorial.paper2,
     placeholder: editorial.ink4,
-    overlay: 'rgba(11,26,31,0.32)',
+    overlay: 'rgba(11,37,64,0.32)',
   },
   // Dark = "night" editorial surface (active-ride scene tone).
   dark: {
@@ -166,13 +177,14 @@ export const spacing = {
   16: 64,
 } as const;
 
+/** Generous, friendly rounding (2026-10 Waze-style redesign). */
 export const radii = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  '2xl': 24,
+  xs: 6,
+  sm: 10,
+  md: 14,
+  lg: 18,
+  xl: 24,
+  '2xl': 28,
   full: 9999,
 } as const;
 
@@ -240,12 +252,12 @@ export type ElevationLevel = 'e1' | 'e2' | 'e3' | 'e4';
 
 export const elevation = {
   light: {
-    e1: '0px 1px 2px rgba(11,26,31,0.06), 0px 2px 6px rgba(11,26,31,0.04)',
-    e2: '0px 1px 2px rgba(11,26,31,0.05), 0px 8px 20px rgba(11,26,31,0.07)',
-    e3: '0px 2px 4px rgba(11,26,31,0.05), 0px 14px 34px rgba(11,26,31,0.10)',
-    e4: '0px 4px 10px rgba(0,61,64,0.08), 0px 26px 60px rgba(0,61,64,0.20)',
+    e1: '0px 1px 2px rgba(11,37,64,0.06), 0px 3px 8px rgba(11,37,64,0.05)',
+    e2: '0px 2px 4px rgba(11,37,64,0.05), 0px 10px 24px rgba(11,37,64,0.08)',
+    e3: '0px 4px 8px rgba(11,37,64,0.06), 0px 18px 40px rgba(11,37,64,0.12)',
+    e4: '0px 6px 14px rgba(0,124,137,0.10), 0px 28px 64px rgba(0,124,137,0.22)',
     /** Bottom sheets / docked bars: light falls upward. */
-    up: '0px -1px 0px rgba(11,26,31,0.04), 0px -10px 30px rgba(11,26,31,0.10)',
+    up: '0px -1px 0px rgba(11,37,64,0.04), 0px -12px 32px rgba(11,37,64,0.12)',
   },
   dark: {
     e1: '0px 1px 2px rgba(0,0,0,0.30)',
@@ -266,9 +278,9 @@ export const glass = {
   light: {
     tint: 'light' as const,
     intensity: 55,
-    fill: 'rgba(255,255,255,0.74)',
+    fill: 'rgba(255,255,255,0.82)',
     highlight: 'rgba(255,255,255,0.95)',
-    stroke: 'rgba(11,26,31,0.07)',
+    stroke: 'rgba(11,37,64,0.07)',
   },
   dark: {
     tint: 'dark' as const,
@@ -283,14 +295,16 @@ export const getGlass = (isDark: boolean) => (isDark ? glass.dark : glass.light)
 
 /** Gradient stops (expo-linear-gradient `colors`). */
 export const gradients = {
-  /** Brand surface — buttons, hero cards. */
-  brand: ['#00767C', '#00565A', '#003D40'] as const,
+  /** Deep cyan surface — white text sits on it (buttons, dark heroes). */
+  brand: ['#00838F', '#007C89', '#00626D'] as const,
+  /** The logo's bright cyan — navy text only (Waze-style heroes, CTAs). */
+  bright: ['#5CF2F6', '#09E0E8', '#00CBD6'] as const,
   /** Pale brand wash for light hero backgrounds. */
-  brandMist: ['#E8F4F4', '#F7F9FA'] as const,
+  brandMist: ['#E3FAFB', '#F4FAFB'] as const,
   /** Positive impact (CO₂ saved, completion). */
   eco: ['#34D399', '#059669'] as const,
   /** XP / rewards. */
-  sun: ['#FCD34D', '#F59E0B'] as const,
+  sun: ['#FFE98A', '#FFDE5A'] as const,
   /** Night scene (active ride, dark heroes). */
   night: ['#1B3035', '#0E1F23'] as const,
 } as const;
@@ -301,9 +315,9 @@ export const gradients = {
  */
 export const glows = {
   light: {
-    teal: { color: '#00767C', opacity: 0.16 },
-    mint: { color: '#10B981', opacity: 0.13 },
-    sun: { color: '#F59E0B', opacity: 0.1 },
+    teal: { color: '#09E0E8', opacity: 0.22 },
+    mint: { color: '#10B981', opacity: 0.12 },
+    sun: { color: '#FFDE5A', opacity: 0.3 },
   },
   dark: {
     teal: { color: '#00969E', opacity: 0.2 },
@@ -314,15 +328,15 @@ export const glows = {
 
 /** Recurring depth recipes (boxShadow strings) used across screens. */
 export const depth = {
-  /** Brand-filled hero tiles / logo blocks: lit top edge + teal drop shadow. */
-  emboss: 'inset 0px 2px 3px rgba(255,255,255,0.32), inset 0px -3px 6px rgba(0,0,0,0.12), 0px 14px 30px rgba(0,61,64,0.28)',
+  /** Brand-filled hero tiles / logo blocks: lit top edge + cyan drop shadow. */
+  emboss: 'inset 0px 2px 3px rgba(255,255,255,0.4), inset 0px -3px 0px rgba(11,37,64,0.12), 0px 12px 26px rgba(0,124,137,0.26)',
   /** Light tiles / chips: subtle raised coin. */
   embossLight:
-    'inset 0px 2px 3px rgba(255,255,255,0.9), inset 0px -3px 6px rgba(11,26,31,0.08), 0px 8px 18px rgba(11,26,31,0.10)',
-  /** Primary call-to-action underglow. */
-  ctaGlow: '0px 2px 4px rgba(0,61,64,0.18), 0px 12px 28px rgba(0,86,90,0.30)',
+    'inset 0px 2px 3px rgba(255,255,255,0.9), inset 0px -3px 0px rgba(11,37,64,0.06), 0px 8px 18px rgba(11,37,64,0.08)',
+  /** Primary call-to-action: chunky "toy" bottom edge + a bright cyan glow. */
+  ctaGlow: 'inset 0px -4px 0px rgba(11,37,64,0.16), 0px 10px 24px rgba(9,224,232,0.45)',
   /** Selected option halo (pair with a brand border). */
-  selected: '0px 0px 0px 4px rgba(0,86,90,0.10), 0px 10px 24px rgba(0,86,90,0.16)',
+  selected: '0px 0px 0px 4px rgba(9,224,232,0.22), 0px 10px 24px rgba(0,124,137,0.14)',
 } as const;
 
 /** Numbers that update in place (stats, timers) keep their width. */

@@ -1,13 +1,12 @@
 import { useEffect, useRef } from "react";
 import {
   View,
-  Text,
-
   StyleSheet,
   Animated,
   Easing,
   Platform,
 } from "react-native";
+import { Text } from "../components/ui/AppText";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,7 +14,6 @@ import * as Haptics from "expo-haptics";
 import * as SecureStore from "expo-secure-store";
 import { Cloud, Smile, ArrowRight } from "lucide-react-native";
 import { BikeIcon } from "../components/icons/TransportIcons";
-import { gradients } from "../lib/theme/tokens";
 import { CommuteCity } from "../components/three";
 import { GlowBackdrop, PressableScale } from "../components/ui";
 
@@ -43,13 +41,16 @@ import { GlowBackdrop, PressableScale } from "../components/ui";
  */
 
 const COLORS = {
-  bgTop: "#00565A",        // brand deep teal
-  bgBottom: "#003D40",     // darker teal
-  ink: "#FFFFFF",          // white type on the gradient
+  bgTop: "#09E0E8",        // the logo's bright cyan
+  bgBottom: "#00CBD6",     // a touch deeper at the bottom
+  ink: "#0B2540",          // navy type on the bright cyan (9.5:1)
+  bubble: "#FFFFFF",       // white story bubbles
+  accent: "#007C89",       // deep cyan icon on white
+  sun: "#FFDE5A",          // the logo's yellow
   cloudStart: "#DC2626",   // red — represents pollution
   cloudEnd: "#059669",     // emerald — represents savings
   cta: "#FFFFFF",          // white button bg on the gradient
-  ctaInk: "#0B1A1F",       // ink on the cta
+  ctaInk: "#0B2540",       // ink on the cta
 };
 
 export const WELCOME_SEEN_KEY = "clyzio.welcomeSeen.v1";
@@ -175,7 +176,7 @@ export default function WelcomeScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={gradients.brand}
+        colors={[COLORS.bgTop, COLORS.bgBottom]}
         start={{ x: 0, y: 0 }}
         end={{ x: 0.4, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -201,7 +202,7 @@ export default function WelcomeScreen() {
             ]}
           >
             <View style={styles.iconBubble}>
-              <BikeIcon size={30} color={COLORS.bgTop} />
+              <BikeIcon size={30} color={COLORS.accent} />
             </View>
           </Animated.View>
 
@@ -217,7 +218,7 @@ export default function WelcomeScreen() {
             ]}
           >
             <Animated.View style={[styles.iconBubble, { backgroundColor: cloudTint }]}>
-              <Cloud size={30} color={COLORS.ink} />
+              <Cloud size={30} color={COLORS.bubble} />
             </Animated.View>
             <Text style={styles.cloudLabel} accessibilityLabel="CO 2">CO₂</Text>
           </Animated.View>
@@ -232,8 +233,8 @@ export default function WelcomeScreen() {
               },
             ]}
           >
-            <View style={[styles.iconBubble, { backgroundColor: "#F59E0B" }]}>
-              <Smile size={30} color={COLORS.bgBottom} />
+            <View style={[styles.iconBubble, { backgroundColor: COLORS.sun }]}>
+              <Smile size={30} color={COLORS.ink} />
             </View>
           </Animated.View>
         </View>
@@ -271,7 +272,7 @@ export default function WelcomeScreen() {
           >
             <Text style={styles.ctaText}>Let's set up</Text>
             <View style={styles.ctaArrow}>
-              <ArrowRight size={18} color={COLORS.ink} />
+              <ArrowRight size={20} color={COLORS.ink} strokeWidth={2.6} />
             </View>
           </PressableScale>
         </Animated.View>
@@ -317,13 +318,13 @@ const styles = StyleSheet.create({
   iconBubble: {
     width: 64,
     height: 64,
-    borderRadius: 20,
-    backgroundColor: COLORS.ink,
+    borderRadius: 32,
+    backgroundColor: COLORS.bubble,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.35)",
-    boxShadow: "inset 0px 2px 2px rgba(255,255,255,0.5), 0px 10px 24px rgba(0,0,0,0.22)",
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
+    boxShadow: "inset 0px -3px 0px rgba(11,37,64,0.08), 0px 10px 22px rgba(11,37,64,0.18)",
   },
   cloudLabel: {
     fontSize: 11,
@@ -340,7 +341,7 @@ const styles = StyleSheet.create({
   tagline: {
     fontSize: 26,
     lineHeight: 32,
-    fontWeight: "700",
+    fontWeight: "900",
     letterSpacing: -0.4,
     textAlign: "center",
     color: COLORS.ink,
@@ -354,20 +355,21 @@ const styles = StyleSheet.create({
     paddingLeft: 26,
     paddingRight: 8,
     borderRadius: 999,
-    boxShadow: "0px 2px 4px rgba(0,0,0,0.10), 0px 16px 36px rgba(0,0,0,0.28)",
+    boxShadow: "inset 0px -4px 0px rgba(11,37,64,0.08), 0px 14px 30px rgba(11,37,64,0.22)",
   },
   ctaArrow: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.bgTop,
+    borderRadius: 28,
+    backgroundColor: COLORS.sun,
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: "inset 0px -3px 0px rgba(11,37,64,0.12)",
   },
   ctaText: {
     color: COLORS.ctaInk,
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "800",
     letterSpacing: 0.2,
   },
 });

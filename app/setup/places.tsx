@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -9,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Keyboard,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
@@ -50,17 +50,17 @@ if (IS_MAPBOX_TOKEN_VALID) {
  */
 
 const COLORS = {
-  bg: "#F7F9FA",         // paper
+  bg: "#F4FAFB",         // paper
   surface: "#FFFFFF",    // ivory
-  ink: "#0B1A1F",
-  inkSoft: "#5A6A6F",
-  primary: "#00565A",
-  primaryDark: "#003D40",
+  ink: "#0B2540",
+  inkSoft: "#5B6B7A",
+  primary: "#007C89",
+  primaryDark: "#0B2540",
   accent: "#F59E0B",
-  border: "#EDF1F2",
-  homePin: "#00565A",    // cyan
+  border: "#EEF6F7",
+  homePin: "#007C89",    // cyan
   workPin: "#059669",    // leaf
-  promptBg: "#003D40",
+  promptBg: "#0B2540",
 };
 
 const PROMPT_MIN_DISTANCE_METERS = 50; // don't prompt if we already accepted home within 50m
@@ -394,11 +394,11 @@ export default function PlacesScreen() {
           accessibilityLabel="Next, continue to garage setup"
         >
           {saving ? (
-            <ActivityIndicator color={COLORS.surface} />
+            <ActivityIndicator color="#0B2540" />
           ) : (
             <>
               <Text style={styles.nextText}>Next</Text>
-              <ArrowRight size={18} color={COLORS.surface} />
+              <ArrowRight size={18} color="#0B2540" />
             </>
           )}
         </TouchableOpacity>
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   backButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
   mapWrap: {
     height: 240,
     marginHorizontal: 16,
-    borderRadius: 20,
+    borderRadius: 25,
     overflow: "hidden",
     backgroundColor: COLORS.border,
     position: "relative",
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
   pin: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
     right: 12,
     bottom: 12,
     backgroundColor: COLORS.promptBg,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 14,
     gap: 8,
     boxShadow: ELEVATION.light.e4,
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: COLORS.ink,
+    backgroundColor: "#09E0E8",
     paddingVertical: 18,
     borderRadius: 999,
     minHeight: 56,
@@ -566,9 +566,9 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   nextText: {
-    color: COLORS.surface,
+    color: "#0B2540",
     fontSize: 17,
-    fontWeight: "700",
+    fontWeight: "800",
     letterSpacing: 0.2,
   },
 });

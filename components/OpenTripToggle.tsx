@@ -1,4 +1,5 @@
-import { View, Text, Switch, StyleSheet } from "react-native";
+import { View, Switch, StyleSheet } from "react-native";
+import { Text } from "./ui/AppText";
 import { Users } from "lucide-react-native";
 import { brand, editorial } from "../lib/theme/tokens";
 
@@ -39,7 +40,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     backgroundColor: editorial.white,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: editorial.paper2,
     padding: 14,

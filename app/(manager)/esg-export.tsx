@@ -1,12 +1,12 @@
 import { useState } from "react";
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
   Share,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,15 +20,15 @@ import { GlowBackdrop } from "../../components/ui";
 const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",
-  primaryDark: "#003D40",
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",
+  primaryDark: "#0B2540",
   accent: "#F59E0B",
-  dark: "#003D40",
-  background: "#F7F9FA",
+  dark: "#0B2540",
+  background: "#F4FAFB",
   white: "#FFFFFF",
   gray: "#8B989C",
-  grayLight: "#EDF1F2",
+  grayLight: "#EEF6F7",
   green: "#059669",
 };
 
@@ -156,7 +156,7 @@ export default function ESGExportScreen() {
           disabled={isLoadingReport}
         >
           <LinearGradient
-            colors={[COLORS.primary, COLORS.primaryDark]}
+            colors={["#5CF2F6", "#09E0E8", "#00CBD6"]}
             style={styles.generateGradient}
           >
             <Text style={styles.generateText}>
@@ -177,7 +177,7 @@ export default function ESGExportScreen() {
 
             {/* Action buttons */}
             <TouchableOpacity style={styles.actionBtn} onPress={handleShare}>
-              <Download size={18} color={COLORS.white} />
+              <Download size={18} color="#0B2540" />
               <Text style={styles.actionBtnText}>Share / Export</Text>
             </TouchableOpacity>
 
@@ -220,8 +220,8 @@ const styles = StyleSheet.create({
     // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F7F9FA",
+    borderRadius: 28,
+    backgroundColor: "#F4FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
 
   periodRow: { flexDirection: "row", gap: 8, marginBottom: 14 },
   periodBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 12,
+    flex: 1, paddingVertical: 10, borderRadius: 15,
     backgroundColor: COLORS.white, alignItems: "center",
     borderWidth: 1, borderColor: "transparent",
   },
@@ -241,11 +241,11 @@ const styles = StyleSheet.create({
   generateBtn: {
     minHeight: 56, borderRadius: 28, overflow: "hidden", marginBottom: 16 },
   generateGradient: { minHeight: 56, alignItems: "center", justifyContent: "center", paddingVertical: 14 },
-  generateText: { color: COLORS.white, fontWeight: "700", fontSize: 17 },
+  generateText: { color: "#0B2540", fontWeight: "800", fontSize: 17 },
 
   previewCard: {
     backgroundColor: COLORS.white,
- borderRadius: 18,
+ borderRadius: 22,
  padding: 16,
  marginBottom: 14,
     boxShadow: ELEVATION.light.e2,
@@ -255,14 +255,14 @@ const styles = StyleSheet.create({
 
   actionBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 14,
+    backgroundColor: "#09E0E8", borderRadius: 18, paddingVertical: 14,
     gap: 8, marginBottom: 10,
     boxShadow: depth.ctaGlow,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.22)",
   },
   copyBtn: { backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.primary + "40" },
-  actionBtnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
+  actionBtnText: { fontSize: 15, fontWeight: "800", color: "#0B2540"},
 
   emptyBox: {
     alignItems: "center", paddingVertical: 60, gap: 12,

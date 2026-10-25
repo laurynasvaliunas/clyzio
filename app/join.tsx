@@ -1,7 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import {
-  View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  ScrollView,
 } from "react-native";
+import { Text } from "../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,13 +20,13 @@ import { GlowBackdrop } from "../components/ui";
 const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
-  primary: "#00565A",
-  primaryDark: "#003D40",
-  dark: "#003D40",
+  primary: "#007C89",
+  primaryDark: "#0B2540",
+  dark: "#0B2540",
   gray: "#8B989C",
-  textSecondary: "#5A6A6F",
+  textSecondary: "#5B6B7A",
   white: "#FFFFFF",
-  border: "#EDF1F2",
+  border: "#EEF6F7",
   green: "#059669",
   red: "#DC2626",
 };
@@ -112,7 +117,7 @@ export default function JoinScreen() {
               count toward their sustainability goals.
             </Text>
             <TouchableOpacity style={styles.ctaBtn} onPress={() => router.replace("/(tabs)")} activeOpacity={0.85}>
-              <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGradient}>
+              <LinearGradient colors={["#5CF2F6", "#09E0E8", "#00CBD6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGradient}>
                 <Text style={styles.ctaText}>Continue</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -131,7 +136,7 @@ export default function JoinScreen() {
               onPress={async () => { await signOut(); router.replace("/(auth)/login"); }}
               activeOpacity={0.85}
             >
-              <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGradient}>
+              <LinearGradient colors={["#5CF2F6", "#09E0E8", "#00CBD6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGradient}>
                 <Text style={styles.ctaText}>Switch account</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -146,7 +151,7 @@ export default function JoinScreen() {
               admin to send a new one.
             </Text>
             <TouchableOpacity style={styles.ctaBtn} onPress={() => router.replace("/(tabs)")} activeOpacity={0.85}>
-              <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGradient}>
+              <LinearGradient colors={["#5CF2F6", "#09E0E8", "#00CBD6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGradient}>
                 <Text style={styles.ctaText}>Continue to app</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -161,13 +166,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40, justifyContent: "center" },
   iconWrap: {
-    width: 72, height: 72, borderRadius: 20, alignSelf: "center",
-    backgroundColor: "#E6F1F2", alignItems: "center", justifyContent: "center", marginBottom: 20,
+    width: 72, height: 72, borderRadius: 25, alignSelf: "center",
+    backgroundColor: "#E3FAFB", alignItems: "center", justifyContent: "center", marginBottom: 20,
     boxShadow: depth.embossLight,
   },
   heading: { fontSize: 26, fontWeight: "700", color: COLORS.dark, textAlign: "center" },
   sub: { fontSize: 15, color: COLORS.textSecondary, textAlign: "center", lineHeight: 22, marginTop: 10 },
   ctaBtn: { borderRadius: 28, overflow: "hidden", marginTop: 28 },
   ctaGradient: { height: 56, alignItems: "center", justifyContent: "center" },
-  ctaText: { fontSize: 17, fontWeight: "700", color: COLORS.white },
+  ctaText: { fontSize: 17, fontWeight: "800", color: "#0B2540"},
 });

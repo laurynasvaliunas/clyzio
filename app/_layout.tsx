@@ -31,6 +31,19 @@ import { useNotificationToastStore } from "../store/useNotificationToastStore";
 import IncomingSuggestionBanner from "../components/IncomingSuggestionBanner";
 import InAppNotificationToast from "../components/InAppNotificationToast";
 import LiveLocationSharer from "../components/LiveLocationSharer";
+import {
+  useFonts,
+  Nunito_200ExtraLight,
+  Nunito_300Light,
+  Nunito_400Regular,
+  Nunito_400Regular_Italic,
+  Nunito_500Medium,
+  Nunito_600SemiBold,
+  Nunito_600SemiBold_Italic,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+  Nunito_900Black,
+} from "@expo-google-fonts/nunito";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { initSentry, setSentryUser, clearSentryUser, captureError, Sentry } from "../lib/sentry";
 import { elevation as ELEVATION } from "../lib/theme/tokens";
@@ -41,11 +54,11 @@ initSentry();
 
 // Brand Colors (matching logo)
 const COLORS = {
-  primary: "#00565A",  // Unified Cyan (Phase 27)  // Cyan from logo
+  primary: "#007C89",  // Unified Cyan (Phase 27)  // Cyan from logo
   accent: "#F59E0B",   // Yellow sun
-  dark: "#003D40",
+  dark: "#0B2540",
   white: "#FFFFFF",
-  background: "#F7F9FA",
+  background: "#F4FAFB",
 };
 
 // Configure notification handler — suppress system banner in-foreground;
@@ -166,10 +179,10 @@ function AnimatedSplash({
   return (
     <Animated.View style={[splashStyles.root, { opacity: containerOpacity }]}>
       <LinearGradient
-        colors={["#00676D", "#00565A"]}
+        colors={["#0095A3", "#007C89"]}
         style={StyleSheet.absoluteFill}
       />
-      <StatusBar barStyle="light-content" backgroundColor="#00565A" />
+      <StatusBar barStyle="light-content" backgroundColor="#007C89" />
 
       <View style={splashStyles.logoWrap}>
         <Animated.View
@@ -228,6 +241,21 @@ function RootLayoutContent() {
   // avoid the wrong variant flashing). `true` = fast path. `false` = full.
   const [splashSkipResolved, setSplashSkipResolved] = useState<boolean | null>(null);
   const [skipFullSplash, setSkipFullSplash] = useState(false);
+  // The rounded app font (components/ui/AppText). Held behind the splash; a
+  // load failure falls back to the system font rather than blocking.
+  const [fontsLoaded, fontError] = useFonts({
+    Nunito_200ExtraLight,
+    Nunito_300Light,
+    Nunito_400Regular,
+    Nunito_400Regular_Italic,
+    Nunito_500Medium,
+    Nunito_600SemiBold,
+    Nunito_600SemiBold_Italic,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+    Nunito_900Black,
+  });
+  const fontsReady = fontsLoaded || !!fontError;
 
   // CRITICAL: Check for existing session on mount (Fix auth persistence)
   useEffect(() => {
@@ -546,7 +574,7 @@ function RootLayoutContent() {
   // the auth session has been resolved. Previously we only waited on `isReady`
   // which meant a fraction of a second of unauthenticated tabs flashed before
   // the redirect effect ran.
-  if (!isReady || isAuthenticated === null || splashSkipResolved === null) {
+  if (!isReady || isAuthenticated === null || splashSkipResolved === null || !fontsReady) {
     return (
       <SafeAreaProvider>
         <AnimatedSplash

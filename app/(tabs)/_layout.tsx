@@ -1,24 +1,24 @@
 import { useEffect } from "react";
 import { Tabs } from "expo-router";
 import { View, StyleSheet } from "react-native";
-import { BlurView } from "expo-blur";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Map, Calendar, BarChart3, User, LucideIcon } from "lucide-react-native";
 import { useTheme } from "../../contexts/ThemeContext";
-import { brand, editorial, elevation, getGlass, motion } from "../../lib/theme";
+import { editorial, elevation, fun, motion } from "../../lib/theme";
 
-// Floating glass tab bar (2026-10 redesign). It occupies at most
+// Floating friendly tab bar (2026-10 Waze-style redesign): a white pill with a
+// bright cyan bubble behind the active icon. It occupies at most
 // TAB_BAR_HEIGHT (88) from the bottom edge — bar height + bottom gap — so the
 // screens' TAB_SCREEN_BOTTOM_PADDING still clears it.
-const BAR_HEIGHT = 60;
-const BAR_RADIUS = 24;
+const BAR_HEIGHT = 62;
+const BAR_RADIUS = 31;
 
 const TINT = {
-  activeLight: brand.primaryDark,
-  activeDark: "#7FD3D6",
-  inactiveLight: editorial.ink4,
-  inactiveDark: "rgba(255,255,255,0.45)",
+  activeLight: fun.navy,
+  activeDark: "#7CF0F4",
+  inactiveLight: editorial.ink3,
+  inactiveDark: "rgba(255,255,255,0.55)",
 };
 
 function TabIcon({ Icon, color, focused, isDark }: { Icon: LucideIcon; color: string; focused: boolean; isDark: boolean }) {
@@ -33,9 +33,9 @@ function TabIcon({ Icon, color, focused, isDark }: { Icon: LucideIcon; color: st
   return (
     <View style={styles.iconWrap}>
       <Animated.View
-        style={[styles.pill, { backgroundColor: isDark ? "rgba(127,211,214,0.16)" : "rgba(0,86,90,0.10)" }, pill]}
+        style={[styles.pill, { backgroundColor: isDark ? "rgba(124,240,244,0.18)" : fun.cyan }, pill]}
       />
-      <Icon size={21} color={color} strokeWidth={focused ? 2.4 : 2} />
+      <Icon size={22} color={color} strokeWidth={focused ? 2.5 : 2.1} />
     </View>
   );
 }
@@ -43,7 +43,6 @@ function TabIcon({ Icon, color, focused, isDark }: { Icon: LucideIcon; color: st
 export default function TabsLayout() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const g = getGlass(isDark);
   const bottomGap = Math.max(insets.bottom - 10, 12);
 
   return (
@@ -60,31 +59,17 @@ export default function TabsLayout() {
           paddingTop: 6,
           paddingBottom: 6,
           borderRadius: BAR_RADIUS,
-          backgroundColor: "transparent",
+          backgroundColor: isDark ? editorial.night2 : "#FFFFFF",
           borderTopWidth: 0,
           elevation: 0,
-          boxShadow: (isDark ? elevation.dark : elevation.light).e4,
+          boxShadow: (isDark ? elevation.dark : elevation.light).e3,
         },
         tabBarItemStyle: { height: BAR_HEIGHT - 12 },
-        tabBarBackground: () => (
-          <View style={[StyleSheet.absoluteFill, styles.barClip]}>
-            <BlurView intensity={g.intensity + 15} tint={g.tint} style={StyleSheet.absoluteFill} />
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: g.fill }]} />
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                styles.barClip,
-                { borderWidth: StyleSheet.hairlineWidth, borderColor: g.stroke, borderTopColor: g.highlight },
-              ]}
-            />
-          </View>
-        ),
         tabBarLabelStyle: {
-          fontWeight: "600",
+          // React Navigation draws its own Text, so the rounded font is set here.
+          fontFamily: "Nunito_800ExtraBold",
           // Bumped 9.5 → 11 for legibility (accessibility sweep G1/G4).
-          fontSize: 11,
-          letterSpacing: 0.4,
-          textTransform: "uppercase",
+          fontSize: 11.5,
           marginTop: 1,
         },
       }}
@@ -150,7 +135,6 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  barClip: { borderRadius: BAR_RADIUS, overflow: "hidden" },
-  iconWrap: { width: 52, height: 30, alignItems: "center", justifyContent: "center" },
-  pill: { position: "absolute", width: 52, height: 30, borderRadius: 15 },
+  iconWrap: { width: 54, height: 30, alignItems: "center", justifyContent: "center" },
+  pill: { position: "absolute", width: 54, height: 30, borderRadius: 19 },
 });

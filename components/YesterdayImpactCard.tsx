@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { Text } from "./ui/AppText";
 import { Leaf, X, ArrowRight } from "lucide-react-native";
 import { elevation as ELEVATION } from "../lib/theme/tokens";
 
@@ -16,13 +17,13 @@ import { elevation as ELEVATION } from "../lib/theme/tokens";
 const COLORS = {
   surface: "#FFFFFF",
   surfaceDark: "#0E1F23",
-  ink: "#0B1A1F",
+  ink: "#0B2540",
   inkDark: "#FFFFFF",
-  inkSoft: "#5A6A6F",
+  inkSoft: "#5B6B7A",
   inkSoftDark: "#8B989C",
   leaf: "#059669",
   clay: "#DC2626",
-  track: "#EDF1F2",
+  track: "#EEF6F7",
   trackDark: "#1B3035",
 };
 
@@ -131,7 +132,7 @@ export default function YesterdayImpactCard({ impact, onSeeImpact, onDismiss, is
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 22,
+    borderRadius: 28,
     padding: 18,
     gap: 12,
     boxShadow: ELEVATION.light.e4,
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
   leafWrap: {
     width: 30,
     height: 30,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: "rgba(5,150,105,0.14)",
     alignItems: "center",
     justifyContent: "center",

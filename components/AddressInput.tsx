@@ -1,13 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
   Animated,
   ScrollView,
 } from "react-native";
+import { Text, TextInput } from "./ui/AppText";
 import { X } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -15,16 +14,16 @@ import { MAPBOX_TOKEN } from "../lib/config";
 import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 const COLORS = {
-  primary: "#00565A",
+  primary: "#007C89",
   accent: "#F59E0B",
   accentDark: "#F59E0B",
-  dark: "#003D40",
+  dark: "#0B2540",
   white: "#FFFFFF",
   gray: "#8B989C",
-  grayLight: "#EDF1F2",
-  grayDark: "#5A6A6F",
-  slate800: "#0B1A1F",
-  slate700: "#5A6A6F",
+  grayLight: "#EEF6F7",
+  grayDark: "#5B6B7A",
+  slate800: "#0B2540",
+  slate700: "#5B6B7A",
   red: "#DC2626",
 };
 
@@ -239,7 +238,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: COLORS.grayLight,
     alignItems: "center",
     justifyContent: "center",
@@ -248,7 +247,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     height: 48,
-    borderRadius: 12,
+    borderRadius: 15,
     paddingHorizontal: 16,
     fontSize: 15,
   },
@@ -258,7 +257,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 15,
     maxHeight: 250,
     boxShadow: ELEVATION.light.e2,
   },

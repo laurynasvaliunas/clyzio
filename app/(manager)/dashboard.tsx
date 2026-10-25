@@ -1,12 +1,12 @@
 import { useCallback } from "react";
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -32,16 +32,16 @@ import { DeptSkyline } from "../../components/three";
 const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",
-  primaryDark: "#003D40",
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",
+  primaryDark: "#0B2540",
   accent: "#F59E0B",
-  dark: "#003D40",
-  light: "#E6F1F2",
-  background: "#F7F9FA",
+  dark: "#0B2540",
+  light: "#E3FAFB",
+  background: "#F4FAFB",
   white: "#FFFFFF",
   gray: "#8B989C",
-  grayLight: "#EDF1F2",
+  grayLight: "#EEF6F7",
   green: "#059669",
   orange: "#D97706",
   red: "#DC2626",
@@ -182,10 +182,10 @@ export default function ManagerDashboardScreen() {
               onPress={() => fetchSustainabilityReport("month")}
             >
               <LinearGradient
-                colors={[COLORS.primary, COLORS.primaryDark]}
+                colors={["#5CF2F6", "#09E0E8", "#00CBD6"]}
                 style={styles.generateGradient}
               >
-                <Sparkles size={16} color={COLORS.white} />
+                <Sparkles size={16} color="#0B2540" />
                 <Text style={styles.generateText}>Generate AI Sustainability Report</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -341,8 +341,8 @@ const styles = StyleSheet.create({
     // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F7F9FA",
+    borderRadius: 28,
+    backgroundColor: "#F4FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -351,9 +351,9 @@ const styles = StyleSheet.create({
   scroll: { flex: 1, paddingHorizontal: 16 },
 
   // Hero
-  heroTilt: { borderRadius: 24, marginBottom: 16, boxShadow: ELEVATION.light.e4 },
+  heroTilt: { borderRadius: 30, marginBottom: 16, boxShadow: ELEVATION.light.e4 },
   heroCard: {
-    borderRadius: 24, padding: 28,
+    borderRadius: 30, padding: 28,
     alignItems: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.16)",
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
  backgroundColor: COLORS.white,
- borderRadius: 20,
+ borderRadius: 25,
     padding: 14,
  alignItems: "center",
  gap: 6,
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   // Section
   section: {
     backgroundColor: COLORS.white,
- borderRadius: 20,
+ borderRadius: 25,
  padding: 18,
     marginBottom: 14,
     boxShadow: ELEVATION.light.e2,
@@ -405,13 +405,13 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     paddingVertical: 14, gap: 8,
   },
-  generateText: { color: COLORS.white, fontWeight: "700", fontSize: 14 },
+  generateText: { color: "#0B2540", fontWeight: "800", fontSize: 14 },
   executiveSummary: {
     fontSize: 14, color: COLORS.dark, lineHeight: 21,
     marginBottom: 14, fontStyle: "italic",
   },
   insightCard: {
-    backgroundColor: COLORS.grayLight, borderRadius: 14, padding: 14, marginBottom: 10,
+    backgroundColor: COLORS.grayLight, borderRadius: 18, padding: 14, marginBottom: 10,
     borderLeftWidth: 3, borderLeftColor: COLORS.gray,
   },
   insightTitle: { fontSize: 13, fontWeight: "700", color: COLORS.dark, marginBottom: 2 },
@@ -441,11 +441,11 @@ const styles = StyleSheet.create({
   manageText: { fontSize: 13, color: COLORS.primary, fontWeight: "600" },
   createChallengeBtn: {
     flexDirection: "row", alignItems: "center", gap: 10,
-    backgroundColor: COLORS.grayLight, borderRadius: 14, padding: 14,
+    backgroundColor: COLORS.grayLight, borderRadius: 18, padding: 14,
   },
   createChallengeText: { fontSize: 14, color: COLORS.textMuted },
   challengeCard: {
-    backgroundColor: COLORS.grayLight, borderRadius: 14, padding: 14, marginBottom: 10,
+    backgroundColor: COLORS.grayLight, borderRadius: 18, padding: 14, marginBottom: 10,
   },
   challengeTitle: { fontSize: 14, fontWeight: "600", color: COLORS.dark, marginBottom: 8 },
   challengeProgress: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
   // Export
   exportBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    backgroundColor: COLORS.white, borderRadius: 16, padding: 16,
+    backgroundColor: COLORS.white, borderRadius: 20, padding: 16,
     borderWidth: 1, borderColor: COLORS.primary + "40",
     gap: 8, marginBottom: 8,
   },

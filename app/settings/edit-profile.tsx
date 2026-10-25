@@ -1,5 +1,6 @@
 import { useCallback, useRef } from "react";
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
+import { View, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
@@ -23,9 +24,9 @@ const GLOW_TOP = { bottom: undefined, height: 420 } as const;
  */
 
 const COLORS = {
-  primary: "#00565A",
-  dark: "#003D40",
-  background: "#F7F9FA",
+  primary: "#007C89",
+  dark: "#0B2540",
+  background: "#F4FAFB",
   white: "#FFFFFF",
 };
 
@@ -95,8 +96,8 @@ const styles = StyleSheet.create({
     // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F7F9FA",
+    borderRadius: 28,
+    backgroundColor: "#F4FAFB",
     alignItems: "center",
     justifyContent: "center",
   },

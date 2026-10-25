@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { Text } from "./ui/AppText";
 import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 /**
@@ -27,14 +28,14 @@ interface Props {
 const COLORS = {
   surface: "#FFFFFF",
   surfaceDark: "#0E1F23",
-  ink: "#0B1A1F",
+  ink: "#0B2540",
   inkDark: "#FFFFFF",
-  inkSoft: "#5A6A6F",
+  inkSoft: "#5B6B7A",
   inkSoftDark: "#8B989C",
   green: "#059669",
   yellow: "#F59E0B",
   orange: "#DC2626",
-  emptyCell: "#EDF1F2",
+  emptyCell: "#EEF6F7",
   emptyCellDark: "#1B3035",
 };
 
@@ -157,7 +158,7 @@ function Legend({ color, label }: { color: string; label: string }) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 18,
     // No horizontal margin: hosts already pad by 16 (Activity's list content),
     // and the extra margin double-inset the card to 32 vs 16 for trip cards.
@@ -185,7 +186,7 @@ const styles = StyleSheet.create({
   },
   cellToday: {
     borderWidth: 2,
-    borderColor: "#00565A",
+    borderColor: "#007C89",
   },
   cellText: { fontSize: 11, fontWeight: "600" },
   legend: {
@@ -196,5 +197,5 @@ const styles = StyleSheet.create({
   },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
-  legendText: { fontSize: 11, color: "#5A6A6F", fontWeight: "600" },
+  legendText: { fontSize: 11, color: "#5B6B7A", fontWeight: "600" },
 });

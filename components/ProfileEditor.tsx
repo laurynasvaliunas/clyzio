@@ -1,14 +1,13 @@
 import { useState, useCallback, useRef } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
-  TextInput,
   StyleSheet,
   ActivityIndicator,
   Image,
   Switch,
 } from "react-native";
+import { Text, TextInput } from "./ui/AppText";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
@@ -49,17 +48,17 @@ import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
 
 // Brand Colors
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",
-  primaryDark: "#003D40",
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",
+  primaryDark: "#0B2540",
   accent: "#F59E0B",
-  dark: "#003D40",
-  light: "#E6F1F2",
-  background: "#F7F9FA",
+  dark: "#0B2540",
+  light: "#E3FAFB",
+  background: "#F4FAFB",
   white: "#FFFFFF",
   gray: "#8B989C",
-  inkSoft: "#5A6A6F",
-  grayLight: "#EDF1F2",
+  inkSoft: "#5B6B7A",
+  grayLight: "#EEF6F7",
 };
 
 interface ProfileData {
@@ -566,15 +565,15 @@ export default function ProfileEditor({
           {profile.avatar_url ? (
             <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
           ) : (
-            <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.avatarPlaceholder}>
-              <User size={40} color={COLORS.white} />
+            <LinearGradient colors={["#5CF2F6", "#09E0E8", "#00CBD6"]} style={styles.avatarPlaceholder}>
+              <User size={44} color="#0B2540" strokeWidth={2.2} />
             </LinearGradient>
           )}
           <View style={styles.cameraButton}>
             {uploading ? (
-              <ActivityIndicator size="small" color={COLORS.white} />
+              <ActivityIndicator size="small" color="#0B2540" />
             ) : (
-              <Camera size={18} color={COLORS.white} />
+              <Camera size={18} color="#0B2540" strokeWidth={2.4} />
             )}
           </View>
         </TouchableOpacity>
@@ -827,12 +826,12 @@ export default function ProfileEditor({
         onPress={saveProfile}
         disabled={saving}
       >
-        <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.saveGradient}>
+        <LinearGradient colors={["#5CF2F6", "#09E0E8", "#00CBD6"]} style={styles.saveGradient}>
           {saving ? (
-            <ActivityIndicator color={COLORS.white} />
+            <ActivityIndicator color="#0B2540" />
           ) : (
             <>
-              <Save size={20} color={COLORS.white} />
+              <Save size={20} color="#0B2540" />
               <Text style={styles.saveText}>{saveLabel ?? "Save Changes"}</Text>
             </>
           )}
@@ -871,20 +870,18 @@ const styles = StyleSheet.create({
     right: 0,
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.primary,
+    borderRadius: 25,
+    backgroundColor: "#FFDE5A",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
     borderColor: COLORS.white,
-    boxShadow: depth.ctaGlow,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.22)",
+    boxShadow: "inset 0px -3px 0px rgba(11,37,64,0.12), 0px 6px 14px rgba(11,37,64,0.18)",
   },
   avatarHint: { fontSize: 13, color: COLORS.textMuted, marginTop: 12 },
   section: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 20,
     marginBottom: 16,
     boxShadow: ELEVATION.light.e2,
@@ -897,7 +894,7 @@ const styles = StyleSheet.create({
   teamChip: {
     minHeight: 44,
     paddingHorizontal: 16,
-    borderRadius: 22,
+    borderRadius: 28,
     borderWidth: 1.5,
     borderColor: COLORS.grayLight,
     backgroundColor: COLORS.white,
@@ -909,7 +906,7 @@ const styles = StyleSheet.create({
   inputLabel: { fontSize: 12, color: COLORS.textMuted, marginBottom: 8, fontWeight: "500" },
   input: {
     backgroundColor: COLORS.grayLight,
-    borderRadius: 14,
+    borderRadius: 18,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
@@ -919,7 +916,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.grayLight,
-    borderRadius: 14,
+    borderRadius: 18,
     paddingHorizontal: 14,
     paddingVertical: 14,
     gap: 10,
@@ -940,7 +937,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     gap: 10,
   },
-  saveText: { color: COLORS.white, fontSize: 17, fontWeight: "700" },
+  saveText: { color: "#0B2540", fontSize: 17, fontWeight: "800"},
   toggleRow: {
     flexDirection: "row",
     alignItems: "center",

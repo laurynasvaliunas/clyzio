@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
-  Text,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
@@ -9,6 +8,7 @@ import {
   TouchableOpacity,
   Modal,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -46,19 +46,19 @@ import { depth } from "../../lib/theme/tokens";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",   // cyan
-  primaryDark: "#003D40",// teal-2
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",   // cyan
+  primaryDark: "#0B2540",// teal-2
   accent: "#F59E0B",    // sun
   accentDark: "#D97706",// clay
-  dark: "#003D40",      // teal
-  light: "#E6F1F2",     // cyan-fog
-  background: "#F7F9FA",// paper
+  dark: "#0B2540",      // teal
+  light: "#E3FAFB",     // cyan-fog
+  background: "#F4FAFB",// paper
   white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
   green: "#059669",     // leaf
-  black: "#0B1A1F",     // ink
-  blackOverlay: "rgba(11, 26, 31, 0.5)",
+  black: "#0B2540",     // ink
+  blackOverlay: "rgba(11,37,64, 0.5)",
   whiteTransparent10: "rgba(255, 255, 255, 0.1)",
   whiteTransparent20: "rgba(255, 255, 255, 0.2)",
   whiteTransparent30: "rgba(255, 255, 255, 0.3)",
@@ -183,7 +183,7 @@ function LeaderboardRow({ user, index, isCurrentUser = false, showDepartment = t
         {isLeader ? <Crown size={18} color={COLORS.accent} /> : <Text style={[styles.rankNumber, { color: TC.textSecondary }]}>{index + 1}</Text>}
       </View>
       <LinearGradient
-        colors={isLeader ? [COLORS.accent, COLORS.accentDark] : [COLORS.primary, COLORS.primaryDark]}
+        colors={isLeader ? [COLORS.accent, COLORS.accentDark] : ["#00838F", "#00626D"]}
         style={styles.leaderboardAvatar}
       >
         <Text style={styles.leaderboardAvatarText}>{initials || "?"}</Text>
@@ -742,7 +742,7 @@ export default function StatsScreen() {
               <Text style={[styles.chartBarLabel, { color: TC.textSecondary }]}>This Week</Text>
               <View style={styles.chartBarBg}>
                 <LinearGradient
-                  colors={[COLORS.primary, COLORS.primaryDark]}
+                  colors={["#00838F", "#00626D"]}
                   style={[styles.chartBarFill, { width: `${(stats.this_week_co2 / maxBar) * 100}%` }]}
                 />
               </View>
@@ -938,7 +938,7 @@ export default function StatsScreen() {
             {/* Company Stats Hero */}
             {companyTotals && (
               <View style={styles.companyHero}>
-                <LinearGradient colors={[COLORS.dark, "#003D40"]} style={styles.companyHeroCard}>
+                <LinearGradient colors={[COLORS.dark, "#0B2540"]} style={styles.companyHeroCard}>
                   <View style={styles.companyHeroIcon}>
                     <Building2 size={36} color={COLORS.accent} />
                   </View>
@@ -1066,7 +1066,7 @@ const styles = StyleSheet.create({
     width: "33.33%",
     backgroundColor: COLORS.primary,
     borderRadius: 999,
-    boxShadow: "0px 4px 12px rgba(0,86,90,0.30)",
+    boxShadow: "0px 4px 12px rgba(0,124,137,0.30)",
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.22)",
   },
@@ -1102,11 +1102,11 @@ const styles = StyleSheet.create({
   
   // ===== COMPANY VIEW =====
   companyHero: { paddingHorizontal: 16, marginTop: 16 },
-  companyHeroCard: { borderRadius: 24, padding: 24, alignItems: "center" },
+  companyHeroCard: { borderRadius: 30, padding: 24, alignItems: "center" },
   companyHeroIcon: {
     width: 64,
     height: 64,
-    borderRadius: 20,
+    borderRadius: 25,
     backgroundColor: COLORS.whiteTransparent10,
     alignItems: "center",
     justifyContent: "center",
@@ -1130,7 +1130,7 @@ const styles = StyleSheet.create({
   // ===== BREAKDOWN CHART =====
   breakdownCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 20,
     marginHorizontal: 16,
     marginTop: 16,
@@ -1147,7 +1147,7 @@ const styles = StyleSheet.create({
   // ===== LEVEL CARD =====
   levelCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 20,
     marginHorizontal: 16,
     marginTop: 16,
@@ -1155,7 +1155,7 @@ const styles = StyleSheet.create({
   },
   levelHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   levelHint: { fontWeight: "600", fontSize: 11, letterSpacing: 1.4, marginBottom: 14 },
-  levelBadge: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: COLORS.accent + "20", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  levelBadge: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: COLORS.accent + "20", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 15 },
   levelNumber: { fontWeight: "700", fontSize: 20, color: COLORS.accentDark },
   levelTitle: { fontSize: 16, fontWeight: "600", color: COLORS.dark },
   progressBarContainer: { marginBottom: 12 },
@@ -1170,7 +1170,7 @@ const styles = StyleSheet.create({
   guideCard: {
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: 20,
+    borderRadius: 25,
     padding: 18,
   },
   guideTitle: {
@@ -1194,7 +1194,7 @@ const styles = StyleSheet.create({
   badgeCircleUnlocked: {
     borderWidth: 1,
     boxShadow:
-      "inset 0px 2px 3px rgba(255,255,255,0.85), inset 0px -4px 8px rgba(11,26,31,0.10), 0px 8px 16px rgba(11,26,31,0.12)",
+      "inset 0px 2px 3px rgba(255,255,255,0.85), inset 0px -4px 8px rgba(11,37,64,0.10), 0px 8px 16px rgba(11,37,64,0.12)",
   },
   badgeName: { fontSize: 11, fontWeight: "600", color: COLORS.dark, textAlign: "center" },
   badgeNameLocked: { color: COLORS.textMuted },
@@ -1243,7 +1243,7 @@ const styles = StyleSheet.create({
   treesProgress: {
     marginTop: 20,
     backgroundColor: "rgba(255,255,255,0.12)",
-    borderRadius: 18,
+    borderRadius: 22,
     padding: 16,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.18)",
@@ -1260,21 +1260,21 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: COLORS.white,
-    borderRadius: 20,
+    borderRadius: 25,
     padding: 16,
     alignItems: "center",
     boxShadow: ELEVATION.light.e2,
   },
-  statIcon: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
+  statIcon: { width: 38, height: 38, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   statValue: { fontSize: 24, fontWeight: "800", color: COLORS.dark, marginTop: 8, letterSpacing: -0.5 },
   skyline: { height: 190, marginHorizontal: -20, marginTop: -4, marginBottom: 8 },
   statLabel: { fontSize: 11, color: COLORS.textMuted, marginTop: 4, textAlign: "center" },
   
   // ===== WEEKLY CHART =====
-  chartCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, boxShadow: ELEVATION.light.e2 },
+  chartCard: { backgroundColor: COLORS.white, borderRadius: 30, padding: 20, marginHorizontal: 16, marginTop: 16, boxShadow: ELEVATION.light.e2 },
 
   // ── Period summary (week/month/all) ──
-  periodCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 16, marginHorizontal: 16, marginTop: 16, boxShadow: ELEVATION.light.e2 },
+  periodCard: { backgroundColor: COLORS.white, borderRadius: 30, padding: 16, marginHorizontal: 16, marginTop: 16, boxShadow: ELEVATION.light.e2 },
   periodToggle: { flexDirection: "row", borderRadius: 999, padding: 4, gap: 4, marginBottom: 16 },
   periodSeg: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: 999 },
   periodSegText: { fontSize: 13, fontWeight: "700" },
@@ -1286,18 +1286,18 @@ const styles = StyleSheet.create({
   chartContainer: { gap: 16 },
   chartBar: { gap: 8 },
   chartBarLabel: { fontSize: 13, color: COLORS.textMuted },
-  chartBarBg: { height: 24, backgroundColor: COLORS.light, borderRadius: 12, overflow: "hidden" },
-  chartBarFill: { height: 24, borderRadius: 12 },
-  chartBarFillGray: { height: 24, backgroundColor: COLORS.gray, borderRadius: 12, opacity: 0.3 },
+  chartBarBg: { height: 24, backgroundColor: COLORS.light, borderRadius: 15, overflow: "hidden" },
+  chartBarFill: { height: 24, borderRadius: 15 },
+  chartBarFillGray: { height: 24, backgroundColor: COLORS.gray, borderRadius: 15, opacity: 0.3 },
   chartBarValue: { fontSize: 14, fontWeight: "700", color: COLORS.dark },
   
   // ===== LEADERBOARD =====
-  leaderboardCard: { backgroundColor: COLORS.white, borderRadius: 24, padding: 20, marginHorizontal: 16, marginTop: 16, boxShadow: ELEVATION.light.e2 },
+  leaderboardCard: { backgroundColor: COLORS.white, borderRadius: 30, padding: 20, marginHorizontal: 16, marginTop: 16, boxShadow: ELEVATION.light.e2 },
 
   errorBanner: {
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 14,
     backgroundColor: "#FEF2F2",
   },
@@ -1305,7 +1305,7 @@ const styles = StyleSheet.create({
   zeroCard: {
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 24,
     alignItems: "center",
   },
@@ -1328,16 +1328,16 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   zeroCta: {
-    backgroundColor: COLORS.dark,
+    backgroundColor: "#09E0E8",
     borderRadius: 999,
     paddingVertical: 14,
     paddingHorizontal: 26,
   },
-  zeroCtaText: { color: COLORS.white, fontSize: 15, fontWeight: "700" },
+  zeroCtaText: { color: "#0B2540", fontSize: 15, fontWeight: "800"},
 
   // ===== Company impact card (personal view) =====
   companyImpactCard: {
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 20,
     marginHorizontal: 16,
     marginTop: 16,
@@ -1364,7 +1364,7 @@ const styles = StyleSheet.create({
   },
   rankChip: {
     marginLeft: "auto",
-    backgroundColor: "#E6F1F2",
+    backgroundColor: "#E3FAFB",
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -1392,13 +1392,13 @@ const styles = StyleSheet.create({
   },
   emptyText: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", paddingVertical: 20 },
   leaderboardRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.light },
-  leaderboardRowHighlight: { backgroundColor: COLORS.light, marginHorizontal: -12, paddingHorizontal: 12, borderRadius: 12 },
+  leaderboardRowHighlight: { backgroundColor: COLORS.light, marginHorizontal: -12, paddingHorizontal: 12, borderRadius: 15 },
   leaderboardRank: { width: 28, alignItems: "center" },
   rankNumber: { fontSize: 14, fontWeight: "700", color: COLORS.textMuted },
   leaderboardAvatar: {
     width: 38,
     height: 38,
-    borderRadius: 12,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 10,
@@ -1419,13 +1419,13 @@ const styles = StyleSheet.create({
   modalBadge: { width: 100, height: 100, borderRadius: 999, alignItems: "center", justifyContent: "center", marginBottom: 20 },
   modalTitle: { fontSize: 24, fontWeight: "700", color: COLORS.dark, marginBottom: 8 },
   modalDesc: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", marginBottom: 20 },
-  modalUnlocked: { backgroundColor: COLORS.accent, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 16 },
+  modalUnlocked: { backgroundColor: COLORS.accent, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
   modalUnlockedText: { color: COLORS.dark, fontWeight: "700", fontSize: 16 },
   
   // ===== TOP COMMUTING MODES =====
   topModesCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 20,
     marginHorizontal: 16,
     marginTop: 16,

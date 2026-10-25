@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   Image,
@@ -11,6 +9,7 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
+import { Text, TextInput } from "../../components/ui/AppText";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -30,16 +29,16 @@ const FREE_MAIL_DOMAINS = [
 ];
 
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",
-  primaryDark: "#003D40",
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",
+  primaryDark: "#0B2540",
   accent: "#F59E0B",
-  dark: "#003D40",
-  light: "#E6F1F2",
+  dark: "#0B2540",
+  light: "#E3FAFB",
   white: "#FFFFFF",
   gray: "#8B989C",
-  textSecondary: "#5A6A6F",
-  border: "#EDF1F2",
+  textSecondary: "#5B6B7A",
+  border: "#EEF6F7",
 };
 
 export default function LoginScreen() {
@@ -423,13 +422,13 @@ export default function LoginScreen() {
           activeOpacity={0.85}
         >
           <LinearGradient
-            colors={[COLORS.primary, COLORS.primaryDark]}
+            colors={["#5CF2F6", "#09E0E8", "#00CBD6"]}
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.ctaGradient}
           >
             {isLoading
-              ? <ActivityIndicator color={COLORS.white} />
+              ? <ActivityIndicator color="#0B2540" />
               : <Text style={styles.ctaText}>{isSignUp ? "Create Account" : "Sign In"}</Text>
             }
           </LinearGradient>
@@ -488,7 +487,7 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 84,
     height: 84,
-    borderRadius: 24,
+    borderRadius: 30,
     boxShadow: depth.emboss,
   },
   glow: { bottom: undefined, height: 420 },
@@ -515,7 +514,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
     boxShadow: ELEVATION.light.e1,
@@ -539,7 +538,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: COLORS.light,
-    borderRadius: 14,
+    borderRadius: 18,
     borderLeftWidth: 4,
     borderLeftColor: COLORS.primary,
     padding: 14,
@@ -615,23 +614,24 @@ const styles = StyleSheet.create({
   },
 
   ctaBtn: {
-    borderRadius: 28,
+    borderRadius: 999,
     marginTop: 20,
     marginBottom: 16,
     boxShadow: depth.ctaGlow,
+    backgroundColor: "#09E0E8",
   },
   ctaGradient: {
-    borderRadius: 28,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.22)",
+    borderRadius: 999,
+    borderTopWidth: 1.5,
+    borderTopColor: "rgba(255,255,255,0.45)",
     height: 56,
     alignItems: "center",
     justifyContent: "center",
   },
   ctaText: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: COLORS.white,
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0B2540",
   },
 
   toggleRow: {
@@ -650,8 +650,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.light,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,86,90,0.14)",
-    borderRadius: 18,
+    borderColor: "rgba(0,124,137,0.14)",
+    borderRadius: 22,
     padding: 16,
     gap: 12,
   },

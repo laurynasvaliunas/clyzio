@@ -1,4 +1,5 @@
-import { View, Text, ViewStyle, StyleProp } from "react-native";
+import { View, ViewStyle, StyleProp } from "react-native";
+import { Text } from "../AppText";
 import { editorial, weights } from "../../../lib/theme/tokens";
 
 export type AvatarTone =
@@ -11,11 +12,11 @@ export type AvatarTone =
 
 // Harmonized to the deep-teal brand family (tone KEYS kept for compat).
 const TONES: Record<AvatarTone, { bg: string; fg: string }> = {
-  cyan: { bg: "#00565A", fg: "#E6F1F2" },
-  sand: { bg: "#E6F1F2", fg: "#003D40" },
-  rust: { bg: "#003D40", fg: "#E6F1F2" },
+  cyan: { bg: "#007C89", fg: "#E3FAFB" },
+  sand: { bg: "#E3FAFB", fg: "#0B2540" },
+  rust: { bg: "#0B2540", fg: "#E3FAFB" },
   olive: { bg: "#059669", fg: "#ECFDF5" },
-  ink: { bg: "#0B1A1F", fg: "#EDF1F2" },
+  ink: { bg: "#0B2540", fg: "#EEF6F7" },
   paper: { bg: editorial.paper2, fg: editorial.ink3 },
 };
 

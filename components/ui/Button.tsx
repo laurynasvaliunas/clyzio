@@ -11,7 +11,7 @@ import * as Haptics from 'expo-haptics';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Text } from './Text';
-import { brand, semantic, radii, spacing, getPalette, gradients, motion } from '../../lib/theme/tokens';
+import { brand, semantic, spacing, getPalette, gradients, motion, fun, depth } from '../../lib/theme/tokens';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useReducedMotion } from './useReducedMotion';
 
@@ -38,6 +38,8 @@ export interface ButtonProps extends Omit<PressableProps, 'style'> {
  * - Fires haptic feedback on primary/destructive press.
  * - Disables itself while `loading`.
  * - Exposes proper `accessibilityRole`, `accessibilityState`, and label.
+ * - Friendly look: pill shape, the logo's bright cyan with navy extra-bold
+ *   text, and a chunky bottom edge like a toy button.
  */
 export function Button({
   title,
@@ -71,7 +73,7 @@ export function Button({
       hitSlop={8}
       disabled={effectiveDisabled}
       onPressIn={() => {
-        if (!reduce) scale.value = withSpring(0.97, motion.spring.snappy);
+        if (!reduce) scale.value = withSpring(0.96, motion.spring.snappy);
       }}
       onPressOut={() => {
         scale.value = withSpring(1, motion.spring.snappy);
@@ -95,7 +97,7 @@ export function Button({
     >
       {variant === 'primary' && (
         <LinearGradient
-          colors={gradients.brand}
+          colors={gradients.bright}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[StyleSheet.absoluteFill, styles.fill]}
@@ -107,7 +109,7 @@ export function Button({
       ) : (
         <View style={styles.content}>
           {leftIcon ? <View style={{ marginRight: spacing[2] }}>{leftIcon}</View> : null}
-          <Text variant={s.text} style={{ color: v.labelColor }}>
+          <Text variant={s.text} style={{ color: v.labelColor, fontWeight: '800' }}>
             {title}
           </Text>
           {rightIcon ? <View style={{ marginLeft: spacing[2] }}>{rightIcon}</View> : null}
@@ -141,28 +143,30 @@ function variantStyles(
     case 'primary':
       return {
         // Gradient fill is layered on top; the solid colour is its fallback.
+        // Bright cyan always carries navy text (9.5:1).
         container: {
-          backgroundColor: brand.primary,
-          boxShadow: isDark
-            ? '0px 8px 20px rgba(0,0,0,0.40)'
-            : '0px 2px 4px rgba(0,61,64,0.18), 0px 10px 24px rgba(0,86,90,0.28)',
+          backgroundColor: fun.cyan,
+          boxShadow: isDark ? '0px 8px 20px rgba(0,0,0,0.40)' : depth.ctaGlow,
         },
-        labelColor: '#FFFFFF',
+        labelColor: fun.navy,
       };
     case 'destructive':
       return {
         container: {
           backgroundColor: semantic.danger,
-          boxShadow: isDark ? '0px 8px 20px rgba(0,0,0,0.40)' : '0px 8px 20px rgba(220,38,38,0.24)',
+          boxShadow: isDark
+            ? '0px 8px 20px rgba(0,0,0,0.40)'
+            : 'inset 0px -4px 0px rgba(0,0,0,0.16), 0px 8px 20px rgba(220,38,38,0.24)',
         },
         labelColor: '#FFFFFF',
       };
     case 'secondary':
       return {
         container: {
-          backgroundColor: p.surface2,
-          borderWidth: 1,
-          borderColor: p.border,
+          backgroundColor: p.surface,
+          borderWidth: 2,
+          borderColor: fun.cyan,
+          boxShadow: 'inset 0px -3px 0px rgba(11,37,64,0.06)',
         },
         labelColor: p.text,
       };
@@ -177,17 +181,17 @@ function variantStyles(
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radii.lg,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
   fill: {
-    borderRadius: radii.lg,
+    borderRadius: 999,
   },
   // Lit top edge on filled buttons.
   sheen: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.22)',
+    borderTopWidth: 1.5,
+    borderTopColor: 'rgba(255,255,255,0.45)',
   },
   content: {
     flexDirection: 'row',

@@ -1,4 +1,5 @@
-import { View, Text, ViewStyle, StyleProp } from "react-native";
+import { View, ViewStyle, StyleProp } from "react-native";
+import { Text } from "../AppText";
 import { editorial, typography } from "../../../lib/theme/tokens";
 
 export type PillTone =
@@ -11,13 +12,13 @@ export type PillTone =
   | "ghost";
 
 const TONES: Record<PillTone, { bg: string; fg: string; bd: string }> = {
-  paper: { bg: "rgba(11,26,31,0.04)", fg: editorial.ink2, bd: "rgba(11,26,31,0.06)" },
-  cyan: { bg: editorial.cyanFog, fg: editorial.teal2, bd: "rgba(0,61,64,0.08)" },
+  paper: { bg: "rgba(11,37,64,0.04)", fg: editorial.ink2, bd: "rgba(11,37,64,0.06)" },
+  cyan: { bg: editorial.cyanFog, fg: editorial.teal2, bd: "rgba(11,37,64,0.08)" },
   dark: { bg: editorial.ink, fg: "#FFFFFF", bd: "transparent" },
   leaf: { bg: "rgba(5,150,105,0.10)", fg: "#047857", bd: "rgba(5,150,105,0.18)" },
   sun: { bg: "rgba(245,158,11,0.12)", fg: "#92400E", bd: "rgba(245,158,11,0.28)" },
   rust: { bg: "rgba(220,38,38,0.08)", fg: "#B91C1C", bd: "rgba(220,38,38,0.18)" },
-  ghost: { bg: "transparent", fg: editorial.ink3, bd: "rgba(11,26,31,0.10)" },
+  ghost: { bg: "transparent", fg: editorial.ink3, bd: "rgba(11,37,64,0.10)" },
 };
 
 /**

@@ -1,11 +1,11 @@
 import React, { forwardRef } from 'react';
 import {
-  TextInput,
   TextInputProps,
   View,
   StyleSheet,
   ViewStyle,
-} from 'react-native';
+} from "react-native";
+import { TextInput } from "./AppText";
 import { Text } from './Text';
 import { getPalette, radii, semantic, spacing } from '../../lib/theme/tokens';
 import { useTheme } from '../../contexts/ThemeContext';

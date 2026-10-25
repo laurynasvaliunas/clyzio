@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
+import { View, TouchableOpacity, Image, StyleSheet } from "react-native";
+import { Text } from "./ui/AppText";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
@@ -113,21 +114,21 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   logoWrapper: {
-    borderRadius: 12,
+    borderRadius: 15,
   },
   logoImage: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: 15,
   },
   dateChip: {
-    borderRadius: 16,
+    borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
   chipClip: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
   },
   greeting: {
@@ -143,12 +144,12 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   avatarBtn: {
-    borderRadius: 23,
+    borderRadius: 29,
   },
   avatarImage: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 26,
     borderWidth: 3,
     borderColor: editorial.paper,
   },

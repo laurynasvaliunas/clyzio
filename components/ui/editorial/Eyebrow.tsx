@@ -1,4 +1,5 @@
-import { Text, TextStyle, StyleProp } from "react-native";
+import { TextStyle, StyleProp } from "react-native";
+import { Text } from "../AppText";
 import { editorial, typography } from "../../../lib/theme/tokens";
 
 /**

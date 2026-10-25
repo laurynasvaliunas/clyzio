@@ -1,8 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -11,6 +9,7 @@ import {
   ScrollView,
   Image,
 } from "react-native";
+import { Text, TextInput } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -43,14 +42,14 @@ const GLOW_TOP = { bottom: undefined, height: 420 } as const;
  */
 
 const COLORS = {
-  bg: "#F7F9FA",         // paper
+  bg: "#F4FAFB",         // paper
   surface: "#FFFFFF",    // ivory
-  ink: "#0B1A1F",
-  inkSoft: "#5A6A6F",
-  primary: "#00565A",
-  primaryDark: "#003D40",
-  border: "#EDF1F2",
-  avatarBg: "#E6F1F2",
+  ink: "#0B2540",
+  inkSoft: "#5B6B7A",
+  primary: "#007C89",
+  primaryDark: "#0B2540",
+  border: "#EEF6F7",
+  avatarBg: "#E3FAFB",
 };
 
 export default function ProfileSetupScreen() {
@@ -259,11 +258,11 @@ export default function ProfileSetupScreen() {
             accessibilityLabel="Continue to places setup"
           >
             {saving ? (
-              <ActivityIndicator color={COLORS.surface} />
+              <ActivityIndicator color="#0B2540" />
             ) : (
               <>
                 <Text style={styles.ctaText}>Next</Text>
-                <ArrowRight size={18} color={COLORS.surface} />
+                <ArrowRight size={18} color="#0B2540" />
               </>
             )}
           </TouchableOpacity>
@@ -315,7 +314,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: 21,
     backgroundColor: COLORS.primaryDark,
     alignItems: "center",
     justifyContent: "center",
@@ -331,7 +330,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 12,
+    borderRadius: 15,
     paddingHorizontal: 14,
     paddingVertical: Platform.OS === "ios" ? 14 : 10,
     fontSize: 16,
@@ -343,10 +342,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: COLORS.primaryDark,
-    borderRadius: 14,
+    backgroundColor: "#09E0E8",
+    borderRadius: 18,
     paddingVertical: 16,
   },
   ctaDisabled: { opacity: 0.4 },
-  ctaText: { color: COLORS.surface, fontSize: 16, fontWeight: "800" },
+  ctaText: { color: "#0B2540", fontSize: 16, fontWeight: "800"},
 });

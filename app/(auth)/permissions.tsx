@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,16 +51,16 @@ async function routeOnward(): Promise<string> {
  */
 
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: '#00565A',
-  primaryDark: '#00565A',
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: '#007C89',
+  primaryDark: '#007C89',
   accent: '#F59E0B',
-  dark: '#003D40',
-  light: '#E6F1F2',
-  background: '#F7F9FA',
+  dark: '#0B2540',
+  light: '#E3FAFB',
+  background: '#F4FAFB',
   white: '#FFFFFF',
   gray: '#8B989C',
-  grayDark: '#5A6A6F',
+  grayDark: '#5B6B7A',
   green: '#059669',
 };
 
@@ -143,7 +144,7 @@ export default function PermissionsScreen() {
             name: 'default',
             importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#00565A',
+            lightColor: '#007C89',
           });
         }
         // Save the push token now — the sign-in registration ran before this
@@ -195,7 +196,7 @@ export default function PermissionsScreen() {
           accessibilityRole="summary"
           accessibilityLabel={`${card.title}. ${card.body}`}
         >
-          <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.cardIcon}>
+          <LinearGradient colors={["#00838F", "#00626D"]} style={styles.cardIcon}>
             <Icon size={32} color={COLORS.white} />
           </LinearGradient>
           <Text style={styles.cardTitle}>{card.title}</Text>
@@ -288,10 +289,10 @@ const styles = StyleSheet.create({
     height: 6,
     width: 28,
     borderRadius: 3,
-    backgroundColor: 'rgba(0,86,90,0.18)',
+    backgroundColor: 'rgba(0,124,137,0.18)',
   },
   dotActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#09E0E8",
   },
   dotDone: {
     backgroundColor: COLORS.green,
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 28,
     alignItems: 'center',
     boxShadow: ELEVATION.light.e3,

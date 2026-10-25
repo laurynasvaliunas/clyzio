@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { Text } from "./ui/AppText";
 import * as Haptics from "expo-haptics";
 import { useTheme } from "../contexts/ThemeContext";
 import { Picto } from "./ui/editorial";
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
   button: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: 32,
     backgroundColor: editorial.cyan,
     alignItems: "center",
     justifyContent: "center",

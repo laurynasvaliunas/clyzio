@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Modal, View, StyleSheet, Pressable, TextInput, Alert } from 'react-native';
+import { Modal, View, StyleSheet, Pressable, Alert } from "react-native";
+import { TextInput } from "./ui/AppText";
 import { Star } from 'lucide-react-native';
 import { Text, Button, Badge, Card } from './ui';
 import { brand, getPalette, spacing } from '../lib/theme/tokens';
@@ -169,8 +170,8 @@ export default function RatingSheet({
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     padding: 24,
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
   comment: {
     minHeight: 80,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 15,
     padding: 12,
     textAlignVertical: 'top',
   },

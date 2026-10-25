@@ -1,15 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
   Alert,
   Platform,
-  TextInput,
 } from "react-native";
+import { Text, TextInput } from "../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
@@ -40,17 +39,17 @@ import type { ChatThread } from "../lib/chat";
 const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",
-  primaryDark: "#003D40",
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",
+  primaryDark: "#0B2540",
   accent: "#F59E0B",
   green: "#059669",
   red: "#DC2626",
   gray: "#8B989C",
   white: "#FFFFFF",
-  light: "#E6F1F2",
-  background: "#F7F9FA",
-  textSecondary: "#5A6A6F",
+  light: "#E3FAFB",
+  background: "#F4FAFB",
+  textSecondary: "#5B6B7A",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -199,7 +198,7 @@ function DriverDetailsStep({
         activeOpacity={0.8}
       >
         {isLoading ? (
-          <ActivityIndicator color={COLORS.white} />
+          <ActivityIndicator color="#0B2540" />
         ) : (
           <Text style={styles.primaryBtnText}>Submit Intent</Text>
         )}
@@ -380,7 +379,7 @@ function DriverReviewStep({
         activeOpacity={0.8}
       >
         {isLoading ? (
-          <ActivityIndicator color={COLORS.white} />
+          <ActivityIndicator color="#0B2540" />
         ) : (
           <Text style={styles.primaryBtnText}>Confirm Selections</Text>
         )}
@@ -442,7 +441,7 @@ function DriverDetourStep({
         activeOpacity={0.8}
       >
         {isLoading ? (
-          <ActivityIndicator color={COLORS.white} />
+          <ActivityIndicator color="#0B2540" />
         ) : (
           <Text style={styles.primaryBtnText}>Confirm &amp; Notify Passengers</Text>
         )}
@@ -625,7 +624,7 @@ function PassengerDetailsStep({
         activeOpacity={0.8}
       >
         {isLoading ? (
-          <ActivityIndicator color={COLORS.white} />
+          <ActivityIndicator color="#0B2540" />
         ) : (
           <Text style={styles.primaryBtnText}>Find a Driver</Text>
         )}
@@ -710,10 +709,10 @@ function PassengerReviewStep({
           activeOpacity={0.8}
         >
           {isLoading ? (
-            <ActivityIndicator color={COLORS.white} size="small" />
+            <ActivityIndicator color="#0B2540" size="small" />
           ) : (
             <>
-              <CheckCircle size={18} color={COLORS.white} />
+              <CheckCircle size={18} color="#0B2540" />
               <Text style={styles.acceptBtnText}>Accept Ride</Text>
             </>
           )}
@@ -1021,15 +1020,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#EDF1F2",
+    borderBottomColor: "#EEF6F7",
   },
   headerSpacer: { width: 44, height: 44 },
   headerBtn: {
     // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F7F9FA",
+    borderRadius: 28,
+    backgroundColor: "#F4FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1089,7 +1088,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   greenOptionsBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#09E0E8",
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 999,
@@ -1100,9 +1099,9 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(255,255,255,0.22)",
   },
   greenOptionsBtnText: {
-    color: "#FFFFFF",
+    color: "#0B2540",
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "800",
   },
 
   // ── Role cards ──
@@ -1111,7 +1110,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 14,
     backgroundColor: COLORS.white,
-    borderRadius: 18,
+    borderRadius: 22,
     padding: 18,
     marginBottom: 14,
     boxShadow: ELEVATION.light.e2,
@@ -1119,7 +1118,7 @@ const styles = StyleSheet.create({
   roleIconWrap: {
     width: 56,
     height: 56,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1140,7 +1139,7 @@ const styles = StyleSheet.create({
   // ── Fields ──
   fieldCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 18,
     marginBottom: 14,
     boxShadow: ELEVATION.light.e2,
@@ -1164,7 +1163,7 @@ const styles = StyleSheet.create({
   stepperBtn: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: 15,
     borderWidth: 1.5,
     borderColor: COLORS.primary,
     alignItems: "center",
@@ -1187,12 +1186,12 @@ const styles = StyleSheet.create({
     height: 56,
     borderWidth: 1.5,
     borderColor: "#D1FAE5",
-    borderRadius: 14,
+    borderRadius: 18,
     fontSize: 28,
     fontWeight: "700",
     color: COLORS.primaryDark,
     textAlign: "center",
-    backgroundColor: "#E6F1F2",
+    backgroundColor: "#E3FAFB",
     ...Platform.select({ ios: {}, android: { paddingVertical: 0 } }),
   },
   timeSep: {
@@ -1210,7 +1209,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     backgroundColor: COLORS.light,
-    borderRadius: 14,
+    borderRadius: 18,
     paddingHorizontal: 18,
     paddingVertical: 14,
     marginTop: 8,
@@ -1231,15 +1230,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1.5,
-    borderColor: "#EDF1F2",
+    borderColor: "#EEF6F7",
   },
   matchCardAccepted: {
     borderColor: COLORS.primary,
-    backgroundColor: "#E6F1F2",
+    backgroundColor: "#E3FAFB",
     boxShadow: depth.selected,
   },
   matchCardLeft: {
@@ -1251,7 +1250,7 @@ const styles = StyleSheet.create({
   matchAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: 15,
     backgroundColor: COLORS.light,
     alignItems: "center",
     justifyContent: "center",
@@ -1292,7 +1291,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: "#EDF1F2",
+    borderColor: "#EEF6F7",
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 10,
@@ -1306,11 +1305,11 @@ const styles = StyleSheet.create({
   // ── Driver match card (passenger view) ──
   driverMatchCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1.5,
-    borderColor: "#E2E8EA",
+    borderColor: "#E1ECEE",
     boxShadow: ELEVATION.light.e2,
   },
 
@@ -1319,15 +1318,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1.5,
-    borderColor: "#EDF1F2",
+    borderColor: "#EEF6F7",
   },
   detourCardSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: "#E6F1F2",
+    backgroundColor: "#E3FAFB",
     boxShadow: depth.selected,
   },
   detourTitle: {
@@ -1364,7 +1363,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#ECFDF5",
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 14,
     borderWidth: 1,
     borderColor: "#D1FAE5",
@@ -1395,7 +1394,7 @@ const styles = StyleSheet.create({
     gap: 6,
     borderWidth: 1.5,
     borderColor: COLORS.red,
-    borderRadius: 14,
+    borderRadius: 18,
     paddingVertical: 14,
   },
   declineBtnText: {
@@ -1415,8 +1414,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    backgroundColor: COLORS.primary,
-    borderRadius: 14,
+    backgroundColor: "#09E0E8",
+    borderRadius: 18,
     paddingVertical: 14,
     boxShadow: depth.ctaGlow,
     borderTopWidth: 1,
@@ -1424,15 +1423,15 @@ const styles = StyleSheet.create({
   },
   acceptBtnText: {
     fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.white,
+    fontWeight: "800",
+    color: "#0B2540",
   },
 
   // ── Primary button ──
   primaryBtn: {
     minHeight: 56,
     alignSelf: "stretch", // full width even inside centred steps (was text-width)
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#09E0E8",
     borderRadius: 28,
     paddingVertical: 16,
     paddingHorizontal: 24,
@@ -1445,7 +1444,7 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.white,
+    fontWeight: "800",
+    color: "#0B2540",
   },
 });

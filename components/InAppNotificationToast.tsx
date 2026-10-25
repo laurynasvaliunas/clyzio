@@ -1,12 +1,12 @@
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Animated,
   PanResponder,
   Platform,
 } from "react-native";
+import { Text } from "./ui/AppText";
 import { useEffect, useRef, useCallback } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -29,11 +29,11 @@ const TYPE_CONFIG: Record<
   { icon: React.ElementType; iconColor: string; accentColor: string; bg: string }
 > = {
   co2:      { icon: Leaf,    iconColor: "#059669", accentColor: "#059669", bg: "#ECFDF5" },
-  trip:     { icon: MapPin,  iconColor: "#00565A", accentColor: "#00565A", bg: "#E6F1F2" },
-  carpool:  { icon: Users,   iconColor: "#00565A", accentColor: "#00565A", bg: "#E6F1F2" },
+  trip:     { icon: MapPin,  iconColor: "#007C89", accentColor: "#007C89", bg: "#E3FAFB" },
+  carpool:  { icon: Users,   iconColor: "#007C89", accentColor: "#007C89", bg: "#E3FAFB" },
   badge:    { icon: Trophy,  iconColor: "#F59E0B", accentColor: "#F59E0B", bg: "#FFFBEB" },
   reminder: { icon: Bell,    iconColor: "#D97706", accentColor: "#D97706", bg: "#FFFBEB" },
-  info:     { icon: Car,     iconColor: "#00565A", accentColor: "#00565A", bg: "#E6F1F2" },
+  info:     { icon: Car,     iconColor: "#007C89", accentColor: "#007C89", bg: "#E3FAFB" },
 };
 
 function ToastCard({ item }: { item: ToastItem }) {
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
     boxShadow: ELEVATION.light.e3,
   },
@@ -189,13 +189,13 @@ const styles = StyleSheet.create({
   accentBar: {
     width: 4,
     alignSelf: "stretch",
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
   },
   iconWrap: {
     width: 38,
     height: 38,
-    borderRadius: 12,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -206,25 +206,25 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#003D40",
+    color: "#0B2540",
     letterSpacing: 0.1,
   },
   body: {
     fontSize: 12,
-    color: "#5A6A6F",
+    color: "#5B6B7A",
     lineHeight: 17,
   },
   closeBtn: {
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: "#EDF1F2",
+    backgroundColor: "#EEF6F7",
     alignItems: "center",
     justifyContent: "center",
   },
   progressBar: {
     height: 3,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
 });

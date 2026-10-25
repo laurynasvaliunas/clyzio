@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
   Alert,
   Switch,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
@@ -47,15 +47,15 @@ const sectionEntering = (i: number) => FadeInDown.delay(i * motion.stagger).spri
 const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",  // Unified Cyan (Phase 27)
-  primaryDark: "#003D40",
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",  // Unified Cyan (Phase 27)
+  primaryDark: "#0B2540",
   accent: "#F59E0B",
-  dark: "#003D40",
-  background: "#F7F9FA",
+  dark: "#0B2540",
+  background: "#F4FAFB",
   white: "#FFFFFF",
   gray: "#8B989C",
-  grayLight: "#EDF1F2",
+  grayLight: "#EEF6F7",
   red: "#DC2626",
   green: "#059669",
 };
@@ -494,8 +494,8 @@ const styles = StyleSheet.create({
     // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F7F9FA",
+    borderRadius: 28,
+    backgroundColor: "#F4FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -528,14 +528,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 15,
     marginBottom: 8,
     boxShadow: ELEVATION.light.e2,
   },
+  // Round icon bubbles (Waze-style menu).
   iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,

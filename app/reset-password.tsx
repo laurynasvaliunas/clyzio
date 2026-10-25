@@ -1,8 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import {
-  View, Text, TextInput, TouchableOpacity, ActivityIndicator,
-  StyleSheet, KeyboardAvoidingView, Platform, ScrollView,
+  View,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
+import { Text, TextInput } from "../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";
@@ -18,14 +24,14 @@ import { GlowBackdrop } from "../components/ui";
 const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
-  primary: "#00565A",
-  primaryDark: "#003D40",
+  primary: "#007C89",
+  primaryDark: "#0B2540",
   accent: "#F59E0B",
-  dark: "#003D40",
+  dark: "#0B2540",
   gray: "#8B989C",
-  textSecondary: "#5A6A6F",
+  textSecondary: "#5B6B7A",
   white: "#FFFFFF",
-  border: "#EDF1F2",
+  border: "#EEF6F7",
   red: "#DC2626",
 };
 
@@ -156,7 +162,7 @@ export default function ResetPasswordScreen() {
                 This reset link is invalid or has expired. Request a new one from the sign-in screen.
               </Text>
               <TouchableOpacity style={styles.ctaBtn} onPress={() => router.replace("/(auth)/login")} activeOpacity={0.85}>
-                <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGradient}>
+                <LinearGradient colors={["#5CF2F6", "#09E0E8", "#00CBD6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGradient}>
                   <Text style={styles.ctaText}>Back to Sign In</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -205,8 +211,8 @@ export default function ResetPasswordScreen() {
                 disabled={saving}
                 activeOpacity={0.85}
               >
-                <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGradient}>
-                  {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.ctaText}>Update Password</Text>}
+                <LinearGradient colors={["#5CF2F6", "#09E0E8", "#00CBD6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ctaGradient}>
+                  {saving ? <ActivityIndicator color="#0B2540" /> : <Text style={styles.ctaText}>Update Password</Text>}
                 </LinearGradient>
               </TouchableOpacity>
             </>
@@ -221,8 +227,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.white },
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 },
   iconWrap: {
-    width: 72, height: 72, borderRadius: 20, alignSelf: "center",
-    backgroundColor: "#E6F1F2", alignItems: "center", justifyContent: "center", marginBottom: 20,
+    width: 72, height: 72, borderRadius: 25, alignSelf: "center",
+    backgroundColor: "#E3FAFB", alignItems: "center", justifyContent: "center", marginBottom: 20,
     boxShadow: depth.embossLight,
   },
   heading: { fontSize: 26, fontWeight: "700", color: COLORS.dark, textAlign: "center" },
@@ -230,10 +236,10 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: "500", color: COLORS.textSecondary, marginBottom: 8, marginTop: 20 },
   inputWrap: {
     flexDirection: "row", alignItems: "center", backgroundColor: COLORS.white,
-    borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14, height: 52,
+    borderRadius: 15, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 14, height: 52,
   },
   input: { flex: 1, fontSize: 15, color: COLORS.dark },
   ctaBtn: { borderRadius: 28, overflow: "hidden", marginTop: 28 },
   ctaGradient: { height: 56, alignItems: "center", justifyContent: "center" },
-  ctaText: { fontSize: 17, fontWeight: "700", color: COLORS.white },
+  ctaText: { fontSize: 17, fontWeight: "800", color: "#0B2540"},
 });

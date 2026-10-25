@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text as RNText, TextProps, StyleSheet } from 'react-native';
 import { typography, getPalette } from '../../lib/theme/tokens';
+import { withAppFont } from './AppText';
 import { useTheme } from '../../contexts/ThemeContext';
 
 type Variant = keyof typeof typography;
@@ -25,7 +26,7 @@ export function Text({ variant = 'body', tone = 'default', style, ...rest }: Txt
   return (
     <RNText
       maxFontSizeMultiplier={1.6}
-      style={[typography[variant], { color }, style]}
+      style={withAppFont([typography[variant], { color }, style])}
       {...rest}
     />
   );
@@ -39,10 +40,10 @@ function toneColor(
   switch (tone) {
     case 'secondary': return p.textSecondary;
     case 'muted': return p.textMuted;
-    case 'brand': return '#00565A';
+    case 'brand': return '#007C89';
     case 'danger': return '#DC2626';
     case 'success': return '#059669';
-    case 'inverse': return isDark ? '#0B1A1F' : '#FFFFFF';
+    case 'inverse': return isDark ? '#0B2540' : '#FFFFFF';
     default: return p.text;
   }
 }

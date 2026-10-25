@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { Text } from "./ui/AppText";
 import { MarkerView } from "@rnmapbox/maps";
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { MapPin } from "lucide-react-native";
@@ -21,10 +22,10 @@ import type { TripIntentMatch } from "../store/useDailyCommuteStore";
  * before the trip, their live position from 15 min before pickup.
  */
 const COLORS = {
-  primary: "#00565A",
+  primary: "#007C89",
   live: "#059669",
   stale: "#8B989C",
-  ink: "#0B1A1F",
+  ink: "#0B2540",
   white: "#FFFFFF",
 };
 
@@ -157,10 +158,10 @@ const styles = StyleSheet.create({
     width: AVATAR + 28,
     height: AVATAR + 28,
     borderRadius: (AVATAR + 28) / 2,
-    backgroundColor: "rgba(0,86,90,0.12)",
+    backgroundColor: "rgba(0,124,137,0.12)",
     borderWidth: 1,
     borderStyle: "dashed",
-    borderColor: "rgba(0,86,90,0.45)",
+    borderColor: "rgba(0,124,137,0.45)",
   },
   avatar: {
     width: AVATAR,
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0px 4px 10px rgba(11,26,31,0.25)",
+    boxShadow: "0px 4px 10px rgba(11,37,64,0.25)",
   },
   initial: { color: COLORS.white, fontSize: 16, fontWeight: "700" },
   caption: {
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 999,
     backgroundColor: COLORS.white,
-    boxShadow: "0px 2px 6px rgba(11,26,31,0.18)",
+    boxShadow: "0px 2px 6px rgba(11,37,64,0.18)",
     maxWidth: 180,
   },
   captionText: { fontSize: 11, fontWeight: "700", color: COLORS.ink },
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
     backgroundColor: COLORS.primary,
-    boxShadow: "0px 3px 8px rgba(11,26,31,0.25)",
+    boxShadow: "0px 3px 8px rgba(11,37,64,0.25)",
   },
   pickupText: { color: COLORS.white, fontSize: 11, fontWeight: "700" },
 });

@@ -1,13 +1,14 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { Text } from "./ui/AppText";
 import { LinearGradient } from "expo-linear-gradient";
 import { TrendingDown, Fuel, ParkingCircle, Leaf } from "lucide-react-native";
 
 // Editorial reskin — brand + paper-ink palette.
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",   // cyan
-  primaryDark: "#003D40",// teal-2
-  dark: "#003D40",      // teal
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",   // cyan
+  primaryDark: "#0B2540",// teal-2
+  dark: "#0B2540",      // teal
   white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
   green: "#059669",     // leaf
@@ -101,7 +102,7 @@ export default function CostSavingsCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 20,
     marginBottom: 16,
   },
@@ -145,7 +146,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.6)",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 10,
+    borderRadius: 12,
   },
   breakdownText: {
     fontSize: 13,

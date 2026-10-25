@@ -1,14 +1,13 @@
 import { useState, useCallback } from "react";
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   StyleSheet,
   Switch,
   Modal,
 } from "react-native";
+import { Text, TextInput } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,15 +21,15 @@ import { GlowBackdrop } from "../../components/ui";
 const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",
-  primaryDark: "#003D40",
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",
+  primaryDark: "#0B2540",
   accent: "#F59E0B",
-  dark: "#003D40",
-  background: "#F7F9FA",
+  dark: "#0B2540",
+  background: "#F4FAFB",
   white: "#FFFFFF",
   gray: "#8B989C",
-  grayLight: "#EDF1F2",
+  grayLight: "#EEF6F7",
   green: "#059669",
 };
 
@@ -110,10 +109,10 @@ export default function ChallengesScreen() {
               onPress={() => setShowCreate(true)}
             >
               <LinearGradient
-                colors={[COLORS.primary, COLORS.primaryDark]}
+                colors={["#5CF2F6", "#09E0E8", "#00CBD6"]}
                 style={styles.createFirstGradient}
               >
-                <Plus size={16} color={COLORS.white} />
+                <Plus size={16} color="#0B2540" />
                 <Text style={styles.createFirstText}>Create Challenge</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -258,7 +257,7 @@ export default function ChallengesScreen() {
               disabled={saving}
             >
               <LinearGradient
-                colors={[COLORS.primary, COLORS.primaryDark]}
+                colors={["#5CF2F6", "#09E0E8", "#00CBD6"]}
                 style={styles.saveGradient}
               >
                 <Text style={styles.saveBtnText}>
@@ -285,14 +284,14 @@ const styles = StyleSheet.create({
     // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F7F9FA",
+    borderRadius: 28,
+    backgroundColor: "#F4FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
   addBtn: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.white,
+    width: 40, height: 40, borderRadius: 15, backgroundColor: COLORS.white,
     alignItems: "center", justifyContent: "center",
     borderWidth: 1, borderColor: COLORS.primary + "40",
   },
@@ -301,16 +300,16 @@ const styles = StyleSheet.create({
   emptyBox: { alignItems: "center", paddingVertical: 60, gap: 12 },
   emptyTitle: { fontSize: 17, fontWeight: "700", color: COLORS.dark },
   emptyText: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", paddingHorizontal: 24 },
-  createFirstBtn: { borderRadius: 14, overflow: "hidden", marginTop: 8 },
+  createFirstBtn: { borderRadius: 18, overflow: "hidden", marginTop: 8 },
   createFirstGradient: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     paddingVertical: 14, paddingHorizontal: 28, gap: 8,
   },
-  createFirstText: { color: COLORS.white, fontWeight: "700" },
+  createFirstText: { color: "#0B2540", fontWeight: "800"},
 
   challengeCard: {
     backgroundColor: COLORS.white,
- borderRadius: 18,
+ borderRadius: 22,
  padding: 16,
  marginBottom: 12,
     boxShadow: ELEVATION.light.e2,
@@ -350,7 +349,7 @@ const styles = StyleSheet.create({
     marginBottom: 8, marginTop: 4,
   },
   input: {
-    backgroundColor: COLORS.white, borderRadius: 14,
+    backgroundColor: COLORS.white, borderRadius: 18,
     paddingHorizontal: 16, paddingVertical: 14,
     fontSize: 15, color: COLORS.dark, marginBottom: 16,
     borderWidth: 1, borderColor: COLORS.grayLight,
@@ -359,7 +358,7 @@ const styles = StyleSheet.create({
 
   typeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
   typeBtn: {
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12,
     backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.grayLight,
   },
   typeBtnActive: { backgroundColor: COLORS.primary + "15", borderColor: COLORS.primary, boxShadow: depth.selected },
@@ -372,5 +371,5 @@ const styles = StyleSheet.create({
     minHeight: 56, alignItems: "center", justifyContent: "center",
     paddingVertical: 16,
   },
-  saveBtnText: { color: COLORS.white, fontWeight: "700", fontSize: 17 },
+  saveBtnText: { color: "#0B2540", fontWeight: "800", fontSize: 17 },
 });

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -26,16 +26,16 @@ import { GlowBackdrop } from "../../components/ui";
 const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",
-  primaryDark: "#003D40",
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",
+  primaryDark: "#0B2540",
   accent: "#F59E0B",
-  dark: "#003D40",
-  light: "#E6F1F2",
-  background: "#F7F9FA",
+  dark: "#0B2540",
+  light: "#E3FAFB",
+  background: "#F4FAFB",
   white: "#FFFFFF",
   gray: "#8B989C",
-  grayLight: "#EDF1F2",
+  grayLight: "#EEF6F7",
   green: "#059669",
   orange: "#D97706",
   red: "#DC2626",
@@ -122,7 +122,7 @@ export default function InsightsScreen() {
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
 
           {/* CO₂ Equivalents */}
-          <LinearGradient colors={["#E6F1F2", "#E2E8EA"]} style={styles.equivCard}>
+          <LinearGradient colors={["#E3FAFB", "#E1ECEE"]} style={styles.equivCard}>
             <Text style={styles.equivTitle}>Impact Equivalents</Text>
             <View style={styles.equivRow}>
               <View style={styles.equivItem}>
@@ -252,8 +252,8 @@ const styles = StyleSheet.create({
     // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F7F9FA",
+    borderRadius: 28,
+    backgroundColor: "#F4FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     flexDirection: "row", paddingHorizontal: 16, gap: 8, marginBottom: 12,
   },
   periodBtn: {
-    flex: 1, paddingVertical: 8, borderRadius: 10,
+    flex: 1, paddingVertical: 8, borderRadius: 12,
     backgroundColor: COLORS.white, alignItems: "center",
     borderWidth: 1, borderColor: "transparent",
   },
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
 
   scroll: { flex: 1, paddingHorizontal: 16 },
 
-  equivCard: { borderRadius: 20, padding: 20, marginBottom: 14 },
+  equivCard: { borderRadius: 25, padding: 20, marginBottom: 14 },
   equivTitle: { fontSize: 14, fontWeight: "700", color: COLORS.dark, marginBottom: 14 },
   equivRow: { flexDirection: "row", justifyContent: "space-around", marginBottom: 14 },
   equivItem: { alignItems: "center" },
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
 
   section: {
     backgroundColor: COLORS.white,
- borderRadius: 18,
+ borderRadius: 22,
  padding: 18,
  marginBottom: 14,
     boxShadow: ELEVATION.light.e2,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   narrativeText: { fontSize: 13, color: COLORS.dark, lineHeight: 21 },
 
   recCard: {
-    backgroundColor: COLORS.grayLight, borderRadius: 14, padding: 14, marginBottom: 10,
+    backgroundColor: COLORS.grayLight, borderRadius: 18, padding: 14, marginBottom: 10,
   },
   recHeader: { flexDirection: "row", gap: 8, marginBottom: 8 },
   pillarBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
   recMeta: { flexDirection: "row", alignItems: "center", gap: 6 },
   recMetaText: { fontSize: 12, color: COLORS.textMuted },
 
-  challengeSuggCard: { borderRadius: 18, padding: 18, marginBottom: 14 },
+  challengeSuggCard: { borderRadius: 22, padding: 18, marginBottom: 14 },
   challengeSuggLabel: { fontSize: 12, color: COLORS.orange, fontWeight: "600", marginBottom: 6 },
   challengeSuggTitle: { fontSize: 16, fontWeight: "700", color: COLORS.dark, marginBottom: 8 },
   challengeSuggRationale: { fontSize: 13, color: COLORS.dark, lineHeight: 20 },

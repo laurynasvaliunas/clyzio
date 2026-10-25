@@ -1,15 +1,14 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  TextInput,
   Keyboard,
   Alert,
 } from "react-native";
+import { Text, TextInput } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -48,16 +47,16 @@ const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",   // cyan
-  primaryDark: "#003D40",// teal-2
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",   // cyan
+  primaryDark: "#0B2540",// teal-2
   accent: "#F59E0B",    // sun
-  dark: "#003D40",      // teal
-  light: "#E6F1F2",     // cyan-fog
-  background: "#F7F9FA",// paper
+  dark: "#0B2540",      // teal
+  light: "#E3FAFB",     // cyan-fog
+  background: "#F4FAFB",// paper
   white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
-  grayLight: "#EDF1F2", // paper-2
+  grayLight: "#EEF6F7", // paper-2
   green: "#059669",     // leaf
   orange: "#D97706",    // amber
   red: "#DC2626",       // clay
@@ -468,14 +467,14 @@ const plannerInputStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    borderRadius: 12,
+    borderRadius: 15,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1.5,
   },
   input: { flex: 1, fontSize: 13, fontWeight: "500" },
   dropdown: {
-    borderRadius: 12,
+    borderRadius: 15,
     marginTop: 4,
     zIndex: 999,
     boxShadow: ELEVATION.light.e2,
@@ -730,9 +729,9 @@ export default function AIPlannerScreen() {
               accessibilityRole="button"
               accessibilityLabel="Turn on AI suggestions"
             >
-              <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.generateGradient}>
+              <LinearGradient colors={["#5CF2F6", "#09E0E8", "#00CBD6"]} style={styles.generateGradient}>
                 {savingConsent ? (
-                  <ActivityIndicator color={COLORS.white} />
+                  <ActivityIndicator color="#0B2540" />
                 ) : (
                   <Text style={styles.generateText}>Turn on AI suggestions</Text>
                 )}
@@ -885,10 +884,10 @@ export default function AIPlannerScreen() {
             </Text>
             <TouchableOpacity style={styles.generateBtn} onPress={handleRefresh}>
               <LinearGradient
-                colors={[COLORS.primary, COLORS.primaryDark]}
+                colors={["#5CF2F6", "#09E0E8", "#00CBD6"]}
                 style={styles.generateGradient}
               >
-                <Sparkles size={16} color={COLORS.white} />
+                <Sparkles size={16} color="#0B2540" />
                 <Text style={styles.generateText}>Generate Suggestions</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -977,15 +976,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontWeight: "700",
     fontSize: 18,
-    color: "#0B1A1F",
+    color: "#0B2540",
     flexShrink: 1,
   },
   backBtn: {
     // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F7F9FA",
+    borderRadius: 28,
+    backgroundColor: "#F4FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -995,7 +994,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: COLORS.white,
     borderWidth: 1,
-    borderColor: "rgba(11,26,31,0.10)",
+    borderColor: "rgba(11,37,64,0.10)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1003,7 +1002,7 @@ const styles = StyleSheet.create({
 
   // Editable commute route card
   editableRouteCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 14,
     marginBottom: 14,
     zIndex: 10,
@@ -1032,7 +1031,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     backgroundColor: COLORS.light,
-    borderRadius: 12,
+    borderRadius: 15,
   },
   planWithOtherText: {
     fontSize: 14,
@@ -1046,7 +1045,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     backgroundColor: "#FFFBEB",
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     borderLeftWidth: 4,
@@ -1058,7 +1057,7 @@ const styles = StyleSheet.create({
 
   // Insight hero — dark gradient card
   insightCard: {
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 24,
     marginBottom: 16,
   },
@@ -1087,7 +1086,7 @@ const styles = StyleSheet.create({
   // Skeleton
   skeletonCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 20,
+    borderRadius: 25,
     padding: 20,
     marginBottom: 12,
   },
@@ -1101,7 +1100,7 @@ const styles = StyleSheet.create({
   // Cards
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 20,
     marginBottom: 12,
     boxShadow: ELEVATION.light.e3,
@@ -1122,7 +1121,7 @@ const styles = StyleSheet.create({
   modeIconBg: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1143,7 +1142,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.25)",
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 15,
   },
   co2BadgeText: { fontSize: 13, fontWeight: "700", color: COLORS.white },
 
@@ -1152,7 +1151,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 14,
+    borderRadius: 18,
     paddingVertical: 12,
     marginBottom: 14,
   },
@@ -1185,17 +1184,17 @@ const styles = StyleSheet.create({
   ctaButtonTop: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#00565A",
+    backgroundColor: "#09E0E8",
     borderRadius: 999,
     paddingVertical: 15,
     marginTop: 12,
   },
   ctaButtonTopText: {
-    fontWeight: "600",
+    fontWeight: "800",
     fontSize: 12,
     letterSpacing: 0.6,
     textTransform: "uppercase",
-    color: "#0B1A1F",
+    color: "#0B2540",
   },
   ctaButton: {
     alignItems: "center",
@@ -1204,19 +1203,19 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     marginTop: 12,
     overflow: "hidden",
-    backgroundColor: "#0B1A1F",
+    backgroundColor: "#09E0E8",
   },
   ctaButtonText: {
-    fontWeight: "600",
+    fontWeight: "800",
     fontSize: 12,
     letterSpacing: 0.6,
     textTransform: "uppercase",
-    color: "#FFFFFF",
+    color: "#0B2540",
   },
 
   // Local mode cards
   localModeCard: {
-    borderRadius: 20,
+    borderRadius: 25,
     padding: 20,
     marginBottom: 12,
     borderWidth: 0,
@@ -1238,7 +1237,7 @@ const styles = StyleSheet.create({
 
   // Route snapshot card
   routeSnapshotCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
   },
@@ -1272,7 +1271,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
   },
@@ -1288,7 +1287,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 10,
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 14,
     marginBottom: 12,
     opacity: 0.85,
@@ -1302,7 +1301,7 @@ const styles = StyleSheet.create({
   // Error
   errorCard: {
     backgroundColor: "#FEF2F2",
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 20,
     alignItems: "center",
     gap: 10,
@@ -1313,14 +1312,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
     backgroundColor: COLORS.primary,
-    borderRadius: 12,
+    borderRadius: 15,
   },
   retryText: { color: COLORS.white, fontWeight: "600" },
 
   // Empty
   emptyCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 20,
+    borderRadius: 25,
     padding: 32,
     alignItems: "center",
     gap: 12,
@@ -1338,11 +1337,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 8,
   },
-  generateText: { color: COLORS.white, fontWeight: "700", fontSize: 17 },
+  generateText: { color: "#0B2540", fontWeight: "800", fontSize: 17 },
 
   // Matches Near Your Route section
   matchSection: {
-    borderRadius: 20,
+    borderRadius: 25,
     padding: 18,
     marginBottom: 16,
     boxShadow: ELEVATION.light.e2,
@@ -1371,8 +1370,8 @@ const styles = StyleSheet.create({
   matchPreviewAvatar: {
     width: 34,
     height: 34,
-    borderRadius: 12,
-    backgroundColor: "#E6F1F2",
+    borderRadius: 15,
+    backgroundColor: "#E3FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1387,7 +1386,7 @@ const styles = StyleSheet.create({
   viewMatchesBtn: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#00565A",
+    color: "#007C89",
     marginTop: 4,
   },
 

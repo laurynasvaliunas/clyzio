@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { Text } from "../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useRouter } from "expo-router";
 import { Compass } from "lucide-react-native";
@@ -15,12 +16,12 @@ const GLOW_TOP = { bottom: undefined, height: 420 } as const;
  */
 
 const COLORS = {
-  background: "#F7F9FA",
+  background: "#F4FAFB",
   surface: "#FFFFFF",
-  ink: "#0B1A1F",
-  inkSoft: "#5A6A6F",
-  primary: "#00565A",
-  tint: "#E6F1F2",
+  ink: "#0B2540",
+  inkSoft: "#5B6B7A",
+  primary: "#007C89",
+  tint: "#E3FAFB",
 };
 
 export default function NotFoundScreen() {
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   cta: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#09E0E8",
     borderRadius: 999,
     paddingVertical: 16,
     paddingHorizontal: 32,
@@ -94,5 +95,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.22)",
   },
-  ctaText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  ctaText: { color: "#0B2540", fontSize: 16, fontWeight: "800"},
 });

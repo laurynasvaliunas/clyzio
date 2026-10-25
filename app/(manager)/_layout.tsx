@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Stack, useRouter } from "expo-router";
-import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, TouchableOpacity, View } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { supabase } from "../../lib/supabase";
 
 type Access = "checking" | "granted" | "error";
@@ -47,7 +48,7 @@ export default function ManagerLayout() {
   if (access === "checking") {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#FFFFFF" }}>
-        <ActivityIndicator size="large" color="#00565A" />
+        <ActivityIndicator size="large" color="#007C89" />
       </View>
     );
   }
@@ -55,16 +56,16 @@ export default function ManagerLayout() {
   if (access === "error") {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "#FFFFFF" }}>
-        <Text style={{ fontSize: 17, fontWeight: "700", color: "#003D40", marginBottom: 8 }}>
+        <Text style={{ fontSize: 17, fontWeight: "700", color: "#0B2540", marginBottom: 8 }}>
           Couldn&apos;t open the dashboard
         </Text>
-        <Text style={{ fontSize: 15, color: "#5A6A6F", textAlign: "center", marginBottom: 20 }}>
+        <Text style={{ fontSize: 15, color: "#5B6B7A", textAlign: "center", marginBottom: 20 }}>
           Check your connection and try again.
         </Text>
         <TouchableOpacity
           onPress={checkManagerAccess}
           accessibilityRole="button"
-          style={{ minHeight: 48, paddingHorizontal: 24, borderRadius: 14, backgroundColor: "#00565A", justifyContent: "center" }}
+          style={{ minHeight: 48, paddingHorizontal: 24, borderRadius: 18, backgroundColor: "#007C89", justifyContent: "center" }}
         >
           <Text style={{ color: "#FFFFFF", fontWeight: "700", fontSize: 16 }}>Try again</Text>
         </TouchableOpacity>
@@ -73,7 +74,7 @@ export default function ManagerLayout() {
           accessibilityRole="button"
           style={{ minHeight: 44, justifyContent: "center", marginTop: 8 }}
         >
-          <Text style={{ color: "#00565A", fontWeight: "600", fontSize: 15 }}>Back to the app</Text>
+          <Text style={{ color: "#007C89", fontWeight: "600", fontSize: 15 }}>Back to the app</Text>
         </TouchableOpacity>
       </View>
     );

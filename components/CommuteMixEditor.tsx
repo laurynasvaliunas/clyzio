@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
+import { View, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
+import { Text } from "./ui/AppText";
 import { Check } from "lucide-react-native";
 import ModeIcon from "./ModeIcon";
 import { depth } from "../lib/theme/tokens";
@@ -18,11 +19,11 @@ import { depth } from "../lib/theme/tokens";
 
 const COLORS = {
   surface: "#FFFFFF",
-  ink: "#0B1A1F",
-  inkSoft: "#5A6A6F",
-  primary: "#00565A",
-  tint: "#E6F1F2",
-  border: "#EDF1F2",
+  ink: "#0B2540",
+  inkSoft: "#5B6B7A",
+  primary: "#007C89",
+  tint: "#E3FAFB",
+  border: "#EEF6F7",
   white: "#FFFFFF",
 };
 
@@ -171,7 +172,7 @@ function DaySelector({
               accessibilityLabel={`Day ${index + 1}${isActive ? ", selected" : ""}`}
             >
               {isActive ? (
-                <Check size={18} color={COLORS.white} />
+                <Check size={18} color="#0B2540" strokeWidth={3} />
               ) : (
                 <Text style={styles.dayText}>{day}</Text>
               )}
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
   modeCard: {
     width: 104,
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 12,
     alignItems: "center",
     borderWidth: 1.5,
@@ -305,18 +306,18 @@ const styles = StyleSheet.create({
     right: 6,
     minWidth: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: COLORS.border,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 5,
   },
-  daysBadgeSelected: { backgroundColor: COLORS.primary },
+  daysBadgeSelected: { backgroundColor: "#09E0E8" },
   daysBadgeText: { fontSize: 11, fontWeight: "700", color: COLORS.inkSoft },
-  daysBadgeTextSelected: { color: COLORS.white },
+  daysBadgeTextSelected: { color: "#0B2540" },
   daySelector: {
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginTop: 4,
     borderWidth: 1,
@@ -332,11 +333,11 @@ const styles = StyleSheet.create({
   dayBubble: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 25,
     backgroundColor: COLORS.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  dayBubbleActive: { backgroundColor: COLORS.primary },
+  dayBubbleActive: { backgroundColor: "#09E0E8", boxShadow: "inset 0px -3px 0px rgba(11,37,64,0.14)" },
   dayText: { fontSize: 14, fontWeight: "600", color: COLORS.inkSoft },
 });

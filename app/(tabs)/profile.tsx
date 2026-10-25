@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   Animated,
   Image,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -29,16 +29,16 @@ import { elevation as ELEVATION } from "../../lib/theme/tokens";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",   // cyan
-  primaryDark: "#003D40",// teal-2
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",   // cyan
+  primaryDark: "#0B2540",// teal-2
   accent: "#F59E0B",    // sun
-  dark: "#003D40",      // teal
-  light: "#E6F1F2",     // cyan-fog
-  background: "#F7F9FA",// paper
+  dark: "#0B2540",      // teal
+  light: "#E3FAFB",     // cyan-fog
+  background: "#F4FAFB",// paper
   white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
-  black: "#0B1A1F",     // ink
+  black: "#0B2540",     // ink
   red: "#DC2626",       // clay
   transparent: "transparent",
 };
@@ -80,7 +80,7 @@ function ScoreCard({ baseline, scaleAnim, glowOpacity, ecoLevel }: ScoreCardProp
     <View style={styles.scoreCardContainer}>
       <Animated.View style={[styles.scoreGlow, { opacity: glowOpacity }]} />
       <LinearGradient
-        colors={[COLORS.primary, COLORS.primaryDark]}
+        colors={["#00838F", "#00626D"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.scoreCard}
@@ -381,9 +381,9 @@ const styles = StyleSheet.create({
   settingsButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 28,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(11,26,31,0.08)",
+    borderColor: "rgba(11,37,64,0.08)",
     backgroundColor: COLORS.white,
     alignItems: "center",
     justifyContent: "center",
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 28,
     zIndex: -1,
-    boxShadow: "0px 18px 44px rgba(0,86,90,0.65)",
+    boxShadow: "0px 18px 44px rgba(0,124,137,0.65)",
   },
   scoreCard: {
     borderRadius: 28,
@@ -418,7 +418,8 @@ const styles = StyleSheet.create({
   },
   scoreGem: { width: 150, height: 120 },
   scoreLabel: { fontSize: 14, color: COLORS.white, opacity: 0.9, marginTop: 2 },
-  scoreValue: { fontWeight: "800", fontSize: 72, lineHeight: 86, letterSpacing: -2, color: COLORS.white, marginVertical: 4 },
+  // Animated.Text bypasses AppText, so the rounded font is set here.
+  scoreValue: { fontFamily: "Nunito_800ExtraBold", fontSize: 72, lineHeight: 86, letterSpacing: -2, color: COLORS.white, marginVertical: 4 },
   scoreEmpty: {
     fontSize: 30,
     fontWeight: "800",
@@ -432,7 +433,7 @@ const styles = StyleSheet.create({
   levelBadge: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 25,
     marginTop: 12,
     backgroundColor: COLORS.white,
     boxShadow: "0px 6px 16px rgba(0,0,0,0.18)",
@@ -450,12 +451,12 @@ const styles = StyleSheet.create({
   section: { marginBottom: 20 },
   sectionTitle: { fontWeight: "700", fontSize: 16, color: COLORS.dark },
   sectionSubtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 4, marginBottom: 16 },
-  mixErrorCard: { borderRadius: 16, padding: 16, marginTop: 8 },
+  mixErrorCard: { borderRadius: 20, padding: 16, marginTop: 8 },
   mixRetryBtn: {
     alignSelf: "flex-start",
     minHeight: 44,
     paddingHorizontal: 20,
-    borderRadius: 12,
+    borderRadius: 15,
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -467,7 +468,7 @@ const styles = StyleSheet.create({
   modeCard: {
     width: 100,
     backgroundColor: COLORS.white,
-    borderRadius: 20,
+    borderRadius: 25,
     padding: 14,
     alignItems: "center",
     marginRight: 12,
@@ -478,7 +479,7 @@ const styles = StyleSheet.create({
   },
   modeCardSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primaryDark, shadowColor: COLORS.primary, shadowOpacity: 0.3, shadowOffset: { width: 0, height: 2 }, elevation: 8 },
   modeCardHasData: { borderColor: COLORS.primary },
-  daysBadge: { position: "absolute", top: -8, right: -8, width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
+  daysBadge: { position: "absolute", top: -8, right: -8, width: 24, height: 24, borderRadius: 15, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center" },
   daysBadgeSelected: { backgroundColor: COLORS.white },
   daysBadgeText: { fontSize: 12, fontWeight: "700", color: COLORS.white },
   daysBadgeTextSelected: { color: COLORS.primary },
@@ -491,7 +492,7 @@ const styles = StyleSheet.create({
   // ===== DAY SELECTOR =====
   daySelector: {
     backgroundColor: COLORS.white,
-    borderRadius: 20,
+    borderRadius: 25,
     padding: 20,
     marginTop: 16,
     boxShadow: ELEVATION.light.e2,
@@ -501,7 +502,7 @@ const styles = StyleSheet.create({
   dayBubble: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 25,
     backgroundColor: COLORS.light,
     alignItems: "center",
     justifyContent: "center",

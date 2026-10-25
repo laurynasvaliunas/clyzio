@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, Image, TouchableOpacity, ScrollView } from "react-native";
+import { View, StyleSheet, ActivityIndicator, Image, TouchableOpacity, ScrollView } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, UserCircle, Leaf, Route, Award } from "lucide-react-native";
@@ -11,14 +12,14 @@ import { GlowBackdrop } from "../../components/ui";
 const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",
-  dark: "#003D40",
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",
+  dark: "#0B2540",
   gray: "#8B989C",
-  textSecondary: "#5A6A6F",
+  textSecondary: "#5B6B7A",
   white: "#FFFFFF",
-  bg: "#F7F9FA",
-  border: "#E6F1F2",
+  bg: "#F4FAFB",
+  border: "#E3FAFB",
 };
 
 type PublicProfile = {
@@ -127,8 +128,8 @@ const styles = StyleSheet.create({
     // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F7F9FA",
+    borderRadius: 28,
+    backgroundColor: "#F4FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
   dept: { fontSize: 15, color: COLORS.textSecondary, marginTop: 4 },
   statsRow: { flexDirection: "row", gap: 12, marginTop: 28, alignSelf: "stretch" },
   statCard: {
-    flex: 1, backgroundColor: COLORS.bg, borderRadius: 16, paddingVertical: 18,
+    flex: 1, backgroundColor: COLORS.bg, borderRadius: 20, paddingVertical: 18,
     alignItems: "center", gap: 6, borderWidth: 1, borderColor: COLORS.border,
   },
   statValue: { fontSize: 17, fontWeight: "700", color: COLORS.dark },

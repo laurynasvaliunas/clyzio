@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -10,6 +9,7 @@ import {
   Platform,
   UIManager,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -54,15 +54,15 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
  */
 
 const COLORS = {
-  bg: "#F7F9FA",
+  bg: "#F4FAFB",
   surface: "#FFFFFF",
-  ink: "#0B1A1F",
-  inkSoft: "#5A6A6F",
-  border: "#EDF1F2",
-  selected: "#003D40",   // teal — selected card border + check pill
-  selectedTint: "#E6F1F2",
-  fuelPill: "#E6F1F2",
-  fuelPillActive: "#003D40",
+  ink: "#0B2540",
+  inkSoft: "#5B6B7A",
+  border: "#EEF6F7",
+  selected: "#0B2540",   // teal — selected card border + check pill
+  selectedTint: "#E3FAFB",
+  fuelPill: "#E3FAFB",
+  fuelPillActive: "#0B2540",
 };
 
 interface TravelCard {
@@ -300,11 +300,11 @@ export default function GarageSetupScreen() {
           accessibilityLabel="Next, continue to confirmation"
         >
           {saving ? (
-            <ActivityIndicator color={COLORS.surface} />
+            <ActivityIndicator color="#0B2540" />
           ) : (
             <>
               <Text style={styles.nextText}>Next</Text>
-              <ArrowRight size={18} color={COLORS.surface} />
+              <ArrowRight size={18} color="#0B2540" />
             </>
           )}
         </TouchableOpacity>
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 22,
+    borderRadius: 28,
     padding: 14,
     alignItems: "center",
     justifyContent: "center",
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     right: 10,
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: 14,
     backgroundColor: COLORS.selected,
     alignItems: "center",
     justifyContent: "center",
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   },
   fuelRow: {
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: 20,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginTop: 8,
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: COLORS.ink,
+    backgroundColor: "#09E0E8",
     paddingVertical: 18,
     borderRadius: 999,
     minHeight: 56,
@@ -463,9 +463,9 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   nextText: {
-    color: COLORS.surface,
+    color: "#0B2540",
     fontSize: 17,
-    fontWeight: "700",
+    fontWeight: "800",
     letterSpacing: 0.2,
   },
 });

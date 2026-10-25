@@ -1,12 +1,12 @@
 import React from "react";
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   Linking,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Download, ShieldCheck, Clock } from "lucide-react-native";
@@ -20,15 +20,15 @@ import { GlowBackdrop } from "../../components/ui";
 const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
-  primary: "#00565A",
-  primaryDark: "#003D40",
-  dark: "#003D40",
-  background: "#F7F9FA",
+  primary: "#007C89",
+  primaryDark: "#0B2540",
+  dark: "#0B2540",
+  background: "#F4FAFB",
   white: "#FFFFFF",
   gray: "#8B989C",
-  textSecondary: "#5A6A6F",
-  border: "#EDF1F2",
-  light: "#E6F1F2",
+  textSecondary: "#5B6B7A",
+  border: "#EEF6F7",
+  light: "#E3FAFB",
 };
 
 export default function ExportDataScreen() {
@@ -120,12 +120,12 @@ export default function ExportDataScreen() {
           activeOpacity={0.85}
         >
           <LinearGradient
-            colors={[COLORS.primary, COLORS.primaryDark]}
+            colors={["#5CF2F6", "#09E0E8", "#00CBD6"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.ctaGradient}
           >
-            <Download size={20} color={COLORS.white} style={{ marginRight: 8 }} />
+            <Download size={20} color="#0B2540" style={{ marginRight: 8 }} />
             <Text style={styles.ctaText}>Request My Data</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -162,8 +162,8 @@ const styles = StyleSheet.create({
     // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F7F9FA",
+    borderRadius: 28,
+    backgroundColor: "#F4FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 20,
     marginBottom: 16,
     boxShadow: ELEVATION.light.e2,
@@ -242,14 +242,14 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 17,
-    fontWeight: "700",
-    color: COLORS.white,
+    fontWeight: "800",
+    color: "#0B2540",
   },
   noteCard: {
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: COLORS.light,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     gap: 12,
   },

@@ -2,11 +2,11 @@ import React, { useEffect, useRef, useCallback } from "react";
 import {
   Modal,
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Animated,
 } from "react-native";
+import { Text } from "./ui/AppText";
 import { LinearGradient } from "expo-linear-gradient";
 import { MedalBurst } from "./three";
 import { Trophy, Leaf, X, TrendingUp } from "lucide-react-native";
@@ -15,15 +15,15 @@ import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 // Editorial reskin — brand + paper-ink palette.
 const COLORS = {
-  primary: "#00565A",   // cyan
+  primary: "#007C89",   // cyan
   accent: "#F59E0B",    // sun
-  dark: "#003D40",      // teal
+  dark: "#0B2540",      // teal
   white: "#FFFFFF",     // ivory
   green: "#059669",     // leaf
-  black: "#0B1A1F",     // ink
+  black: "#0B2540",     // ink
   whiteTransparent15: "rgba(255, 255, 255, 0.15)",
   whiteTransparent20: "rgba(255, 255, 255, 0.2)",
-  blackTransparent70: "rgba(11, 26, 31, 0.7)",
+  blackTransparent70: "rgba(11,37,64, 0.7)",
 };
 
 interface TripCompletionModalProps {
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     right: 16,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 25,
     backgroundColor: COLORS.whiteTransparent20,
     alignItems: "center",
     justifyContent: "center",
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: COLORS.whiteTransparent15,
-    borderRadius: 20,
+    borderRadius: 25,
     padding: 20,
     alignItems: "center",
     borderWidth: 1,
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.whiteTransparent15,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 20,
+    borderRadius: 25,
     marginBottom: 24,
   },
   distanceText: {

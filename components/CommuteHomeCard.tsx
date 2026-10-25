@@ -1,10 +1,11 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { Text } from "./ui/AppText";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { ArrowRight, Pencil, Leaf } from "lucide-react-native";
 import ModeIcon from "./ModeIcon";
-import { elevation as ELEVATION, getGlass, gradients } from "../lib/theme/tokens";
+import { elevation as ELEVATION, getGlass, gradients, fun, depth } from "../lib/theme/tokens";
 import { PressableScale } from "./ui";
 
 /**
@@ -47,14 +48,14 @@ interface Props {
 const COLORS = {
   surface: "#FFFFFF",
   surfaceDark: "#0E1F23",
-  ink: "#0B1A1F",
+  ink: "#0B2540",
   inkDark: "#FFFFFF",
-  inkSoft: "#5A6A6F",
+  inkSoft: "#5B6B7A",
   inkSoftDark: "#8B989C",
-  cyan: "#00565A",
-  teal: "#003D40",
+  cyan: "#007C89",
+  teal: "#0B2540",
   leaf: "#059669",
-  track: "#EDF1F2",
+  track: "#EEF6F7",
   trackDark: "#1B3035",
 };
 
@@ -121,7 +122,7 @@ export default function CommuteHomeCard({
               <Text
                 style={[
                   styles.toggleText,
-                  { color: active ? "#FFFFFF" : inkSoft },
+                  { color: active ? fun.navy : inkSoft },
                 ]}
               >
                 {day === "today" ? "Today" : "Tomorrow"}
@@ -199,15 +200,15 @@ export default function CommuteHomeCard({
               accessibilityLabel={`Plan your ride for ${dayWord.toLowerCase()}`}
             >
               <LinearGradient
-                colors={["#16323A", COLORS.ink]}
+                colors={gradients.bright}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={[StyleSheet.absoluteFill, { borderRadius: 18 }]}
+                style={[StyleSheet.absoluteFill, { borderRadius: 999 }]}
               />
               <Text style={styles.planBtnText}>Plan your ride</Text>
-              <LinearGradient colors={gradients.brand} style={styles.planBtnIcon}>
-                <ArrowRight size={18} color="#FFFFFF" />
-              </LinearGradient>
+              <View style={styles.planBtnIcon}>
+                <ArrowRight size={20} color={fun.navy} strokeWidth={2.6} />
+              </View>
             </PressableScale>
           </>
         )}
@@ -233,7 +234,7 @@ const styles = StyleSheet.create({
     gap: 4,
     // Lift the toggle crisply off the map (was washed-out / translucent).
     borderWidth: 1,
-    borderColor: "rgba(11,26,31,0.06)",
+    borderColor: "rgba(11,37,64,0.06)",
     boxShadow: ELEVATION.light.e3,
   },
   toggleSeg: {
@@ -244,16 +245,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   toggleSegActive: {
-    // Strong brand fill so the selected day pops.
-    backgroundColor: COLORS.teal,
+    // The logo's bright cyan so the selected day pops (navy text on it).
+    backgroundColor: fun.cyan,
+    boxShadow: "inset 0px -2px 0px rgba(11,37,64,0.12)",
   },
   toggleText: {
-    fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 0.2,
+    fontSize: 14,
+    fontWeight: "800",
   },
   card: {
-    borderRadius: 26,
+    borderRadius: 30,
     padding: 18,
     boxShadow: ELEVATION.light.e4,
   },
@@ -279,28 +280,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#0B1A1F",
-    borderRadius: 18,
-    paddingLeft: 22,
+    backgroundColor: fun.cyan,
+    borderRadius: 999,
+    paddingLeft: 24,
     paddingRight: 6,
-    height: 56,
-    boxShadow: "0px 2px 4px rgba(11,26,31,0.16), 0px 12px 26px rgba(11,26,31,0.24)",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.10)",
+    height: 58,
+    boxShadow: depth.ctaGlow,
+    borderTopWidth: 1.5,
+    borderTopColor: "rgba(255,255,255,0.45)",
   },
   planBtnText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    letterSpacing: 0.2,
+    color: fun.navy,
+    fontSize: 18,
+    fontWeight: "800",
   },
   planBtnIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 29,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "inset 0px 1px 2px rgba(255,255,255,0.35), 0px 4px 10px rgba(0,86,90,0.45)",
+    boxShadow: "0px 3px 8px rgba(11,37,64,0.18)",
   },
 
   // Planned state
@@ -312,9 +313,9 @@ const styles = StyleSheet.create({
   planEmojiWrap: {
     width: 52,
     height: 52,
-    borderRadius: 16,
-    backgroundColor: "rgba(0,86,90,0.12)",
-    boxShadow: "inset 0px 2px 3px rgba(255,255,255,0.8), inset 0px -3px 6px rgba(0,86,90,0.12)",
+    borderRadius: 20,
+    backgroundColor: "rgba(0,124,137,0.12)",
+    boxShadow: "inset 0px 2px 3px rgba(255,255,255,0.8), inset 0px -3px 6px rgba(0,124,137,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },

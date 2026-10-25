@@ -1,12 +1,12 @@
 import {
   View,
-  Text,
   Modal,
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
+import { Text } from "./ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { X, Users, Leaf, Clock, CheckCircle } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,16 +17,16 @@ import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",   // cyan
-  primaryDark: "#003D40",// teal-2
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",   // cyan
+  primaryDark: "#0B2540",// teal-2
   accent: "#F59E0B",    // sun
-  dark: "#003D40",      // teal
-  light: "#E6F1F2",     // cyan-fog
-  background: "#F7F9FA",// paper
+  dark: "#0B2540",      // teal
+  light: "#E3FAFB",     // cyan-fog
+  background: "#F4FAFB",// paper
   white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
-  grayLight: "#EDF1F2", // paper-2
+  grayLight: "#EEF6F7", // paper-2
   green: "#059669",     // leaf
 };
 
@@ -118,7 +118,7 @@ export default function CarpoolMatchModal({
         style={styles.requestBtn}
         onPress={() => handleRequest(item)}
       >
-        <CheckCircle size={16} color={COLORS.white} />
+        <CheckCircle size={16} color="#0B2540" />
         <Text style={styles.requestBtnText}>Request Carpool</Text>
       </TouchableOpacity>
     </View>
@@ -175,7 +175,7 @@ export default function CarpoolMatchModal({
           <>
             {/* Summary banner */}
             <LinearGradient
-              colors={["#E6F1F2", "#E2E8EA"]}
+              colors={["#E3FAFB", "#E1ECEE"]}
               style={styles.summaryBanner}
             >
               <Text style={styles.summaryText}>{result.best_match_summary}</Text>
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  headerTitle: { fontWeight: "700", fontSize: 24, color: "#0B1A1F" },
+  headerTitle: { fontWeight: "700", fontSize: 24, color: "#0B2540" },
   closeBtn: {
     width: 36,
     height: 36,
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 24,
+    borderRadius: 30,
   },
   retryBtnText: { color: COLORS.white, fontSize: 15, fontWeight: "700" },
 
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
 
   summaryBanner: {
     margin: 16,
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 14,
   },
   summaryText: { fontSize: 13, color: COLORS.dark, lineHeight: 19 },
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
 
   matchCard: {
     backgroundColor: COLORS.white,
-    borderRadius: 26,
+    borderRadius: 32,
     padding: 18,
     marginBottom: 12,
     boxShadow: ELEVATION.light.e3,
@@ -253,13 +253,13 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 18,
     backgroundColor: COLORS.light,
     alignItems: "center",
     justifyContent: "center",
   },
   matchInfo: { flex: 1 },
-  matchName: { fontWeight: "700", fontSize: 20, color: "#0B1A1F" },
+  matchName: { fontWeight: "700", fontSize: 20, color: "#0B2540" },
   matchReasoning: { fontSize: 12, color: COLORS.textMuted, marginTop: 2, lineHeight: 16 },
   scoreBox: { alignItems: "center" },
   scoreText: { fontWeight: "700", fontSize: 24, color: COLORS.dark },
@@ -294,14 +294,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0B1A1F",
+    backgroundColor: "#09E0E8",
     borderRadius: 999,
     paddingVertical: 15,
     gap: 8,
   },
   requestBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "600",
+    color: "#0B2540",
+    fontWeight: "800",
     fontSize: 12,
     letterSpacing: 0.6,
     textTransform: "uppercase",

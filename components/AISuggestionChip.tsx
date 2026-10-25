@@ -1,4 +1,5 @@
-import { TouchableOpacity, Text, View, StyleSheet } from "react-native";
+import { TouchableOpacity, View, StyleSheet } from "react-native";
+import { Text } from "./ui/AppText";
 import { X } from "lucide-react-native";
 import { Picto } from "./ui/editorial";
 import { editorial, weights } from "../lib/theme/tokens";
@@ -41,7 +42,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: editorial.ivory,
-    borderRadius: 18,
+    borderRadius: 22,
     paddingVertical: 11,
     paddingLeft: 13,
     paddingRight: 10,
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 30,
     height: 30,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: editorial.cyanFog,
     alignItems: "center",
     justifyContent: "center",

@@ -1,12 +1,12 @@
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Animated,
   PanResponder,
   Platform,
 } from "react-native";
+import { Text } from "./ui/AppText";
 import { useEffect, useRef, useCallback } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Leaf, Check, X } from "lucide-react-native";
@@ -16,19 +16,19 @@ import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 // Editorial reskin — local palette re-pointed onto the warm "paper" system.
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",   // cyan
-  dark: "#0B1A1F",      // ink
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",   // cyan
+  dark: "#0B2540",      // ink
   green: "#059669",     // leaf
   greenBg: "rgba(5,150,105,0.12)",
   white: "#FFFFFF",     // ivory
   gray: "#8B989C",      // ink-4
-  textSecondary: "#5A6A6F", // ink-3
-  light: "#E6F1F2",     // cyan-fog
+  textSecondary: "#5B6B7A", // ink-3
+  light: "#E3FAFB",     // cyan-fog
   error: "#DC2626",     // clay
-  declineBg: "rgba(11,26,31,0.04)",
-  accentPurple: "#003D40",   // teal accent bar/icon
-  accentPurpleBg: "#E6F1F2", // cyan-fog icon wrap
+  declineBg: "rgba(11,37,64,0.04)",
+  accentPurple: "#0B2540",   // teal accent bar/icon
+  accentPurpleBg: "#E3FAFB", // cyan-fog icon wrap
 };
 
 interface Props {
@@ -153,7 +153,7 @@ function SuggestionCard({ suggestion, topOffset, index }: Props) {
             onPress={() => handleRespond("accepted")}
             activeOpacity={0.85}
           >
-            <Check size={13} color={COLORS.white} />
+            <Check size={13} color="#0B2540" strokeWidth={3} />
             <Text style={styles.acceptText}>Accept Ride</Text>
           </TouchableOpacity>
         </View>
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 28,
     flexDirection: "row",
     overflow: "hidden",
     boxShadow: ELEVATION.light.e4,
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 36,
     height: 36,
-    borderRadius: 11,
+    borderRadius: 14,
     backgroundColor: COLORS.accentPurpleBg,
     alignItems: "center",
     justifyContent: "center",
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.greenBg,
     paddingVertical: 4,
     paddingHorizontal: 8,
-    borderRadius: 20,
+    borderRadius: 25,
   },
   badgeText: {
     fontWeight: "600",
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.declineBg,
   },
   acceptBtn: {
-    backgroundColor: "#0B1A1F",
+    backgroundColor: "#09E0E8",
   },
   declineText: {
     fontWeight: "600",
@@ -282,10 +282,10 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
   acceptText: {
-    fontWeight: "600",
+    fontWeight: "800",
     fontSize: 11,
     letterSpacing: 0.6,
     textTransform: "uppercase",
-    color: "#FFFFFF",
+    color: "#0B2540",
   },
 });

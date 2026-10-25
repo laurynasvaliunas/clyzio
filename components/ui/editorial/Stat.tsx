@@ -1,4 +1,5 @@
-import { View, Text, ViewStyle, StyleProp } from "react-native";
+import { View, ViewStyle, StyleProp } from "react-native";
+import { Text } from "../AppText";
 import { editorial, weights } from "../../../lib/theme/tokens";
 import Eyebrow from "./Eyebrow";
 

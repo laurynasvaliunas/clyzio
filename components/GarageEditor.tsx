@@ -1,12 +1,11 @@
 import { useState } from "react";
 import {
   View,
-  Text,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
+import { Text, TextInput } from "./ui/AppText";
 import { Plus, Trash2, Check, ChevronDown, Star, Pencil } from "lucide-react-native";
 import ModeIcon from "./ModeIcon";
 import {
@@ -19,13 +18,13 @@ import {
 import { depth } from "../lib/theme/tokens";
 
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",
-  dark: "#003D40",
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",
+  dark: "#0B2540",
   gray: "#8B989C",
-  grayLight: "#EDF1F2",
+  grayLight: "#EEF6F7",
   white: "#FFFFFF",
-  ink: "#0B1A1F",
+  ink: "#0B2540",
 };
 
 const FUEL_TYPES = [
@@ -348,7 +347,7 @@ export default function GarageEditor({ vehicles, primaryVehicleId, onChange, onS
       })}
 
       <TouchableOpacity style={styles.addBtn} onPress={addVehicle} activeOpacity={0.85}>
-        <Plus size={16} color={COLORS.white} />
+        <Plus size={16} color="#0B2540" strokeWidth={2.6} />
         <Text style={styles.addBtnText}>Add a vehicle</Text>
       </TouchableOpacity>
 
@@ -364,7 +363,7 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderColor: COLORS.grayLight,
-    borderRadius: 18,
+    borderRadius: 22,
     padding: 14,
     marginBottom: 12,
   },
@@ -375,7 +374,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     borderColor: COLORS.grayLight,
-    borderRadius: 18,
+    borderRadius: 22,
     paddingVertical: 12,
     paddingHorizontal: 14,
     marginBottom: 12,
@@ -383,8 +382,8 @@ const styles = StyleSheet.create({
   summaryIcon: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: "rgba(0,86,90,0.10)",
+    borderRadius: 15,
+    backgroundColor: "rgba(0,124,137,0.10)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -395,7 +394,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(0,86,90,0.12)",
+    backgroundColor: "rgba(0,124,137,0.12)",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
@@ -411,28 +410,28 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingVertical: 12,
     borderRadius: 999,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#09E0E8",
     boxShadow: depth.ctaGlow,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.22)",
   },
-  saveBtnText: { fontSize: 13, fontWeight: "700", color: COLORS.dark },
+  saveBtnText: { fontSize: 13, fontWeight: "800", color: "#0B2540"},
   typeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   typeChip: {
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: "rgba(11,26,31,0.04)",
+    backgroundColor: "rgba(11,37,64,0.04)",
   },
-  typeChipActive: { backgroundColor: COLORS.primary },
+  typeChipActive: { backgroundColor: "#09E0E8" },
   typeChipText: { fontSize: 12, color: COLORS.textMuted, fontWeight: "600" },
-  typeChipTextActive: { color: "#FFFFFF" },
+  typeChipTextActive: { color: "#0B2540", fontWeight: "800" },
   inputRow: { flexDirection: "row", gap: 12 },
   label: { fontSize: 12, color: COLORS.textMuted, marginBottom: 6 },
   input: {
     borderWidth: 1,
     borderColor: COLORS.grayLight,
-    borderRadius: 12,
+    borderRadius: 15,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
@@ -444,7 +443,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     borderWidth: 1,
     borderColor: COLORS.grayLight,
-    borderRadius: 12,
+    borderRadius: 15,
     paddingHorizontal: 12,
     paddingVertical: 11,
   },
@@ -452,7 +451,7 @@ const styles = StyleSheet.create({
   fuelList: {
     borderWidth: 1,
     borderColor: COLORS.grayLight,
-    borderRadius: 12,
+    borderRadius: 15,
     marginTop: 6,
     overflow: "hidden",
   },
@@ -479,15 +478,15 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 13,
     borderRadius: 999,
-    backgroundColor: COLORS.primary,
+    backgroundColor: "#09E0E8",
     boxShadow: depth.ctaGlow,
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.22)",
   },
   addBtnText: {
     fontSize: 13,
-    fontWeight: "700",
-    color: COLORS.white, // was dark ink on the teal button — nearly invisible
+    fontWeight: "800",
+    color: "#0B2540", // was dark ink on the teal button — nearly invisible
   },
   hint: {
     fontSize: 12,

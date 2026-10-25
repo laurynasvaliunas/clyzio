@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { View, Text, Pressable, Share, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Pressable, Share, StyleSheet, ActivityIndicator } from "react-native";
+import { Text } from "./ui/AppText";
 import * as Haptics from "expo-haptics";
 import { supabase } from "../lib/supabase";
 import { buildWebLink } from "../lib/deepLinks";
@@ -117,7 +118,7 @@ export default function InviteColleagueCard() {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: editorial.ink,
-    borderRadius: 26,
+    borderRadius: 32,
     padding: 20,
     marginBottom: 16,
     boxShadow: ELEVATION.light.e4,
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 14,
+    borderRadius: 18,
     backgroundColor: editorial.cyanFog,
     alignItems: "center",
     justifyContent: "center",

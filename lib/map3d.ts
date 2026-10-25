@@ -1,6 +1,7 @@
 /**
- * 3D map look (2026-10 redesign): Mapbox Standard — real 3D buildings,
- * landmarks and time-of-day lighting — with a tilted camera.
+ * Map look (2026-10 friendly redesign, Waze-like): Mapbox Standard laid flat —
+ * top-down, no 3D buildings, few labels, bright daylight colours — with a
+ * thick bright route.
  *
  * Each map falls back to the flat Street/Dark style if Standard fails to load
  * (MapView `onMapLoadingError`), so the map never goes blank.
@@ -17,9 +18,9 @@ export interface CameraBoundsWithPadding {
 
 export const MAP_STYLE_3D = 'mapbox://styles/mapbox/standard';
 
-/** Camera tilt for the 3D look, and a slight rotation so buildings read in depth. */
-export const MAP_PITCH = 50;
-export const MAP_HEADING = -15;
+/** Flat, north-up camera. */
+export const MAP_PITCH = 0;
+export const MAP_HEADING = 0;
 
 export type LightPreset = 'dawn' | 'day' | 'dusk' | 'night';
 
@@ -27,8 +28,9 @@ export type LightPreset = 'dawn' | 'day' | 'dusk' | 'night';
 export function standardConfig(lightPreset: LightPreset): Record<string, string> {
   return {
     lightPreset,
-    show3dObjects: 'true',
-    showPointOfInterestLabels: 'true',
+    theme: 'default',
+    show3dObjects: 'false',
+    showPointOfInterestLabels: 'false',
     showTransitLabels: 'false',
     showPedestrianRoads: 'false',
   };
@@ -43,3 +45,22 @@ export function boundsWithPadding(
   const [top, right, bottom, left] = typeof padding === 'number' ? [padding, padding, padding, padding] : padding;
   return { ne, sw, paddingTop: top, paddingRight: right, paddingBottom: bottom, paddingLeft: left };
 }
+
+/**
+ * Route line, Waze-style: a white casing under a thick bright line. Pair the
+ * two LineLayers in this order (casing first) with `slot="middle"`.
+ */
+export const ROUTE_CASING_STYLE = {
+  lineColor: '#FFFFFF',
+  lineWidth: 12,
+  lineJoin: 'round' as const,
+  lineCap: 'round' as const,
+  lineEmissiveStrength: 1,
+};
+export const ROUTE_LINE_STYLE = {
+  lineColor: '#00B9CC',
+  lineWidth: 7,
+  lineJoin: 'round' as const,
+  lineCap: 'round' as const,
+  lineEmissiveStrength: 1,
+};

@@ -1,4 +1,5 @@
-import { ScrollView, Text, TouchableOpacity, View, StyleSheet } from "react-native";
+import { ScrollView, TouchableOpacity, View, StyleSheet } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -10,16 +11,16 @@ import { GlowBackdrop } from "../../components/ui";
 const GLOW_TOP = { bottom: undefined, height: 420 } as const;
 
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",
-  primaryDark: "#003D40",
-  dark: "#003D40",
-  light: "#E6F1F2",
-  background: "#F7F9FA",
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",
+  primaryDark: "#0B2540",
+  dark: "#0B2540",
+  light: "#E3FAFB",
+  background: "#F4FAFB",
   white: "#FFFFFF",
   gray: "#8B989C",
-  textSecondary: "#5A6A6F",
-  border: "#EDF1F2",
+  textSecondary: "#5B6B7A",
+  border: "#EEF6F7",
 };
 
 const LAST_UPDATED = "11 October 2026";
@@ -234,7 +235,7 @@ export default function PrivacyScreen() {
       >
         {/* Intro banner */}
         <LinearGradient
-          colors={[COLORS.primary, COLORS.primaryDark]}
+          colors={["#00838F", "#00626D"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.introBanner}
@@ -298,8 +299,8 @@ const styles = StyleSheet.create({
     // Shared header spec (44pt target, light chip) — keep in sync across stack screens.
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F7F9FA",
+    borderRadius: 28,
+    backgroundColor: "#F4FAFB",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16 },
 
   introBanner: {
-    borderRadius: 20,
+    borderRadius: 25,
     padding: 24,
     marginBottom: 12,
   },
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     borderLeftWidth: 4,
@@ -353,7 +354,7 @@ const styles = StyleSheet.create({
 
   section: {
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 18,
     marginBottom: 12,
     boxShadow: ELEVATION.light.e2,

@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
-  Text,
   Modal,
-  TextInput,
   TouchableOpacity,
   FlatList,
   KeyboardAvoidingView,
@@ -12,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { Text, TextInput } from "./ui/AppText";
 import { Send, X } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
 import { type ChatThread, threadKey, sendChatMessage } from "../lib/chat";
@@ -19,12 +18,12 @@ import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
 
 // Editorial reskin — paper/ink palette.
 const COLORS = {
-  primary: "#00565A",   // cyan
+  primary: "#007C89",   // cyan
   white: "#FFFFFF",     // ivory
-  gray50: "#F7F9FA",    // paper
+  gray50: "#F4FAFB",    // paper
   gray400: "#8B989C",   // ink-4
-  gray700: "#5A6A6F",   // ink-3
-  gray800: "#0B1A1F",   // ink
+  gray700: "#5B6B7A",   // ink-3
+  gray800: "#0B2540",   // ink
 };
 
 interface Message {
@@ -240,7 +239,7 @@ export default function ChatModal({
           >
             <Send
               size={20}
-              color={inputText.trim() ? COLORS.white : COLORS.gray400}
+              color={inputText.trim() ? "#0B2540" : COLORS.gray400}
             />
           </TouchableOpacity>
         </View>
@@ -252,7 +251,7 @@ export default function ChatModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.gray50,
   },
   header: {
     flexDirection: "row",
@@ -263,7 +262,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: "#EDF1F2",
+    borderBottomColor: "#EEF6F7",
   },
   headerLeft: {
     flex: 1,
@@ -318,25 +317,27 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   messageBubble: {
-    borderRadius: 18,
+    borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 10,
     boxShadow: ELEVATION.light.e1,
   },
+  // Mine: the logo's bright cyan (navy text). Theirs: white on the paper bg.
   myBubble: {
-    backgroundColor: COLORS.primary,
-    borderBottomRightRadius: 4,
+    backgroundColor: "#09E0E8",
+    borderBottomRightRadius: 6,
   },
   theirBubble: {
-    backgroundColor: COLORS.gray50,
-    borderBottomLeftRadius: 4,
+    backgroundColor: COLORS.white,
+    borderBottomLeftRadius: 6,
+    boxShadow: "0px 2px 6px rgba(11,37,64,0.08)",
   },
   messageText: {
     fontSize: 15,
     lineHeight: 20,
   },
   myMessageText: {
-    color: COLORS.white,
+    color: "#0B2540",
   },
   theirMessageText: {
     color: COLORS.gray800,
@@ -346,7 +347,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   myTimeText: {
-    color: "rgba(255,255,255,0.7)",
+    color: "rgba(11,37,64,0.65)",
     textAlign: "right",
   },
   theirTimeText: {
@@ -361,12 +362,12 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === "ios" ? 32 : 12,
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
-    borderTopColor: "#EDF1F2",
+    borderTopColor: "#EEF6F7",
   },
   input: {
     flex: 1,
     backgroundColor: COLORS.gray50,
-    borderRadius: 24,
+    borderRadius: 30,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 15,
@@ -376,8 +377,8 @@ const styles = StyleSheet.create({
   sendBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.primary,
+    borderRadius: 28,
+    backgroundColor: "#09E0E8",
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
@@ -386,7 +387,7 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(255,255,255,0.22)",
   },
   sendBtnDisabled: {
-    backgroundColor: "#EDF1F2",
+    backgroundColor: "#EEF6F7",
   },
 });
 

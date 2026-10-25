@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   ScrollView,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,13 +20,13 @@ import { GlowBackdrop } from "../../components/ui";
 
 // Brand Colors
 const COLORS = {
-  textMuted: "#5A6A6F",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
-  primary: "#00565A",  // Unified Cyan (Phase 27)
-  primaryDark: "#003D40",
+  textMuted: "#5B6B7A",   // WCAG-AA muted text (#8B989C is 2.97:1 on white)
+  primary: "#007C89",  // Unified Cyan (Phase 27)
+  primaryDark: "#0B2540",
   accent: "#F59E0B",
-  dark: "#003D40",
-  light: "#E6F1F2",
-  background: "#F7F9FA",
+  dark: "#0B2540",
+  light: "#E3FAFB",
+  background: "#F4FAFB",
   white: "#FFFFFF",
   gray: "#8B989C",
 };
@@ -301,11 +301,11 @@ export default function OnboardingScreen() {
             disabled={!selectedDepartment || saving}
           >
             <LinearGradient
-              colors={selectedDepartment ? [COLORS.primary, COLORS.primaryDark] : [COLORS.gray, COLORS.gray]}
+              colors={selectedDepartment ? ["#5CF2F6", "#09E0E8", "#00CBD6"] : ["#E1ECEE", "#E1ECEE"]}
               style={styles.continueGradient}
             >
               {saving ? (
-                <ActivityIndicator color={COLORS.white} />
+                <ActivityIndicator color="#0B2540" />
               ) : (
                 <Text style={styles.continueText}>Join Team</Text>
               )}
@@ -349,21 +349,21 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: "700", color: COLORS.dark },
   emptyDepts: {
     backgroundColor: COLORS.light,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     marginTop: 12,
   },
   emptyDeptsText: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#5A6A6F",
+    color: "#5B6B7A",
   },
   departmentList: { gap: 10 },
   departmentCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.white,
-    borderRadius: 18,
+    borderRadius: 22,
     padding: 16,
     minHeight: 60,
     borderWidth: 2,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   checkCircle: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 2,
     borderColor: COLORS.gray,
     alignItems: "center",
@@ -396,24 +396,24 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent + "1A",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: COLORS.accent + "40",
-    borderRadius: 18,
+    borderRadius: 22,
     padding: 18,
     marginBottom: 32,
   },
   infoTitle: { fontSize: 15, fontWeight: "700", color: COLORS.dark, marginBottom: 8 },
   infoText: { fontSize: 13, color: COLORS.dark, lineHeight: 20 },
   actions: { gap: 12 },
-  continueButton: { borderRadius: 18, boxShadow: depth.ctaGlow },
+  continueButton: { borderRadius: 999, boxShadow: depth.ctaGlow },
   continueButtonDisabled: { opacity: 0.6 },
   continueGradient: {
-    borderRadius: 18,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.22)",
+    borderRadius: 999,
+    borderTopWidth: 1.5,
+    borderTopColor: "rgba(255,255,255,0.45)",
     paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
   },
-  continueText: { color: COLORS.white, fontSize: 18, fontWeight: "700" },
+  continueText: { color: "#0B2540", fontSize: 18, fontWeight: "800" },
   skipButton: { alignItems: "center", paddingVertical: 14 },
   skipText: { color: COLORS.textMuted, fontSize: 15, fontWeight: "500" },
 });

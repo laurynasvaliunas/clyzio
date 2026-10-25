@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -9,6 +8,7 @@ import {
   Easing,
   Switch,
 } from "react-native";
+import { Text } from "../../components/ui/AppText";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -36,15 +36,15 @@ import { elevation as ELEVATION } from "../../lib/theme/tokens";
  */
 
 const COLORS = {
-  bg: "#F7F9FA",
+  bg: "#F4FAFB",
   surface: "#FFFFFF",
-  ink: "#0B1A1F",
-  inkSoft: "#5A6A6F",
-  primary: "#00565A",
-  primaryDark: "#003D40",
-  homePin: "#00565A",
+  ink: "#0B2540",
+  inkSoft: "#5B6B7A",
+  primary: "#007C89",
+  primaryDark: "#0B2540",
+  homePin: "#007C89",
   workPin: "#059669",
-  divider: "#EDF1F2",
+  divider: "#EEF6F7",
 };
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -186,7 +186,7 @@ export default function DoneScreen() {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={["#E6F1F2", COLORS.bg]}
+        colors={["#E3FAFB", COLORS.bg]}
         style={StyleSheet.absoluteFill}
       />
       <GlowBackdrop variant="reward" />
@@ -305,11 +305,11 @@ export default function DoneScreen() {
             accessibilityLabel="Plan my first commute"
           >
             {finishing ? (
-              <ActivityIndicator color={COLORS.surface} />
+              <ActivityIndicator color="#0B2540" />
             ) : (
               <>
                 <Text style={styles.ctaText}>Plan my first commute</Text>
-                <ArrowRight size={20} color={COLORS.surface} />
+                <ArrowRight size={20} color="#0B2540" />
               </>
             )}
           </TouchableOpacity>
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "stretch",
     backgroundColor: COLORS.surface,
-    borderRadius: 24,
+    borderRadius: 30,
     padding: 18,
     boxShadow: ELEVATION.light.e3,
   },
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   endpointDot: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 25,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   vehicleChip: {
     width: 48,
     height: 48,
-    borderRadius: 16,
+    borderRadius: 20,
     backgroundColor: COLORS.surface,
     alignItems: "center",
     justifyContent: "center",
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: COLORS.divider,
     padding: 14,
@@ -484,15 +484,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    backgroundColor: COLORS.ink,
+    backgroundColor: "#09E0E8",
     paddingVertical: 18,
     borderRadius: 999,
     minHeight: 56,
   },
   ctaText: {
-    color: COLORS.surface,
+    color: "#0B2540",
     fontSize: 17,
-    fontWeight: "700",
+    fontWeight: "800",
     letterSpacing: 0.2,
   },
 });
