@@ -383,6 +383,114 @@ a security audit. These are all web-side changes.
 >
 > No database, RLS or edge-function changes are needed for this.
 
+## Prompt 13 — Same numbers and the same words as the app (26 October 2026 QA)
+
+> A QA pass compared clyzio.com with the mobile app on the same accounts. The
+> database functions the website reads have been corrected on the backend side
+> (migration 055); please align the website with them. **Do not change any
+> database function, policy or table** — only the website code.
+>
+> **1. Team list → `get_company_members` (blocking for a privacy fix).**
+> Dashboard → Settings → Team reads `profiles` directly (Prompt 11). Managers
+> could read colleagues' whole profile rows that way, including home and work
+> coordinates, which the privacy policy says employers don't get. Read the team
+> through the new function instead — same fields, no locations:
+> ```ts
+> supabase.rpc("get_company_members", { p_company_id: companyId })
+> // → id, first_name, last_name, email, avatar_url, department_id, is_manager, created_at
+> ```
+> Non-managers get an empty list: keep the "Only managers can see the team
+> list" message. Tell me when this is live — direct profile access for managers
+> is then switched off.
+>
+> **2. CO₂ per employee: stop summing rides yourself.** One screen reads
+> `supabase.from("rides").select("co2_saved, completed_at").in("rider_id", …)`
+> and adds up `co2_saved`. That counts a carpool's full CO₂ for the passenger and
+> nothing for the driver, so it disagrees with the app (e.g. 7.69 kg on the web
+> vs 5.07 kg in the app for the same person). Use
+> `get_employee_coverage(p_company_id, p_period_start, p_period_end)` everywhere
+> a per-employee or per-period CO₂ figure is shown — its `primary_kg` is now the
+> person's credited CO₂ **saved** (a carpool counts half for each of the two),
+> exactly what the app shows. Label it "CO₂ saved".
+>
+> **3. ESG inventory (`get_company_inventory`) — labels.**
+> - `gross_kg`, `by_mode[].kg` and `by_department[].gross_kg` are **emissions**
+>   (what was emitted), now consistent with each other. Label them "Emitted".
+> - `by_department[].saved_kg` is new: the department's CO₂ **saved**. If the
+>   department table showed `gross_kg` as savings before, switch that column to
+>   `saved_kg`.
+> - Show the factor table from the response (`factor_table[]`: mode,
+>   `factor_kg_per_km`, `source`, `source_year`) on the Methodology page instead
+>   of any hard-coded factors. The factors are now one cited set (DEFRA 2024 /
+>   EEA 2023 / IPCC AR6) used identically by the app and the website.
+>
+> **4. Departments.** `get_company_breakdown` now groups by department (id and
+> name) and includes an "Unassigned" row — the same grouping the app's manager
+> dashboard uses. Show the "Unassigned" row instead of dropping it, so the
+> department totals add up to the company total.
+>
+> **5. Transport mode names.** Show mode names from `transport_mode_catalog.label`
+> (active rows only) — they now match the app ("Bike", "Public transport",
+> "E-bike / E-scooter", "Motorcycle / Moped", "Car"). Don't hard-code mode names
+> or factors.
+>
+> **6. Company settings.** The green score, CO₂ total, employee count and the
+> company domain are now computed or verified by the server only; the database
+> refuses direct edits. Make sure Settings never tries to update those columns
+> (name, logo, colour and the cross-company toggle stay editable). The domain
+> changes only through the existing verification flow.
+>
+> **7. Privacy policy (`/legal/privacy`) — match the app word for word, version
+> "Version 1.3 · 26 October 2026" and "Last updated: 26 October 2026"** (keep one
+> version line):
+> - Section 2, after "Real-time device location when actively logging a trip":
+>   "Your live position during a confirmed carpool, shared only with your carpool
+>   partner and only from 15 minutes before pickup while the App is open"
+> - Section 2, after "Trip history and completion status": "Ratings you give and
+>   receive after a carpool", then a new group **Carpool Messages** with
+>   "Messages you send to people you are matched with (in-app chat)".
+> - Section 4: replace "Matching you with carpool partners at your company" with
+>   "Matching you with carpool partners: colleagues at your company, and other
+>   independent commuters if you don't belong to a company or you open a trip to
+>   people outside it", and add "Delivering chat messages between matched
+>   commuters and, during a carpool, sharing live positions between the two
+>   people in it".
+> - Section 5, *Other Clyzio Users*: after the first paragraph add "On the map,
+>   other commuters' trips are only shown approximately (about 300 m)." and a
+>   new paragraph: "When you are matched, the other person sees the proposed
+>   pickup and drop-off: a point on the driver's route near you, or your door if
+>   the driver offers to come to it (door pickups are only offered when you share
+>   your pickup address). Matched people can send each other messages. During a
+>   confirmed carpool, from 15 minutes before pickup and while the App is open,
+>   you and your partner see each other's live position; positions are deleted
+>   when the trip ends. After a carpool you can rate each other; a rating is
+>   visible only to the two of you. You control your visibility in Profile →
+>   Privacy." (This replaces the sentence starting "Once you both agree to a
+>   carpool…".)
+> - Section 6, after "Trip and location data…": "Carpool messages: Retained with
+>   the carpool they belong to and deleted with your account" and "Live carpool
+>   positions: Deleted as soon as the carpool trip is completed or cancelled".
+>
+> **8. Security headers.** The site sends no `Content-Security-Policy` and no
+> `X-Frame-Options`, so any site can embed clyzio.com (including the dashboard
+> and `/delete-account`) in an invisible frame (clickjacking). Please send
+> `Content-Security-Policy: frame-ancestors 'none'` and `X-Frame-Options: DENY`
+> as **response headers** (a `<meta>` tag can't set either). If Lovable hosting
+> can't add custom headers, tell me — it can be done in Cloudflare instead.
+>
+> **9. Smaller items.**
+> - `https://www.clyzio.com` fails with a TLS error; redirect `www` to
+>   `https://clyzio.com` (or say if that's a DNS change on my side).
+> - The `twitter:image` meta tag points at an old Lovable preview screenshot
+>   (`…lovable.app-…png`). Use a proper share image and add matching
+>   `og:image` / `og:title` / `og:description` tags.
+> - The `verify-domain` function answers a GET with HTTP 500; for anything but
+>   POST it should return 405. (It's the website's own function; change only
+>   that, nothing else on the backend.)
+>
+> Apart from that, no database, RLS or edge-function changes are needed from
+> your side.
+
 ## Do NOT change (mobile app depends on these)
 
 > Please treat the Supabase backend as read-only from the web app's

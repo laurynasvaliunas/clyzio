@@ -23,8 +23,8 @@ const COLORS = {
   border: "#EEF6F7",
 };
 
-const LAST_UPDATED = "11 October 2026";
-const VERSION = "1.2";
+const LAST_UPDATED = "26 October 2026";
+const VERSION = "1.3";
 
 const SECTIONS = [
   {
@@ -55,6 +55,7 @@ Location Data
 • GPS coordinates for trip origin and destination points
 • Home address and work address (optional, provided by you for AI suggestions)
 • Real-time device location when actively logging a trip
+• Your live position during a confirmed carpool, shared only with your carpool partner and only from 15 minutes before pickup while the App is open
 
 Commute & Transport Data
 • Transport modes used (e.g., car, bike, walking, public transport)
@@ -66,6 +67,10 @@ Usage & Gamification Data
 • Experience points (XP) and level progression
 • Badges and achievements earned
 • Trip history and completion status
+• Ratings you give and receive after a carpool
+
+Carpool Messages
+• Messages you send to people you are matched with (in-app chat)
 
 Technical Data
 • Device type and operating system version
@@ -96,7 +101,8 @@ In some cases we may need to process your data to comply with applicable legal o
 • Providing and operating the App and its features
 • Calculating your personal CO₂ footprint savings
 • Generating AI-powered commute suggestions tailored to your habits (only if you turn them on)
-• Matching you with carpool partners at your company
+• Matching you with carpool partners: colleagues at your company, and other independent commuters if you don't belong to a company or you open a trip to people outside it
+• Delivering chat messages between matched commuters and, during a carpool, sharing live positions between the two people in it
 • Displaying your statistics on personal and company leaderboards
 • Sending push notifications for trip reminders and gamification updates
 • Providing customer support and responding to your enquiries
@@ -109,7 +115,9 @@ In some cases we may need to process your data to comply with applicable legal o
     body: `We do not sell your personal data. We share it only with the recipients below.
 
 Other Clyzio Users
-To make carpooling work, people you can be matched with (colleagues at your company, or other independent commuters if you don't belong to a company or you open a trip to people outside it) can see your first name, profile photo, an approximate home area (never your exact address) and your planned trip times. Once you both agree to a carpool, your partner also sees your pickup point (unless you hide your pickup address) and, if you drive, your car details. You control your visibility in Profile → Privacy.
+To make carpooling work, people you can be matched with (colleagues at your company, or other independent commuters if you don't belong to a company or you open a trip to people outside it) can see your first name, profile photo, an approximate home area (never your exact address) and your planned trip times. On the map, other commuters' trips are only shown approximately (about 300 m).
+
+When you are matched, the other person sees the proposed pickup and drop-off: a point on the driver's route near you, or your door if the driver offers to come to it (door pickups are only offered when you share your pickup address). Matched people can send each other messages. During a confirmed carpool, from 15 minutes before pickup and while the App is open, you and your partner see each other's live position; positions are deleted when the trip ends. After a carpool you can rate each other; a rating is visible only to the two of you. You control your visibility in Profile → Privacy.
 
 Your Employer (Corporate Users Only)
 If you register with a corporate email address and your employer is enrolled in Clyzio, aggregated sustainability statistics (total CO₂ saved, trips completed, transport modes) may be visible to authorised managers in the Clyzio manager dashboard. Exact trip routes and timestamps are not directly shared with your employer.
@@ -135,6 +143,8 @@ We do not share your personal data with anyone else.`,
 
 • Account and profile data: Retained until you delete your account, then deleted within 30 days (except where legal obligations require longer retention)
 • Trip and location data: Retained for the lifetime of your account
+• Carpool messages: Retained with the carpool they belong to and deleted with your account
+• Live carpool positions: Deleted as soon as the carpool trip is completed or cancelled
 • After account deletion: Most personal data is deleted within 30 days. Anonymised, aggregated data (which cannot identify you) may be retained indefinitely for analytics purposes
 • Crash logs and error reports: Automatically deleted after 90 days
 

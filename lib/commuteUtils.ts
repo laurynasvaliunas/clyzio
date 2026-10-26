@@ -10,20 +10,14 @@ export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+import { FUEL_FACTORS, MODE_FACTORS } from "./emissionFactors";
+
 // ─── Fuel-Type CO₂ Factors ────────────────────────────────────────────────────
-// Sources: DEFRA UK GHG Conversion Factors 2024, EEA Transport Emission Factors,
-//          IPCC AR6 WG3 Ch.10, GHG Protocol Scope 3 Standard.
-// All values in kg CO₂e per km for an average passenger car.
-export const FUEL_CO2_FACTORS: Record<string, number> = {
-  petrol:   0.192, // DEFRA 2024 — average petrol passenger car
-  diesel:   0.171, // DEFRA 2024 — diesel is ~11% more fuel-efficient per km
-  hybrid:   0.110, // EEA — self-charging HEV (e.g. Toyota Prius class)
-  phev:     0.075, // EEA — PHEV assuming ~50% electric share in real-world use
-  electric: 0.053, // EU grid average 2024 (EEA): ~0.233 kgCO₂/kWh × ~0.2 kWh/km
-  lpg:      0.162, // DEFRA 2024 — LPG / autogas
-  hydrogen: 0.020, // IEA — green hydrogen via electrolysis, renewable energy
-  cng:      0.157, // DEFRA 2024 — compressed natural gas
-};
+// kg CO₂e per km for an average passenger car, from lib/emissionFactors (the
+// same cited values the server and clyzio.com use).
+export const FUEL_CO2_FACTORS: Record<string, number> = Object.fromEntries(
+  Object.entries(FUEL_FACTORS).map(([id, f]) => [id, f.kgPerKm]),
+);
 
 /**
  * Returns the CO₂ emission factor (kg/km) for a given fuel type id.
@@ -36,7 +30,7 @@ export function getFuelBaseCO2(fuelType?: string | null): number {
 
 /**
  * Human-readable label for a fuel type's CO₂ factor for display in UI.
- * e.g. "Electric — 0.053 kg/km (EU grid 2024)"
+ * e.g. "0.047 kg CO₂/km" for an electric car.
  */
 export function fuelCO2Label(fuelType?: string | null): string {
   const factor = getFuelBaseCO2(fuelType);
@@ -47,17 +41,17 @@ export function fuelCO2Label(fuelType?: string | null): string {
 import type { Vehicle } from "./vehicles";
 
 // Non-car vehicle factors (kg CO₂e/km).
-export const MOTO_CO2 = 0.103;     // DEFRA 2024 — average motorcycle
-export const ESCOOTER_CO2 = 0.023; // matches the app's e-bike/scooter mode
+export const MOTO_CO2 = MODE_FACTORS.moto.kgPerKm;      // DEFRA 2024 — average motorcycle
+export const ESCOOTER_CO2 = MODE_FACTORS.ebike.kgPerKm; // the app's e-bike / e-scooter mode
 
 // Public-transit sub-mode factors (kg CO₂e/passenger-km, EEA averages).
 // KEEP IN SYNC with the copy inside supabase/functions/transit-routes/index.ts
 // (Deno can't import this RN module).
 export const TRANSIT_CO2_FACTORS: Record<string, number> = {
-  bus: 0.10,
+  bus: 0.097,
   trolleybus: 0.025,
-  tram: 0.035,
-  subway: 0.04,
+  tram: 0.029,
+  subway: 0.028,
   rail: 0.035,
   mixed: 0.06,
 };
@@ -147,9 +141,9 @@ export interface LocalMode {
 export const MODES: LocalMode[] = [
   { id: "walking",  label: "Walking",          icon: "walk",    co2PerKm: 0,     speedKmh: 5,  costPerKm: 0,    color: "#059669", tag: "Zero Emissions", tagColor: "#059669" },
   { id: "bike",     label: "Bike",             icon: "bike",    co2PerKm: 0,     speedKmh: 15, costPerKm: 0,    color: "#D97706", tag: "Most Eco",       tagColor: "#D97706" },
-  { id: "ebike",    label: "E-bike / E-scooter", icon: "bike",    co2PerKm: 0.023, speedKmh: 22, costPerKm: 0.03, color: "#7C3AED", tag: "Fastest Green",  tagColor: "#7C3AED" },
-  { id: "public",   label: "Public transport", icon: "bus",     co2PerKm: 0.04,  speedKmh: 25, costPerKm: 0.05, color: "#0095A3", tag: "Best Balance",   tagColor: "#0095A3" },
-  { id: "carpool",  label: "Carpool",          icon: "carpool", co2PerKm: 0.096, speedKmh: 35, costPerKm: 0.10, color: "#007C89", tag: "Social & Green", tagColor: "#007C89" },
+  { id: "ebike",    label: "E-bike / E-scooter", icon: "bike",    co2PerKm: MODE_FACTORS.ebike.kgPerKm, speedKmh: 22, costPerKm: 0.03, color: "#7C3AED", tag: "Fastest Green",  tagColor: "#7C3AED" },
+  { id: "public",   label: "Public transport", icon: "bus",     co2PerKm: MODE_FACTORS.public.kgPerKm, speedKmh: 25, costPerKm: 0.05, color: "#0095A3", tag: "Best Balance",   tagColor: "#0095A3" },
+  { id: "carpool",  label: "Carpool",          icon: "carpool", co2PerKm: MODE_FACTORS.carpool.kgPerKm, speedKmh: 35, costPerKm: 0.10, color: "#007C89", tag: "Social & Green", tagColor: "#007C89" },
 ];
 
 // Default fallback (petrol solo car) — use getFuelBaseCO2() for user-specific baseline

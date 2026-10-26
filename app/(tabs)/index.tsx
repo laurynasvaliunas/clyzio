@@ -37,6 +37,7 @@ import YesterdayImpactCard, { type YesterdayImpact } from "../../components/Yest
 import * as SecureStore from "expo-secure-store";
 import { supabase } from "../../lib/supabase";
 import { dayLabel, localISODate, tomorrowLocalISODate } from "../../lib/localDate";
+import { haversineKm } from "../../lib/commuteUtils";
 import { buildWebLink } from "../../lib/deepLinks";
 import { cancelRide } from "../../lib/cancelRide";
 import { co2Share } from "../../lib/completeTrip";
@@ -90,6 +91,12 @@ interface IntentPeer {
 
 /** Tomorrow as a local YYYY-MM-DD — same helper as useDailyCommuteStore. */
 const tomorrowISODate = tomorrowLocalISODate;
+
+/** "350 m" / "1.2 km" — distances on the radar are approximate (~300 m). */
+function formatApproxKm(km: number): string {
+  if (km < 1) return `${Math.max(100, Math.round((km * 1000) / 50) * 50)} m`;
+  return `${km.toFixed(1)} km`;
+}
 
 /** A carpool request the server refused (request-carpool codes), in words. */
 function carpoolRequestError(code: string, name: string): string | null {
@@ -341,20 +348,24 @@ function MatchCard({ match, searchMode, onClose, onRequestMatch, isLoading = fal
         </TouchableOpacity>
       </View>
 
-      {/* Route Information */}
+      {/* Where and when — approximate: a peer's exact start stays private */}
       <View style={styles.matchRouteContainer}>
-        <Text style={styles.matchRouteLabel}>Route</Text>
+        <Text style={styles.matchRouteLabel}>Trip</Text>
         <View style={styles.matchRoute}>
           <View style={styles.routeDotGreen} />
           <Text style={styles.matchRouteText} numberOfLines={1}>
-            {match.origin_address?.split(',')[0] || 'Origin'}
+            {match.distance_from_you_km != null
+              ? `Starts about ${formatApproxKm(match.distance_from_you_km)} from you`
+              : 'Starts near you'}
           </Text>
         </View>
         <View style={styles.matchRouteLine} />
         <View style={styles.matchRoute}>
           <View style={styles.routeDotBlue} />
           <Text style={styles.matchRouteText} numberOfLines={1}>
-            {match.dest_address?.split(',')[0] || 'Destination'}
+            {match.scheduled_at
+              ? `Leaves at ${new Date(match.scheduled_at).toTimeString().slice(0, 5)}`
+              : 'Leaving time in chat'}
           </Text>
         </View>
       </View>
@@ -1082,45 +1093,32 @@ export default function MapScreen() {
       const searchRole = role === 'driver' ? 'rider' : 'driver';
       const searchColumn = `${searchRole}_id`;
       
-      // Step 1: Get IDs of peers the caller is allowed to see — applies the
-      // canonical predicate is_peer_visible (same-company colleagues always;
-      // cross-org only when both sides are opted in AND both is_public).
-      // Falls back to the legacy is_public-only filter if the RPC isn't
-      // present yet (pre-migration 20260521_015) so review builds aren't
-      // blocked.
-      let visibleUserIds: string[] = [];
-      const { data: visibleRpc, error: visibleErr } = await supabase.rpc(
-        'get_visible_peer_ids',
-      );
-      if (visibleErr) {
-        const { data: publicProfiles } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('is_public', true)
-          .neq('id', user.id);
-        visibleUserIds = (publicProfiles ?? []).map((p: any) => p.id);
-      } else {
-        visibleUserIds = ((visibleRpc as any[]) ?? [])
-          .map((r) => (typeof r === 'string' ? r : r?.id))
-          .filter(Boolean);
-      }
-      const publicUserIds = visibleUserIds;
-
-      // Step 2: Query scheduled/active rides only from public users
-      // (AI matching uses find_carpool_candidates RPC which bypasses this filter)
-      const { data: rides, error: ridesError } = await supabase
-        .from('rides')
-        .select('id, origin_lat, origin_long, dest_lat, dest_long, origin_address, dest_address, status, scheduled_at, driver_id, rider_id')
-        .in('status', ['scheduled', 'active', 'requested'])
-        .not(searchColumn, 'is', null)
-        .in(searchColumn, publicUserIds.length > 0 ? publicUserIds : ['00000000-0000-0000-0000-000000000000'])
-        .limit(20);
+      // Peers' upcoming rides from people you may see (is_peer_visible), at
+      // ~300 m precision and without addresses — get_peer_rides, migration 055.
+      // Their exact start and destination stay private.
+      const { data: peerRides, error: ridesError } = await supabase.rpc('get_peer_rides', { p_role: searchRole });
 
       if (ridesError) {
         console.error('Error fetching nearby rides:', ridesError);
         setSearchStatus('waiting');
         return;
       }
+
+      const rides = ((peerRides as any[]) ?? []).map((r) => ({
+        id: r.ride_id,
+        [searchColumn]: r.user_id,
+        status: r.status,
+        scheduled_at: r.scheduled_at,
+        transport_mode: r.transport_mode,
+        origin_lat: r.approx_origin_lat,
+        origin_long: r.approx_origin_long,
+        dest_lat: r.approx_dest_lat,
+        dest_long: r.approx_dest_long,
+        distance_from_you_km:
+          origin?.lat != null && origin?.lng != null
+            ? haversineKm(origin.lat, origin.lng, r.approx_origin_lat, r.approx_origin_long)
+            : null,
+      }));
 
       if (!rides || rides.length === 0) {
         setNearbyCommuters([]);
@@ -1165,6 +1163,12 @@ export default function MapScreen() {
   useEffect(() => {
     if (!searchMode) return;
     let debounce: ReturnType<typeof setTimeout> | undefined;
+    // Other people's rides reach the radar through get_peer_rides, not
+    // Realtime (rides RLS is participants-only once migration 056 runs), so
+    // also look again every 20 s while searching.
+    const poll = setInterval(() => {
+      if (searchOriginRef.current) fetchNearbyCommuters(searchMode, searchOriginRef.current);
+    }, 20_000);
     const channel = supabase
       .channel('home-search-rides')
       .on(
@@ -1182,6 +1186,7 @@ export default function MapScreen() {
       .subscribe();
     return () => {
       clearTimeout(debounce);
+      clearInterval(poll);
       supabase.removeChannel(channel);
     };
   }, [searchMode, fetchNearbyCommuters]);

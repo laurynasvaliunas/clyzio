@@ -4,6 +4,11 @@ import { verifyAuth } from '../_shared/auth.ts';
 import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
 import { parseBody, AISustainabilityReportSchema } from '../_shared/validate.ts';
 
+// Equivalents shown in the ESG report (kept in step with app/(tabs)/stats.tsx).
+const CAR_KG_PER_KM = 0.192;          // DEFRA 2024 petrol car
+const KG_CO2_PER_TREE = 20;           // CO2_PER_TREE in the app's Impact screen
+const KG_CO2_PER_SHORT_FLIGHT = 250;  // approx. one short-haul return flight per passenger
+
 const SYSTEM_PROMPT = `You are Clyzio's ESG Intelligence Engine. You analyze corporate commuting data and produce actionable sustainability insights for HR and sustainability managers.
 
 Return ONLY valid JSON matching the exact schema provided - no markdown, no explanation.
@@ -100,7 +105,9 @@ Deno.serve(async (req: Request) => {
     // Estimate cost savings (fuel + parking)
     const avgDistanceKm = 15; // typical one-way commute
     const fuelCostPerKm = 1.80 * 0.07; // €1.80/L × 0.07L/km
-    const totalKmAvoided = (stats.total_co2_saved ?? 0) / 0.192 * 2; // approx km avoided
+    // Car km avoided = CO₂ saved ÷ the petrol-car factor (DEFRA 2024, the
+    // same 0.192 kg/km the app and clyzio.com use).
+    const totalKmAvoided = (stats.total_co2_saved ?? 0) / CAR_KG_PER_KM;
     const estimatedCostSavings = Math.round(totalKmAvoided * fuelCostPerKm);
 
     const userMessage = `Company sustainability data for the past ${timePeriod}:
@@ -170,6 +177,14 @@ Generate a comprehensive ESG sustainability report. Return JSON matching this sc
     });
 
     const parsed = parseClaudeJSON<SustainabilityReport>(text);
+    // The equivalents are arithmetic, not the model's estimate — the same
+    // conversions the app's Impact screen uses.
+    const saved = Number(stats.total_co2_saved ?? 0);
+    parsed.co2_equivalent = {
+      trees_planted: Math.floor(saved / KG_CO2_PER_TREE),
+      car_km_avoided: Math.round(saved / CAR_KG_PER_KM),
+      flights_avoided: Math.floor(saved / KG_CO2_PER_SHORT_FLIGHT),
+    };
 
     // Log to ai_suggestions
     await supabase.from('ai_suggestions').insert({

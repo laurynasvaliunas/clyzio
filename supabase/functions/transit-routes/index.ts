@@ -17,10 +17,10 @@ const CACHE_TTL_HOURS = 6;
 
 // KEEP IN SYNC with lib/commuteUtils.ts TRANSIT_CO2_FACTORS (kg CO₂e/passenger-km).
 const TRANSIT_CO2_FACTORS: Record<string, number> = {
-  bus: 0.10,
+  bus: 0.097,
   trolleybus: 0.025,
-  tram: 0.035,
-  subway: 0.04,
+  tram: 0.029,
+  subway: 0.028,
   rail: 0.035,
   mixed: 0.06,
 };

@@ -3,6 +3,7 @@ import { render, fireEvent, waitFor } from "../utils/test-utils";
 import { supabase } from "../../lib/supabase";
 import GarageSetupScreen from "../../app/setup/garage";
 import { averageBaseline, computeBaseline } from "../../components/CommuteMixEditor";
+import { FUEL_FACTORS, MODE_FACTORS } from "../../lib/emissionFactors";
 
 // Setup step "What do you travel with?": public transport, taxi and walking
 // are full options next to the vehicles. The picks set the CO₂ baseline (their
@@ -66,7 +67,7 @@ describe("Setup - what do you travel with", () => {
     const saved = update.mock.calls[0][0];
     expect(saved.vehicles).toHaveLength(1);
     expect(saved.vehicles[0]).toMatchObject({ type: "car", fuel_type: "petrol" });
-    expect(saved.baseline_co2).toBeCloseTo((0.04 + 0.192) / 2);
+    expect(saved.baseline_co2).toBeCloseTo((MODE_FACTORS.public.kgPerKm + FUEL_FACTORS.petrol.kgPerKm) / 2);
     expect(mockPush).toHaveBeenCalledWith({ pathname: "/setup/done", params: { modes: "public,car_gas" } });
   });
 

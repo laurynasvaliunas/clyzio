@@ -4,6 +4,7 @@ import { Text } from "./ui/AppText";
 import { Check } from "lucide-react-native";
 import ModeIcon from "./ModeIcon";
 import { depth } from "../lib/theme/tokens";
+import { fuelKgPerKm, modeKgPerKm } from "../lib/emissionFactors";
 
 /**
  * CommuteMixEditor — "which modes do you use on which days?".
@@ -41,21 +42,22 @@ export interface CommuteHabit {
 }
 
 /**
- * Per-km CO₂ by mode (kg). Mirrors lib/commuteUtils FUEL_CO2_FACTORS.
+ * Per-km CO₂ by mode (kg), from lib/emissionFactors (the cited values the
+ * server and clyzio.com use).
  * Listed in the design's display order; working from home comes last.
  */
 export const TRANSPORT_OPTIONS: TransportMode[] = [
-  { id: "public", name: "Public transport", co2: 0.04 },
-  { id: "car_gas", name: "Car (Petrol)", co2: 0.192 },
-  { id: "car_diesel", name: "Car (Diesel)", co2: 0.171 },
-  { id: "car_hybrid", name: "Car (Hybrid)", co2: 0.12 },
-  { id: "car_hydrogen", name: "Car (Hydrogen)", co2: 0.02 },
-  { id: "car_electric", name: "Car (Electric)", co2: 0.032 },
+  { id: "public", name: "Public transport", co2: modeKgPerKm("public") },
+  { id: "car_gas", name: "Car (Petrol)", co2: fuelKgPerKm("petrol") },
+  { id: "car_diesel", name: "Car (Diesel)", co2: fuelKgPerKm("diesel") },
+  { id: "car_hybrid", name: "Car (Hybrid)", co2: fuelKgPerKm("hybrid") },
+  { id: "car_hydrogen", name: "Car (Hydrogen)", co2: fuelKgPerKm("hydrogen") },
+  { id: "car_electric", name: "Car (Electric)", co2: fuelKgPerKm("electric") },
   { id: "bike", name: "Bike", co2: 0 },
-  { id: "ebike", name: "E-bike / E-scooter", co2: 0.023 },
+  { id: "ebike", name: "E-bike / E-scooter", co2: modeKgPerKm("ebike") },
   { id: "walking", name: "Walking", co2: 0 },
-  { id: "taxi", name: "Taxi", co2: 0.12 },
-  { id: "moto_gas", name: "Motorcycle / Moped", co2: 0.09 },
+  { id: "taxi", name: "Taxi", co2: modeKgPerKm("taxi") },
+  { id: "moto_gas", name: "Motorcycle / Moped", co2: modeKgPerKm("moto") },
   { id: "nomotor", name: "Other, no motor", co2: 0 },
   { id: "wfh", name: "Working from home", co2: 0 },
 ];

@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
 
     const FUEL_CO2_FACTORS: Record<string, number> = {
       petrol: 0.192, diesel: 0.171, hybrid: 0.110, phev: 0.075,
-      electric: 0.053, lpg: 0.162, hydrogen: 0.020, cng: 0.157,
+      electric: 0.047, lpg: 0.162, hydrogen: 0.020, cng: 0.157,
     };
     const fuelType: string = profileData?.car_fuel_type || 'petrol';
     const baselineCO2: number = FUEL_CO2_FACTORS[fuelType] ?? profileData?.baseline_co2 ?? 0.192;

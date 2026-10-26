@@ -31,6 +31,7 @@ import {
   TrendingDown,
 } from "lucide-react-native";
 import { modeIconFor } from "./ModeIcon";
+import { modeKgPerKm } from "../lib/emissionFactors";
 import * as Haptics from "expo-haptics";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -79,15 +80,15 @@ const GAP = 12;
 // One brand colour for every mode icon (the impact signal is the CO₂ dot,
 // not a rainbow of per-mode hues).
 const BASE_TRANSPORT_MODES = [
-  { id: "public",  label: "Public transport",   icon: modeIconFor("public"),  co2: 0.040, color: COLORS.primary },
-  { id: "my_car",  label: "Car",                icon: modeIconFor("my_car"),  co2: 0.192, color: COLORS.primary },
+  { id: "public",  label: "Public transport",   icon: modeIconFor("public"),  co2: modeKgPerKm("public"), color: COLORS.primary },
+  { id: "my_car",  label: "Car",                icon: modeIconFor("my_car"),  co2: modeKgPerKm("my_car"), color: COLORS.primary },
   { id: "bike",    label: "Bike",               icon: modeIconFor("bike"),    co2: 0,     color: COLORS.primary },
-  { id: "ebike",   label: "E-bike / E-scooter", icon: modeIconFor("ebike"),   co2: 0.023, color: COLORS.primary },
+  { id: "ebike",   label: "E-bike / E-scooter", icon: modeIconFor("ebike"),   co2: modeKgPerKm("ebike"), color: COLORS.primary },
   { id: "walking", label: "Walking",            icon: modeIconFor("walking"), co2: 0,     color: COLORS.primary },
   // Taxi — CO₂ estimated as an average hybrid car (Prius is the most common
   // EU taxi). A disclaimer is shown when this mode is selected. (PDF Branch C)
-  { id: "taxi",    label: "Taxi",               icon: modeIconFor("taxi"),    co2: 0.120, color: COLORS.primary },
-  { id: "moto",    label: "Motorcycle / Moped", icon: modeIconFor("moto"),    co2: 0.090, color: COLORS.primary },
+  { id: "taxi",    label: "Taxi",               icon: modeIconFor("taxi"),    co2: modeKgPerKm("taxi"), color: COLORS.primary },
+  { id: "moto",    label: "Motorcycle / Moped", icon: modeIconFor("moto"),    co2: modeKgPerKm("moto"), color: COLORS.primary },
   // Kick scooter, skateboard, roller skates… zero emissions.
   { id: "nomotor", label: "Other, no motor",    icon: modeIconFor("nomotor"), co2: 0,     color: COLORS.primary },
   // Working from home — a zero-commute day. No route required. (PDF Stage 3)
