@@ -554,6 +554,27 @@ policy 1.3) · **4.** items 8 and 9 (headers and small fixes).*
 > profile). Don't fix it in the browser yet — a server function for it is
 > coming; until then, hide or disable those two controls.
 
+## Prompt 15 — Deploy the domain-verification functions (reviewed 26 October 2026)
+
+> I reviewed the three files. You may change and deploy **exactly these edge
+> functions**; the rule stays for everything else (no changes to database
+> tables, policies, database functions or any other edge function).
+>
+> 1. **`admin-verify-domain`** — deploy your proposed replacement with two small
+>    changes:
+>    - Pass the token explicitly when reading the user:
+>      `const token = authHeader.slice(7); const { data: u } = await userClient.auth.getUser(token);`
+>    - Trim each TXT answer before comparing (some DNS providers add spaces):
+>      add `.trim()` at the end of the `answers` mapping.
+> 2. **`verify-domain`** — neither the website nor the mobile app calls it any
+>    more (the website uses `admin-verify-domain`). Delete it: remove
+>    `supabase/functions/verify-domain` and undeploy the function. If you can't
+>    undeploy it, tell me and the backend owner will.
+> 3. **`admin-create-company`** — no change needed: the database creates the
+>    domain row unverified by default.
+>
+> Tell me when `admin-verify-domain` is deployed.
+
 ## Do NOT change (mobile app depends on these)
 
 > Please treat the Supabase backend as read-only from the web app's
