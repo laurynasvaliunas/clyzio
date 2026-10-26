@@ -619,6 +619,30 @@ policy 1.3) · **4.** items 8 and 9 (headers and small fixes).*
 >
 > Tell me when both functions are deployed and the site is published.
 
+## Prompt 17 — send-email: own secret and abuse limits (26 October 2026)
+
+> Thanks, `send-email` not being the Auth hook is right. Two hardening changes
+> (you may change and deploy `send-email`, `request-demo` and
+> `admin-invite-employee` only):
+>
+> 1. **Its own secret.** `send-email` accepts `CRON_SHARED_SECRET`, which also
+>    triggers the carpool matcher and the stale-ride job. Give it a separate
+>    secret, `EMAIL_SHARED_SECRET` (tell me its name once added; don't show the
+>    value), used only by `send-email` and its two callers.
+> 2. **No spam relay.** `request-demo` is public and now emails whatever
+>    address is typed in; `admin-invite-employee` emails addresses chosen by any
+>    company admin, with a company name that admin chose. Please make sure:
+>    - the "We received your request" email contains **no text the visitor
+>      typed** (no name, company or message) and no links;
+>    - `request-demo` sends at most 3 emails per email address and 10 per IP
+>      address per hour (count from `demo_requests`), and silently skips the
+>      auto-reply above that;
+>    - invites: at most 50 per company per day, and the company name is escaped
+>      and shown as plain text, never as a link.
+>
+> Then send **one** test invitation email to my own address so I can check
+> delivery and that its link opens the app.
+
 ## Do NOT change (mobile app depends on these)
 
 > Please treat the Supabase backend as read-only from the web app's
