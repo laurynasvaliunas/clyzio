@@ -575,6 +575,50 @@ policy 1.3) · **4.** items 8 and 9 (headers and small fixes).*
 >
 > Tell me when `admin-verify-domain` is deployed.
 
+## Prompt 16 — Team page controls and domain claims (backend migration 059, 26 October 2026)
+
+> The backend now has what the Team page and company sign-up need. Please make
+> these website changes. You may change and deploy **exactly two edge
+> functions**, `admin-create-company` and `admin-verify-domain`; the rule stays
+> for everything else (no changes to database tables, policies, database
+> functions or any other edge function).
+>
+> **1. Team page — bring back the two controls you hid**, calling these
+> functions instead of updating `profiles`:
+> ```ts
+> supabase.rpc("set_member_department", { p_user_id: memberId, p_department_id: deptId /* or null */ })
+> supabase.rpc("set_member_manager", { p_user_id: memberId, p_is_manager: true /* or false */ })
+> ```
+> - The department picker: for company admins and managers.
+> - The manager button: for company admins only, and never on the admin's own
+>   row.
+> - Errors to show as a toast: `not_authorized` ("You can't change this
+>   person"), `department_not_in_company`, `cannot_change_own_role` ("You can't
+>   change your own role"). On success, refetch the team list
+>   (`get_company_members`).
+>
+> **2. `admin-create-company` — only a verified domain is taken.** The database
+> now lets several companies claim the same domain until one proves it through
+> DNS; the one that verifies first keeps it and the other claims are removed.
+> So replace the two duplicate checks (`companies.domain` and
+> `company_domains.domain`) with one that only refuses a domain another company
+> has **verified**:
+> ```ts
+> const { data: taken } = await admin.from("company_domains").select("id")
+>   .eq("domain", domain).not("verified_at", "is", null).maybeSingle();
+> if (taken) return json(409, { error: "This domain is already registered by a verified company" });
+> ```
+> Also, if inserting the `company_domains` row fails, delete the company you
+> just created before returning the error, so no half-created company is left.
+>
+> **3. `admin-verify-domain` — a clear message when someone was faster.** If
+> `verify_company_domain` returns an error whose message contains
+> `domain_already_verified`, return
+> `{ ok: false, error: "Another company has already verified this domain" }`
+> (status 200) instead of the generic 500.
+>
+> Tell me when both functions are deployed and the site is published.
+
 ## Do NOT change (mobile app depends on these)
 
 > Please treat the Supabase backend as read-only from the web app's
