@@ -110,11 +110,16 @@ begin
   end;
   reset role;
 
-  -- Manager sees colleagues (dashboard), not other companies.
+  -- Manager sees colleagues through the team list (no locations, 055/057),
+  -- not their whole profile rows, and not other companies.
   perform set_config('request.jwt.claims', json_build_object('sub', a_mgr, 'role', 'authenticated')::text, true);
   set local role authenticated;
+  select count(*) into cnt from public.get_company_members(co_a) where id in (a1, a2);
+  if cnt = 2 then passed := passed + 1; else failed := failed || format('manager team list shows %s of 2 colleagues', cnt); end if;
   select count(*) into cnt from public.profiles where id in (a1, a2);
-  if cnt = 2 then passed := passed + 1; else failed := failed || format('manager sees %s of 2 colleagues', cnt); end if;
+  if cnt = 0 then passed := passed + 1; else failed := failed || 'manager reads colleagues'' full profiles (home and work locations)'::text; end if;
+  select count(*) into cnt from public.get_company_members(co_b);
+  if cnt = 0 then passed := passed + 1; else failed := failed || 'manager lists another company''s team'::text; end if;
   select count(*) into cnt from public.profiles where id = b1;
   if cnt = 0 then passed := passed + 1; else failed := failed || 'manager sees another company''s employee'::text; end if;
   reset role;

@@ -3,8 +3,9 @@
 Copy each block into Lovable as its own prompt. **Prompt 1 is launch-blocking**
 for the mobile app's deep links — everything else is web polish.
 
-**Status (checked against the live site, 26 October 2026):** Prompts 1–12 are
-live on clyzio.com. Only **Prompt 13** is still to send.
+**Status (checked against the live site, 26 October 2026):** Prompts 1–13 are
+live on clyzio.com, except Prompt 13's edge-function and header items, which
+are repeated in **Prompt 14** (still to send).
 
 Context Lovable needs: the mobile app is live on the same Supabase project
 (`qvevbbqcrizfywqexlkw`). Do **not** change database schema, RLS policies, or
@@ -521,6 +522,37 @@ policy 1.3) · **4.** items 8 and 9 (headers and small fixes).*
 >
 > Apart from items 9 and 10 (the website's own edge functions), no database, RLS
 > or edge-function changes are needed from your side.
+
+## Prompt 14 — Prompt 13 leftovers (checked 26 October 2026, after publishing)
+
+> Thanks — items 1–7 of the last prompt are live and correct. Three things are
+> still open:
+>
+> **1. Domain verification (item 10).** The `admin-verify-domain`,
+> `verify-domain` and `admin-create-company` edge functions were not redeployed —
+> they are still the June versions. Please paste the full current code of
+> `supabase/functions/admin-verify-domain/index.ts` here, then make it do exactly
+> this: check the caller is an admin of the domain's company; require a TXT
+> record `clyzio-verify=<verification_token>` on the domain; only then, **with a
+> service-role client**, call `rpc("verify_company_domain", { _domain_id, _token })`
+> and `rpc("backfill_company_domain", { _domain_id })` and return
+> `{ ok: true, backfilled }`. The database no longer lets the browser or a
+> user-JWT client mark a domain verified. In `admin-create-company`, create the
+> company's domain unverified. In `verify-domain`, answer anything but POST
+> with 405. Deploy all three.
+>
+> **2. Clickjacking protection.** clyzio.com still sends no `X-Frame-Options`
+> or `Content-Security-Policy: frame-ancestors`. If Lovable hosting supports a
+> `public/_headers` file (or any way to set response headers), add for all
+> paths: `X-Frame-Options: DENY` and `Content-Security-Policy: frame-ancestors 'none'`.
+> If it doesn't, tell me, and instead make the app refuse to render when it is
+> inside a frame (`window.self !== window.top` → show only a link "Open
+> clyzio.com"), at least on `/dashboard*`, `/delete-account` and `/auth*`.
+>
+> **3. Team page.** Changing a colleague's department or manager role shows
+> "saved" but changes nothing (the database only lets people update their own
+> profile). Don't fix it in the browser yet — a server function for it is
+> coming; until then, hide or disable those two controls.
 
 ## Do NOT change (mobile app depends on these)
 
