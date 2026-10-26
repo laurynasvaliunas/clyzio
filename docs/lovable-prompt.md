@@ -3,6 +3,9 @@
 Copy each block into Lovable as its own prompt. **Prompt 1 is launch-blocking**
 for the mobile app's deep links — everything else is web polish.
 
+**Status (checked against the live site, 26 October 2026):** Prompts 1–12 are
+live on clyzio.com. Only **Prompt 13** is still to send.
+
 Context Lovable needs: the mobile app is live on the same Supabase project
 (`qvevbbqcrizfywqexlkw`). Do **not** change database schema, RLS policies, or
 edge functions — the mobile app depends on them and they were just hardened in
@@ -384,6 +387,11 @@ a security audit. These are all web-side changes.
 > No database, RLS or edge-function changes are needed for this.
 
 ## Prompt 13 — Same numbers and the same words as the app (26 October 2026 QA)
+
+*Send it as four messages, in this order (Lovable keeps the context between
+them): **1.** the opening paragraph plus items 10 and 1 (security and privacy,
+blocking) · **2.** items 2–6 (same numbers as the app) · **3.** item 7 (privacy
+policy 1.3) · **4.** items 8 and 9 (headers and small fixes).*
 
 > A QA pass compared clyzio.com with the mobile app on the same accounts. The
 > database functions the website reads have been corrected on the backend side
