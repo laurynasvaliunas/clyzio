@@ -488,8 +488,31 @@ a security audit. These are all web-side changes.
 >   POST it should return 405. (It's the website's own function; change only
 >   that, nothing else on the backend.)
 >
-> Apart from that, no database, RLS or edge-function changes are needed from
-> your side.
+> **10. Domain verification runs only on the server (security, blocking).** A
+> company admin could mark any domain verified without the DNS record: by
+> inserting the `company_domains` row with `verified_at` set, by updating
+> `verified_at`, or by calling `verify_company_domain` with the token the page
+> shows. New sign-ups from that domain then joined their company. The database
+> now refuses all three (migration 058): rows added from the browser are always
+> unverified, and `verify_company_domain` / `backfill_company_domain` can only
+> be called with the **service role**. Please make sure the `admin-verify-domain`
+> edge function does exactly this:
+> 1. Read the caller from the request's JWT and check they are an admin of the
+>    domain's company (`is_company_admin`); otherwise 403.
+> 2. Look up the TXT records of the domain and require one that equals
+>    `clyzio-verify=<verification_token>`; otherwise return
+>    `{ ok: false, error: "DNS TXT record not found yet" }`.
+> 3. Only then, **with a service-role client**, call
+>    `rpc("verify_company_domain", { _domain_id, _token })` and
+>    `rpc("backfill_company_domain", { _domain_id })`, and return
+>    `{ ok: true, backfilled: <number> }`.
+> The browser keeps inserting domains as now (`company_id`, `domain` only),
+> reading `verification_token`, and deleting domains. Also check that
+> `admin-create-company` creates the company's domain **unverified** — the
+> admin verifies it through DNS like any other domain.
+>
+> Apart from items 9 and 10 (the website's own edge functions), no database, RLS
+> or edge-function changes are needed from your side.
 
 ## Do NOT change (mobile app depends on these)
 

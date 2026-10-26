@@ -22,6 +22,8 @@ declare
   b1 uuid := gen_random_uuid();
   i1 uuid := gen_random_uuid(); i2 uuid := gen_random_uuid(); ip uuid := gen_random_uuid();
   victim uuid := gen_random_uuid();
+  hires uuid[] := array[gen_random_uuid(), gen_random_uuid(), gen_random_uuid()];
+  dom_b uuid; dom_c uuid; tok_c text;
   r_pool uuid; r_solo uuid; r_i uuid;
   cnt int;
   ok_cnt int;
@@ -231,6 +233,42 @@ begin
   insert into auth.users (id, email) values (victim, 'new.hire@victim-corp.invalid');
   if (select company_id from public.profiles where id = victim) is null then passed := passed + 1;
   else failed := failed || 'a company admin claims an unverified domain and new sign-ups join their company'::text; end if;
+
+  -- Nor can they mark a domain verified without the DNS check (058). The
+  -- website's flow — add a domain, read its token — keeps working.
+  perform set_config('request.jwt.claims', json_build_object('sub', a_adm, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  begin
+    insert into public.company_domains (company_id, domain, verified_at) values (co_a, 'victim-a.invalid', now());
+  exception when others then null;
+  end;
+  begin
+    insert into public.company_domains (company_id, domain) values (co_a, 'victim-b.invalid') returning id into dom_b;
+    insert into public.company_domains (company_id, domain) values (co_a, 'victim-c.invalid') returning id, verification_token into dom_c, tok_c;
+  exception when others then null;
+  end;
+  begin
+    update public.company_domains set verified_at = now() where id = dom_b;
+  exception when others then null;
+  end;
+  begin
+    perform public.verify_company_domain(dom_c, tok_c);
+  exception when others then null;
+  end;
+  reset role;
+  perform set_config('request.jwt.claims', '{}', true);
+  if dom_c is not null and tok_c is not null then passed := passed + 1;
+  else failed := failed || 'company admin can no longer add a domain and read its DNS token (website settings)'::text; end if;
+  if not exists (select 1 from public.company_domains where domain = 'victim-a.invalid' and verified_at is not null) then passed := passed + 1;
+  else failed := failed || 'company admin adds a domain already marked verified'::text; end if;
+  if not exists (select 1 from public.company_domains where id = dom_b and verified_at is not null) then passed := passed + 1;
+  else failed := failed || 'company admin sets verified_at on their domain'::text; end if;
+  if not exists (select 1 from public.company_domains where id = dom_c and verified_at is not null) then passed := passed + 1;
+  else failed := failed || 'company admin verifies a domain through verify_company_domain without DNS'::text; end if;
+  insert into auth.users (id, email) values
+    (hires[1], 'new.hire@victim-a.invalid'), (hires[2], 'new.hire@victim-b.invalid'), (hires[3], 'new.hire@victim-c.invalid');
+  if not exists (select 1 from public.profiles where id = any(hires) and company_id = co_a) then passed := passed + 1;
+  else failed := failed || 'new sign-ups join a company through a domain it never proved'::text; end if;
 
   -- Company counters (score, CO₂, employees) are computed, not admin-editable.
   perform set_config('request.jwt.claims', json_build_object('sub', a_adm, 'role', 'authenticated')::text, true);

@@ -24,6 +24,7 @@ begin
 
   -- ── Fixtures ──────────────────────────────────────────────────────────────
   insert into public.companies (id, name, domain) values (co, 'Test Co NoMotor', 'clyzio-test-nomotor.invalid');
+  insert into public.company_domains (company_id, domain, verified_at) values (co, 'clyzio-test-nomotor.invalid', now());
   insert into auth.users (id, email) values (emp, 'emp@clyzio-test-nomotor.invalid');
   assert (select company_id from public.profiles where id = emp) = co, 'fixture: employee not in company';
   update public.profiles set trips_completed = 1, total_co2_saved = 0 where id = emp;

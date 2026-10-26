@@ -26,10 +26,14 @@ declare
   col boolean;
 begin
   -- ── Fixtures ──────────────────────────────────────────────────────────────
-  -- Company is assigned from the email domain by assign_company_to_profile.
+  -- Company is assigned from the email domain by assign_company_to_profile
+  -- (verified domains only, since 055).
   insert into public.companies (id, name, domain) values
     (co_a, 'Test Co A', 'clyzio-test-a.invalid'),
     (co_b, 'Test Co B', 'clyzio-test-b.invalid');
+  insert into public.company_domains (company_id, domain, verified_at) values
+    (co_a, 'clyzio-test-a.invalid', now()),
+    (co_b, 'clyzio-test-b.invalid', now());
 
   insert into auth.users (id, email) values
     (ind1,        'ind1@clyzio-test-solo.invalid'),
