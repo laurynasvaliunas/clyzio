@@ -776,7 +776,7 @@ export default function MapScreen() {
 
       const { data } = await supabase
         .from('rides')
-        .select('transport_mode, transport_label, distance_km, co2_saved, scheduled_at, status, driver_id, rider_id')
+        .select('id, transport_mode, transport_label, distance_km, co2_saved, scheduled_at, status, driver_id, rider_id')
         .or(`driver_id.eq.${user.id},rider_id.eq.${user.id}`)
         .in('status', ['scheduled', 'requested', 'active'])
         .gte('scheduled_at', dayStart.toISOString())
@@ -787,6 +787,7 @@ export default function MapScreen() {
       const ride = data?.[0];
       if (ride) {
         setPlannedRide({
+          rideId: ride.id,
           modeId: ride.transport_mode ?? null,
           modeLabel: ride.transport_label || ride.transport_mode || "Planned trip",
           distanceKm: ride.distance_km ?? null,
@@ -1731,6 +1732,7 @@ export default function MapScreen() {
           onChangeDay={setTargetDay}
           plan={plannedRide}
           onPlanRide={() => setShowPlanner(true)}
+          onOpenPlan={plannedRide ? () => router.push(`/trip/${plannedRide.rideId}`) : undefined}
           onChangePlan={() => setShowPlanner(true)}
           isDark={isDark}
           onHeightChange={setHomeCardHeight}

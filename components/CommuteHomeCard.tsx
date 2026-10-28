@@ -6,6 +6,7 @@ import * as Haptics from "expo-haptics";
 import { ArrowRight, Pencil, Leaf } from "lucide-react-native";
 import ModeIcon from "./ModeIcon";
 import { elevation as ELEVATION, getGlass, gradients, fun, depth } from "../lib/theme/tokens";
+import { MODE_FACTORS } from "../lib/emissionFactors";
 import { PressableScale } from "./ui";
 
 /**
@@ -16,7 +17,8 @@ import { PressableScale } from "./ui";
  *      nudges planning ahead).
  *   2. The day's plan state:
  *        - no plan  → "{Day}'s commute" + big "Plan your ride" CTA
- *        - planned  → mode emoji + distance + CO₂ summary + "Change plan"
+ *        - planned  → mode icon + distance + CO₂ summary (tap: trip details)
+ *                     + "Change" (reopens the planner)
  *
  * Presentational: all data + handlers come from the Map screen. Kept off
  * the 1900-line index.tsx so the bottom card can evolve independently
@@ -27,10 +29,17 @@ import { PressableScale } from "./ui";
 export type PlanDay = "today" | "tomorrow";
 
 export interface PlannedRideSummary {
+  rideId: string;
   modeId: string | null;
   modeLabel: string;
   distanceKm: number | null;
   co2SavedKg: number | null;
+}
+
+/** Walking, bike, no-motor, working from home: nothing emitted at all. */
+function isZeroEmissionMode(modeId: string | null): boolean {
+  const factor = modeId ? MODE_FACTORS[modeId as keyof typeof MODE_FACTORS] : undefined;
+  return factor?.kgPerKm === 0;
 }
 
 interface Props {
@@ -38,6 +47,8 @@ interface Props {
   onChangeDay: (day: PlanDay) => void;
   plan: PlannedRideSummary | null;
   onPlanRide: () => void;
+  /** Tapping the planned-trip summary: the trip's details. */
+  onOpenPlan?: () => void;
   onChangePlan: () => void;
   isDark?: boolean;
   /** Reports the card stack's measured height so the Map can lift the
@@ -64,6 +75,7 @@ export default function CommuteHomeCard({
   onChangeDay,
   plan,
   onPlanRide,
+  onOpenPlan,
   onChangePlan,
   isDark = false,
   onHeightChange,
@@ -98,6 +110,18 @@ export default function CommuteHomeCard({
     Haptics.selectionAsync().catch(() => undefined);
     onChangeDay(day);
   };
+
+  // "Zero-emission" only when nothing is emitted. A car trip saves nothing
+  // against the usual commute, but it isn't zero-emission (an EV still has
+  // 0.047 kg/km), so it gets no CO₂ line rather than a wrong one.
+  const planDistance = plan?.distanceKm != null ? `  ·  ${plan.distanceKm.toFixed(1)} km` : "";
+  const planCo2 = !plan
+    ? null
+    : plan.co2SavedKg != null && plan.co2SavedKg > 0
+      ? `${plan.co2SavedKg.toFixed(2)} kg CO₂ saved`
+      : isZeroEmissionMode(plan.modeId)
+        ? "Zero-emission trip"
+        : null;
 
   return (
     <View
@@ -137,39 +161,49 @@ export default function CommuteHomeCard({
         {glassLayer(26)}
         {plan ? (
           // ── Planned state ───────────────────────────────────────────────
+          // The summary opens the trip's details; "Change" (a separate button,
+          // not nested) reopens the planner.
           <View style={styles.plannedRow}>
-            <View style={styles.planEmojiWrap}>
-              <ModeIcon mode={plan.modeId} size={26} color={COLORS.cyan} />
-            </View>
-            <View style={styles.planInfo}>
-              {/* One line each on narrow phones: shrink slightly rather than
-                  wrap the eyebrow or truncate "Carpool · 13.6…" (iPhone SE). */}
-              <Text
-                style={[styles.planEyebrow, { color: inkSoft }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
-              >
-                {dayPossessive} commute
-              </Text>
-              <Text
-                style={[styles.planMode, { color: ink }]}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
-              >
-                {plan.modeLabel}
-                {plan.distanceKm != null ? `  ·  ${plan.distanceKm.toFixed(1)} km` : ""}
-              </Text>
-              <View style={styles.planCo2Row}>
-                <Leaf size={13} color={COLORS.leaf} />
-                <Text style={[styles.planCo2, { color: COLORS.leaf }]}>
-                  {plan.co2SavedKg != null && plan.co2SavedKg > 0
-                    ? `${plan.co2SavedKg.toFixed(2)} kg CO₂ saved`
-                    : "Zero-emission trip"}
-                </Text>
+            <PressableScale
+              style={styles.planOpen}
+              onPress={onOpenPlan}
+              disabled={!onOpenPlan}
+              haptic
+              accessibilityRole="button"
+              accessibilityLabel={`${dayPossessive} commute: ${plan.modeLabel}${planDistance.replace("  ·  ", ", ")}${planCo2 ? `, ${planCo2}` : ""}`}
+              accessibilityHint="Opens the trip details"
+            >
+              <View style={styles.planEmojiWrap}>
+                <ModeIcon mode={plan.modeId} size={26} color={COLORS.cyan} />
               </View>
-            </View>
+              <View style={styles.planInfo}>
+                {/* One line each on narrow phones: shrink slightly rather than
+                    wrap the eyebrow or truncate "Carpool · 13.6…" (iPhone SE). */}
+                <Text
+                  style={[styles.planEyebrow, { color: inkSoft }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
+                >
+                  {dayPossessive} commute
+                </Text>
+                <Text
+                  style={[styles.planMode, { color: ink }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
+                >
+                  {plan.modeLabel}
+                  {planDistance}
+                </Text>
+                {planCo2 && (
+                  <View style={styles.planCo2Row}>
+                    <Leaf size={13} color={COLORS.leaf} />
+                    <Text style={[styles.planCo2, { color: COLORS.leaf }]}>{planCo2}</Text>
+                  </View>
+                )}
+              </View>
+            </PressableScale>
             <TouchableOpacity
               style={[styles.changeBtn, { borderColor: track }]}
               onPress={onChangePlan}
@@ -306,6 +340,12 @@ const styles = StyleSheet.create({
 
   // Planned state
   plannedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  planOpen: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
