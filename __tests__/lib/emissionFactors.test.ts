@@ -1,5 +1,5 @@
 import { MODE_FACTORS, FUEL_FACTORS, modeKgPerKm } from "../../lib/emissionFactors";
-import { FUEL_CO2_FACTORS, MODES, MOTO_CO2, ESCOOTER_CO2, TRANSIT_CO2_FACTORS } from "../../lib/commuteUtils";
+import { FUEL_CO2_FACTORS, MODES, MOTO_CO2, ESCOOTER_CO2, TRANSIT_CO2_FACTORS, getTransitCO2 } from "../../lib/commuteUtils";
 import { TRANSPORT_OPTIONS } from "../../components/CommuteMixEditor";
 
 // One set of cited emission factors (migration 055): the app, the server's
@@ -64,7 +64,12 @@ describe("emission factors", () => {
     });
   });
 
-  it("use the EEA 2023 transit values for buses, trams and metro", () => {
-    expect(TRANSIT_CO2_FACTORS).toMatchObject({ bus: 0.097, tram: 0.029, subway: 0.028 });
+  it("use the EEA 2023 transit values the server credits (migration 060)", () => {
+    // Same numbers as supabase/functions/transit-routes/transit.ts and the
+    // emission_factor rows; supabase/tests/transit_submode.sql checks those.
+    expect(TRANSIT_CO2_FACTORS).toEqual({ bus: 0.097, trolleybus: 0.029, tram: 0.029, subway: 0.028, rail: 0.035 });
+    expect(getTransitCO2("tram")).toBe(0.029);
+    expect(getTransitCO2("ferry")).toBe(0.097);
+    expect(getTransitCO2(null)).toBe(0.097);
   });
 });

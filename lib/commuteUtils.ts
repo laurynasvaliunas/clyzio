@@ -44,21 +44,21 @@ import type { Vehicle } from "./vehicles";
 export const MOTO_CO2 = MODE_FACTORS.moto.kgPerKm;      // DEFRA 2024 — average motorcycle
 export const ESCOOTER_CO2 = MODE_FACTORS.ebike.kgPerKm; // the app's e-bike / e-scooter mode
 
-// Public-transit sub-mode factors (kg CO₂e/passenger-km, EEA averages).
-// KEEP IN SYNC with the copy inside supabase/functions/transit-routes/index.ts
-// (Deno can't import this RN module).
+// Public-transit sub-mode factors (kg CO₂e/passenger-km, EEA 2023).
+// KEEP IN SYNC with supabase/functions/transit-routes/transit.ts (Deno can't
+// import this RN module) and the database's emission_factor rows (kind
+// 'transit', migration 060), which credit the saved trip.
 export const TRANSIT_CO2_FACTORS: Record<string, number> = {
   bus: 0.097,
-  trolleybus: 0.025,
+  trolleybus: 0.029, // no published trolleybus figure: the electric tram value
   tram: 0.029,
   subway: 0.028,
   rail: 0.035,
-  mixed: 0.06,
 };
 
-/** CO₂ factor (kg/km) for a public-transit sub-mode; falls back to "mixed". */
+/** CO₂ factor (kg/km) for a public-transit sub-mode; unknown → bus. */
 export function getTransitCO2(submode?: string | null): number {
-  return TRANSIT_CO2_FACTORS[submode ?? "mixed"] ?? TRANSIT_CO2_FACTORS.mixed;
+  return TRANSIT_CO2_FACTORS[submode ?? "bus"] ?? TRANSIT_CO2_FACTORS.bus;
 }
 
 /**

@@ -32,6 +32,7 @@ import {
 } from "lucide-react-native";
 import { modeIconFor } from "./ModeIcon";
 import { modeKgPerKm } from "../lib/emissionFactors";
+import { formatTimeOfDay } from "../lib/format";
 import * as Haptics from "expo-haptics";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -271,8 +272,13 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
   type TransitOption = {
     summary: string; submode: string; duration_min: number;
     departure_text: string | null; arrival_text: string | null;
+    // Unix seconds; absent from responses cached before the 28 Oct 2026 deploy.
+    departure_ts?: number | null; arrival_ts?: number | null;
     distance_km: number; co2_per_km: number; co2_kg: number;
   };
+  /** "08:09" in the phone's own clock format, else Google's text. */
+  const transitLeaves = (opt: TransitOption) =>
+    (opt.departure_ts ? formatTimeOfDay(opt.departure_ts * 1000) : null) ?? opt.departure_text;
   const [transitOptions, setTransitOptions] = useState<TransitOption[]>([]);
   const [isLoadingTransit, setIsLoadingTransit] = useState(false);
   const [transitFetched, setTransitFetched] = useState(false);
@@ -451,6 +457,13 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       setSelectedTransitIdx(null);
       return;
     }
+    // A new time or route brings new options: drop the old pick (its index
+    // would point at a different route) and its line/CO₂ on the mode.
+    setSelectedTransitIdx(null);
+    const basePublic = BASE_TRANSPORT_MODES.find((m) => m.id === "public");
+    setSelectedMode((prev: any) =>
+      prev?.id === "public" && basePublic ? { ...prev, co2: basePublic.co2, label: basePublic.label } : prev,
+    );
     let cancelled = false;
     const t = setTimeout(async () => {
       setIsLoadingTransit(true);
@@ -578,6 +591,11 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         scheduled_at: scheduledDate.toISOString(),
         transport_mode: selectedMode?.id || null,
         transport_label: transportLabel,
+        // The picked transit option's vehicle: the server credits its CO₂ factor (060).
+        transit_submode:
+          selectedMode?.id === "public" && selectedTransitIdx !== null
+            ? transitOptions[selectedTransitIdx]?.submode ?? null
+            : null,
         co2_saved: parseFloat(co2SavedKg.toFixed(3)), // Store in kg with 3 decimal precision
         waypoints: waypointCoords ? JSON.stringify([{
           lat: waypointCoords.lat,
@@ -962,7 +980,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                         >
                           <Clock size={18} color={COLORS.primary} />
                           <Text style={styles.dtBtnText}>
-                            {scheduledDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                            {formatTimeOfDay(scheduledDate)}
                           </Text>
                         </TouchableOpacity>
                       </View>
@@ -1113,7 +1131,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                             }}
                             accessibilityRole="button"
                             accessibilityState={{ selected: active }}
-                            accessibilityLabel={`${opt.summary}, ${opt.duration_min} minutes, ${opt.co2_kg} kg CO₂, leaves ${opt.departure_text ?? "soon"}`}
+                            accessibilityLabel={`${opt.summary}, ${opt.duration_min} minutes, ${opt.co2_kg} kg CO₂, leaves ${transitLeaves(opt) ?? "soon"}`}
                           >
                             <View style={[styles.co2Dot, styles.transitDot, { backgroundColor: co2DotColor(opt.co2_per_km) }]} />
                             <View style={{ flex: 1 }}>
@@ -1121,7 +1139,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                                 {opt.summary}
                               </Text>
                               <Text style={styles.transitMeta} numberOfLines={1}>
-                                {opt.duration_min} min · {opt.co2_kg} kg CO₂{opt.departure_text ? ` · leaves ${opt.departure_text}` : ""}
+                                {opt.duration_min} min · {opt.co2_kg} kg CO₂{transitLeaves(opt) ? ` · leaves ${transitLeaves(opt)}` : ""}
                               </Text>
                             </View>
                           </TouchableOpacity>

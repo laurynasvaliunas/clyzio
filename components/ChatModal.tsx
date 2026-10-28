@@ -16,6 +16,7 @@ import { supabase } from "../lib/supabase";
 import { type ChatThread, threadKey, sendChatMessage } from "../lib/chat";
 import { useChatStore, type ThreadKey } from "../store/useChatStore";
 import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
+import { formatTimeOfDay } from "../lib/format";
 
 // Editorial reskin — paper/ink palette.
 const COLORS = {
@@ -140,10 +141,7 @@ export default function ChatModal({
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isMe = item.sender_id === currentUserId;
-    const time = new Date(item.created_at).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    const time = formatTimeOfDay(item.created_at) ?? "";
 
     return (
       <View
