@@ -32,7 +32,7 @@ import {
 } from "lucide-react-native";
 import { modeIconFor } from "./ModeIcon";
 import { modeKgPerKm } from "../lib/emissionFactors";
-import { formatTimeOfDay } from "../lib/format";
+import { formatCO2kg, formatTimeOfDay } from "../lib/format";
 import * as Haptics from "expo-haptics";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -1131,7 +1131,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                             }}
                             accessibilityRole="button"
                             accessibilityState={{ selected: active }}
-                            accessibilityLabel={`${opt.summary}, ${opt.duration_min} minutes, ${opt.co2_kg} kg CO₂, leaves ${transitLeaves(opt) ?? "soon"}`}
+                            accessibilityLabel={`${opt.summary}, ${opt.duration_min} minutes, ${formatCO2kg(opt.co2_kg)} CO₂, leaves ${transitLeaves(opt) ?? "soon"}`}
                           >
                             <View style={[styles.co2Dot, styles.transitDot, { backgroundColor: co2DotColor(opt.co2_per_km) }]} />
                             <View style={{ flex: 1 }}>
@@ -1139,7 +1139,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                                 {opt.summary}
                               </Text>
                               <Text style={styles.transitMeta} numberOfLines={1}>
-                                {opt.duration_min} min · {opt.co2_kg} kg CO₂{transitLeaves(opt) ? ` · leaves ${transitLeaves(opt)}` : ""}
+                                {opt.duration_min} min · {formatCO2kg(opt.co2_kg)} CO₂{transitLeaves(opt) ? ` · leaves ${transitLeaves(opt)}` : ""}
                               </Text>
                             </View>
                           </TouchableOpacity>

@@ -85,6 +85,21 @@ export function normalizeRoute(route: any): TransitOption | null {
 }
 
 /**
+ * Google often returns the same lines at the same departure several times,
+ * differing only in a few hundred metres of walking. Keep the first of each
+ * (callers sort by duration first, so that's the fastest).
+ */
+export function uniqueOptions(options: TransitOption[]): TransitOption[] {
+  const seen = new Set<string>();
+  return options.filter((o) => {
+    const key = `${o.summary}@${o.departure_ts ?? o.departure_text ?? ''}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/**
  * Cache key: the commute corridor (~1 km) and the departure hour **on that
  * date** (UTC). Without the date, a Friday-evening lookup was reused for
  * Saturday at the same hour, and weekend timetables differ.

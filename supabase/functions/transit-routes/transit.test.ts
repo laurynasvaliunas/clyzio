@@ -1,5 +1,12 @@
 // deno test supabase/functions/transit-routes/transit.test.ts
-import { mapVehicleType, normalizeRoute, TRANSIT_CO2_FACTORS, transitCacheKey } from './transit.ts';
+import {
+  mapVehicleType,
+  normalizeRoute,
+  TRANSIT_CO2_FACTORS,
+  transitCacheKey,
+  type TransitOption,
+  uniqueOptions,
+} from './transit.ts';
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -62,6 +69,17 @@ Deno.test('departure and arrival come back as timestamps for the phone to format
 Deno.test('a route with no public-transport step is dropped', () => {
   assert(normalizeRoute({ legs: [{ steps: [{ travel_mode: 'WALKING' }] }] }) === null, 'walk only');
   assert(normalizeRoute({}) === null, 'no legs');
+});
+
+Deno.test('the same lines at the same departure are offered once', () => {
+  const lines = [{ name: '68', type: 'BUS', metres: 9000 }, { name: '4G', type: 'BUS', metres: 4000 }];
+  const a = normalizeRoute(route(lines)) as TransitOption;
+  const b = normalizeRoute(route([{ ...lines[0], metres: 9200 }, lines[1]])) as TransitOption; // a bit more walking
+  const later = normalizeRoute(route(lines, 1793080140 + 1200)) as TransitOption;
+  const other = normalizeRoute(route([{ name: '68', type: 'BUS', metres: 9000 }, { name: '9', type: 'TROLLEYBUS', metres: 3000 }])) as TransitOption;
+  const kept = uniqueOptions([a, b, later, other]);
+  assert(kept.length === 3, `kept ${kept.length}`);
+  assert(kept[0] === a && kept[1] === later && kept[2] === other, 'keeps the first of each, in order');
 });
 
 Deno.test('the cache key separates the same hour on different dates', () => {

@@ -12,7 +12,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { verifyAuth } from '../_shared/auth.ts';
 import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
 import { parseBody, TransitRoutesSchema } from '../_shared/validate.ts';
-import { normalizeRoute, transitCacheKey, type TransitOption } from './transit.ts';
+import { normalizeRoute, transitCacheKey, uniqueOptions, type TransitOption } from './transit.ts';
 
 const CACHE_TTL_HOURS = 6;
 
@@ -73,11 +73,12 @@ Deno.serve(async (req) => {
       return respondError(502, 'transit_upstream_error');
     }
 
-    const options = (Array.isArray(json.routes) ? json.routes : [])
-      .map(normalizeRoute)
-      .filter((o: TransitOption | null): o is TransitOption => o !== null)
-      .sort((a: TransitOption, b: TransitOption) => a.duration_min - b.duration_min)
-      .slice(0, 4);
+    const options = uniqueOptions(
+      (Array.isArray(json.routes) ? json.routes : [])
+        .map(normalizeRoute)
+        .filter((o: TransitOption | null): o is TransitOption => o !== null)
+        .sort((a: TransitOption, b: TransitOption) => a.duration_min - b.duration_min),
+    ).slice(0, 4);
 
     const payload = { options };
 
