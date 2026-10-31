@@ -3,9 +3,9 @@
 Copy each block into Lovable as its own prompt. **Prompt 1 is launch-blocking**
 for the mobile app's deep links — everything else is web polish.
 
-**Status (checked against the live site, 26 October 2026):** Prompts 1–13 are
-live on clyzio.com, except Prompt 13's edge-function and header items, which
-are repeated in **Prompt 14** (still to send).
+**Status (checked against the live site, 26 October 2026):** Prompts 1–16 are
+live on clyzio.com. Still to send: **Prompt 17** (email hardening) and
+**Prompt 18** (the app's new look).
 
 Context Lovable needs: the mobile app is live on the same Supabase project
 (`qvevbbqcrizfywqexlkw`). Do **not** change database schema, RLS policies, or
@@ -227,6 +227,8 @@ a security audit. These are all web-side changes.
 > exists and is what the mobile app uses.
 
 ## Prompt 9 — Match the mobile app's design system
+
+*Superseded by Prompt 18 (the app's October 2026 redesign).*
 
 > The mobile app just had a full design pass. Please align the website with it
 > so both feel like one product. Apply site-wide (marketing pages, dashboard,
@@ -642,6 +644,131 @@ policy 1.3) · **4.** items 8 and 9 (headers and small fixes).*
 >
 > Then send **one** test invitation email to my own address so I can check
 > delivery and that its link opens the app.
+
+## Prompt 18 — Adopt the mobile app's new look (friendly, Waze-style; 31 October 2026)
+
+*Replaces the visual spec in Prompt 9 (deep teal `#00565A`, system font). Send
+it as three messages, in order: **A** (foundation), **B** (marketing and
+public pages), **C** (dashboard and signed-in pages). Attach the four
+screenshots in `docs/design/app-screens/` and the eight icons in
+`docs/design/transport-icons/` to message A.*
+
+> **A — Foundation.** The Clyzio mobile app has a new look: friendly and
+> playful like Waze — the logo's bright cyan and sunny yellow on white, navy
+> text, a rounded typeface, big soft corners, chunky "toy" buttons and frosted
+> glass. Please re-skin the whole website to match, so the app and the site
+> feel like one product. This is **visual only**: don't change routes, data,
+> logic, wording, legal text, SEO tags, the frame check, or anything on the
+> backend. The attached screenshots show the app.
+>
+> **Colours** (replace the old teal `#00565A` everywhere, including the
+> "Open clyzio.com" frame-check link):
+> | Token | Hex | HSL (shadcn vars) | Use |
+> |---|---|---|---|
+> | Bright cyan (logo) | `#09E0E8` | `182 93% 47%` | **Fills only**: primary buttons, active pills/tabs, highlights. Always with **navy** text — never white text, never as text or thin icons on white |
+> | Cyan soft / tint | `#7CF0F4` / `#E3FAFB` | `182 84% 72%` / `183 75% 94%` | Hover fills, selected backgrounds, light hero washes |
+> | Deep cyan | `#007C89` | `186 100% 27%` | Links, icons and small brand text on white (4.95:1) |
+> | Navy (ink) | `#0B2540` | `211 71% 15%` | All main text, headings, text on cyan/yellow fills |
+> | Secondary text | `#5B6B7A` | `209 15% 42%` | Captions, meta |
+> | Sunny yellow (logo) | `#FFDE5A` (tint `#FFF6CC`) | `48 100% 68%` | Small accents: badges, rewards, the arrow-circle on big CTAs, highlights. Navy text on it |
+> | Page background | `#F4FAFB` | `189 47% 97%` | Behind content |
+> | Card / surface | `#FFFFFF`; inset surface `#EEF6F7` | — / `187 36% 95%` | Cards, sheets; input and track backgrounds |
+> | Hairline border | `rgba(11,37,64,0.10)` | — | Card and input borders |
+> | Success / warning / danger | `#059669` / `#D97706` / `#DC2626` | — | Status only (tints: `#ECFDF5`, `#FFFBEB`, `#FEF2F2`) |
+>
+> In the shadcn theme: `--primary` = bright cyan with `--primary-foreground` =
+> navy; add a `--brand` = deep cyan for links and icons; `--accent` = sunny
+> yellow with navy foreground; `--background` = `#F4FAFB`; `--foreground` =
+> navy; `--ring` = bright cyan. **Dark mode** (keep the existing toggle):
+> background `#0E1F23`, cards `#15282C`, inset `#1B3035`, text white
+> (secondary `rgba(255,255,255,0.65)`), borders `rgba(255,255,255,0.08)`;
+> primary buttons stay bright cyan with navy text; active pills use
+> `rgba(124,240,244,0.18)` with `#7CF0F4` text.
+>
+> **Type:** Nunito from Google Fonts (400, 600, 700, 800) everywhere.
+> Headings 800 with slight negative tracking (hero 48–56px, page titles
+> 34px/40px, section titles 20px); body 400 at 15–16px, line-height 1.5;
+> small uppercase "eyebrow" labels 11–12px, 600–700, letter-spacing 0.6px;
+> numbers in stats use tabular figures. Nothing smaller than 12px (11px only
+> inside badges).
+>
+> **Shape and depth:** buttons, chips, tabs and toggles are fully rounded
+> pills; cards 24px radius, large hero panels and sheets 28–30px, inputs
+> 14–18px. Shadows are soft and slightly blue, never grey-black:
+> - resting card: `0 2px 4px rgba(11,37,64,.05), 0 10px 24px rgba(11,37,64,.08)`
+> - raised/hover: `0 4px 8px rgba(11,37,64,.06), 0 18px 40px rgba(11,37,64,.12)`
+> - floating hero: `0 6px 14px rgba(0,124,137,.10), 0 28px 64px rgba(0,124,137,.22)`
+>
+> Frosted glass for anything that floats over imagery or maps (sticky nav,
+> hero cards): `background: rgba(255,255,255,.82); backdrop-filter: blur(20px)
+> saturate(1.4); border: 1px solid rgba(11,37,64,.07)` with a lighter top edge.
+>
+> **Components:**
+> - **Primary button**: pill, 48px (desktop) / 56px (mobile) tall, gradient
+>   `linear-gradient(135deg, #5CF2F6, #09E0E8 55%, #00CBD6)`, navy 800 label,
+>   a "toy" bottom edge and glow: `box-shadow: inset 0 -4px 0 rgba(11,37,64,.16),
+>   0 10px 24px rgba(9,224,232,.45)`, 1.5px white top highlight. Big hero CTAs
+>   (e.g. "Book a pilot", "Get the app") put a 46px white circle with a navy
+>   arrow at the right end, like the app's "Plan your ride". Press: scale to
+>   0.96 with a quick spring.
+> - **Secondary button**: white pill, 2px bright-cyan border, navy label,
+>   `inset 0 -3px 0 rgba(11,37,64,.06)`. **Ghost**: deep-cyan text only.
+>   **Destructive**: `#DC2626` with white text and the same chunky edge.
+> - **Segmented toggles / tabs**: white (or glass) pill track with 4px padding;
+>   the active segment is a bright-cyan pill with navy 800 text and
+>   `inset 0 -2px 0 rgba(11,37,64,.12)`.
+> - **Option cards** (choices, plans, settings rows): white, 24px radius,
+>   1.5px `#EEF6F7` border; selected = 2px `#007C89` border, `#F0F9FA` fill and
+>   a halo `0 0 0 4px rgba(9,224,232,.22)`.
+> - **Icon tiles**: 52px rounded squares (20px radius), fill
+>   `rgba(0,124,137,.12)`, icon in deep cyan; optional 10px status dot at the
+>   top-right with a 2px white ring.
+> - **Badges / chips**: pill, 12px 700 text, tinted background with the matching
+>   darker text (e.g. `#E3FAFB` + `#007C89`, `#FFF6CC` + navy, `#ECFDF5` + `#047857`).
+> - **Inputs**: `#EEF6F7` fill, 16px radius, 52px tall, navy text, `#8B989C`
+>   placeholder only; focus = 2px bright-cyan ring.
+> - **Focus**: a visible 3px `rgba(9,224,232,.55)` outline with 2px offset on
+>   every interactive element.
+>
+> **Icons:** transport modes use the attached designer pictograms (public
+> transport, car, bike, e-bike / e-scooter, walking, taxi, motorcycle / moped,
+> other — no motor) as inline SVGs coloured with `currentColor`; keep this
+> order wherever modes are listed. Other icons: lucide-react, 2px stroke,
+> rounded caps. No emoji as icons. CO₂ level dots: green `#059669` low, amber
+> `#F59E0B` medium, red `#DC2626` high.
+>
+> **Motion:** quick and springy, never slow: 150–320 ms; hover lifts cards
+> 2px and steps the shadow up; list items fade/slide in 55 ms apart; numbers
+> count up once. Respect `prefers-reduced-motion` (no movement, just fades).
+>
+> Put all of this in the theme (CSS variables / Tailwind config) and shared
+> components, not as one-off hex values in pages. Show me the updated
+> buttons, cards and toggles on one page before moving on.
+>
+> **B — Marketing and public pages** (home, about, pricing, blog, contact,
+> legal, delete-account, `/join`, `/invite`, `/ride`, `/profile`, `/account`,
+> sign-in and sign-up): apply the foundation. Home hero: a bright-cyan
+> (gradient) panel with 30px radius, navy 800 headline, a sunny-yellow accent
+> word or underline, the big CTA with the white arrow circle, and the app's
+> phone screenshots in rounded device frames. Section backgrounds alternate
+> white and `#F4FAFB`; feature tiles use the icon tiles above. Top navigation
+> becomes a floating frosted pill (28px radius, raised shadow) with the
+> active link as a bright-cyan pill; on phones a full-width sheet menu. Store
+> badges stay the official images. Keep every word as it is.
+>
+> **C — Dashboard and signed-in pages:** same look as the app's screens.
+> Sidebar (desktop) white with the active item as a bright-cyan pill and navy
+> text; on phones a floating bottom pill bar like the app's tab bar (white,
+> 28px radius, raised shadow, active icon in a 54×30 cyan pill). Stat tiles:
+> white 24px cards, label as an eyebrow, the number 800 in navy with tabular
+> figures, CO₂ saved in `#059669` with a small leaf icon. Charts: one brand
+> family only — deep cyan `#007C89` lines, bright cyan `#09E0E8` bars/areas
+> (navy labels on them), `#059669` for CO₂ saved, `#FFDE5A` to highlight one
+> value, navy for axes text; light gridlines `rgba(11,37,64,.06)`; rounded bar
+> tops. Tables: white card, 52px rows, hairline separators, eyebrow headers.
+> Empty states: an icon tile, a short navy title and one primary button.
+> Settings forms use the inputs and option cards above. Check every page in
+> light and dark mode and at 375px width.
 
 ## Do NOT change (mobile app depends on these)
 
