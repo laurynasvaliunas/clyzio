@@ -4,8 +4,9 @@ Copy each block into Lovable as its own prompt. **Prompt 1 is launch-blocking**
 for the mobile app's deep links — everything else is web polish.
 
 **Status (checked against the live site, 26 October 2026):** Prompts 1–16 are
-live on clyzio.com. Still to send: **Prompt 17** (email hardening) and
-**Prompt 18** (the app's new look).
+live on clyzio.com. Still to send: **Prompt 17** (email hardening),
+**Prompt 18** (the app's new look) and **Prompt 19** (several admins per
+company; after migration 061 is deployed).
 
 Context Lovable needs: the mobile app is live on the same Supabase project
 (`qvevbbqcrizfywqexlkw`). Do **not** change database schema, RLS policies, or
@@ -769,6 +770,87 @@ screenshots in `docs/design/app-screens/` and the eight icons in
 > Empty states: an icon tile, a short navy title and one primary button.
 > Settings forms use the inputs and option cards above. Check every page in
 > light and dark mode and at 375px width.
+
+## Prompt 19 — Several admins per company, and clear invite errors (backend migration 061, 1 November 2026)
+
+*Send after migration 061 is deployed.* Found when inviting from Settings
+showed "Edge Function returned a non-2xx status code": the signed-in person
+was a regular member, and no company had an admin at all.
+
+> The backend now supports any number of admins per company. Please make
+> these website changes. You may change and deploy **exactly three edge
+> functions**, `admin-invite-employee`, `admin-revoke-invite` and
+> `admin-verify-domain`; the rule stays for everything else (no changes to
+> database tables, policies, database functions or any other edge function).
+>
+> **What changed in the backend**
+> - An admin is anyone with a `user_roles` row `role = 'admin'` for the
+>   company (`is_company_admin(user_id, company_id)`). There can be several.
+>   `companies.admin_user_id` is now only the primary contact; never use it to
+>   decide who is an admin.
+> - The unique index `one_admin_per_company` is gone.
+> - New: `supabase.rpc("get_my_company_role")` returns one row
+>   `{ company_id, is_admin, is_manager, company_has_admin }` for the
+>   signed-in person.
+> - New: `supabase.rpc("set_member_admin", { p_user_id, p_is_admin })`
+>   (admins only; admins are always managers too).
+> - `get_company_members` rows now include `is_admin`.
+> - Accepting an invite while signed in (`accept_company_invite`) works now;
+>   it used to fail for everyone who already had an account.
+>
+> **1. Decide "admin" in one place.** Replace every
+> `companies.admin_user_id === user.id` check (the Team page, the Reports /
+> inventory page, Settings) with `is_admin` from `get_my_company_role`.
+>
+> **2. Settings: admin-only sections.** Show Invitations, Domains,
+> Departments and the company profile form only when `is_admin`. Otherwise
+> show one line instead: "Only company admins can invite people and change
+> company settings." If `company_has_admin` is false, say instead: "Your
+> company doesn't have an admin yet. Email info@clyzio.com and we'll set one
+> up."
+>
+> **3. Team page: admins.**
+> - Show an "Admin" badge on rows where `is_admin` is true.
+> - For admins, add "Make admin" / "Remove admin" to each row's menu
+>   (including their own row), calling `set_member_admin`. Before someone
+>   removes their own admin role, confirm: "You'll lose access to company
+>   settings." Afterwards refetch `get_company_members` and
+>   `get_my_company_role`.
+> - Don't offer "Remove manager" on an admin's row.
+> - Errors as toasts: `last_admin` → "A company needs at least one admin.
+>   Make someone else an admin first."; `target_is_admin` → "Remove their
+>   admin role first."; `not_authorized` → "Only company admins can change
+>   this."
+>
+> **4. Show the real error from edge functions.** `functions.invoke` only
+> says "Edge Function returned a non-2xx status code"; the function's own
+> message is in the response body. Use this for every `functions.invoke`
+> call on the site (invite, revoke, verify domain, create company, delete
+> account):
+> ```ts
+> if (error) {
+>   let message = error.message;
+>   try { const body = await error.context?.json(); if (body?.error) message = body.error; } catch {}
+>   throw new Error(message);
+> }
+> ```
+> For a 403 from `admin-invite-employee`, the toast should read "Only
+> company admins can invite people."
+>
+> **5. The three edge functions.**
+> - Authorize with `is_company_admin(user.id, company_id)` (or the same
+>   `user_roles` lookup), never `companies.admin_user_id`, so every admin can
+>   use them.
+> - If any of them writes `user_roles` with `onConflict: "company_id"`,
+>   change it to `onConflict: "user_id,role,company_id"` (that index is
+>   gone).
+> - `admin-invite-employee`: accept an optional `role`, `"employee"`
+>   (default) or `"admin"`, and store it on the `company_invites` row. When
+>   an admin invite is accepted, the database makes that person an admin.
+>   In the Invitations form, add an "Invite as admin" checkbox.
+>
+> Reply with the authorization line each of the three functions uses now,
+> and tell me when they are deployed and the site is published.
 
 ## Do NOT change (mobile app depends on these)
 

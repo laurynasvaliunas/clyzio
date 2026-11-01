@@ -48,3 +48,6 @@ sentry.properties
 
 # Generated implementation docs
 /*.md
+
+# Supabase CLI link state (supabase link)
+supabase/.temp/
