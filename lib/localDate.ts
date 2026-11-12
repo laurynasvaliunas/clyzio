@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { AppState } from "react-native";
+
 /**
  * Calendar dates in the device's local time zone.
  *
@@ -30,4 +33,39 @@ export function dayLabel(isoDate: string, now: Date = new Date()): string {
   if (isoDate === tomorrowLocalISODate(now)) return "Tomorrow";
   const [y, m, d] = isoDate.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+
+/**
+ * Today's local date (YYYY-MM-DD), kept current while a screen stays mounted:
+ * re-read when the app returns to the foreground and when midnight passes. A
+ * phone keeps the app alive for days, so a date read once at mount goes stale.
+ */
+export function useLocalToday(): string {
+  const [today, setToday] = useState(() => localISODate());
+
+  useEffect(() => {
+    const sync = () => setToday(localISODate());
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") sync();
+    });
+
+    let timer: ReturnType<typeof setTimeout>;
+    const waitForMidnight = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 1, 0);
+      timer = setTimeout(() => {
+        sync();
+        waitForMidnight();
+      }, midnight.getTime() - now.getTime());
+    };
+    waitForMidnight();
+
+    return () => {
+      sub.remove();
+      clearTimeout(timer);
+    };
+  }, []);
+
+  return today;
 }

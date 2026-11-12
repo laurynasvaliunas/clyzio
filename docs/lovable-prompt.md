@@ -3,10 +3,11 @@
 Copy each block into Lovable as its own prompt. **Prompt 1 is launch-blocking**
 for the mobile app's deep links — everything else is web polish.
 
-**Status (checked against the live site, 26 October 2026):** Prompts 1–16 are
-live on clyzio.com. Still to send: **Prompt 17** (email hardening),
-**Prompt 18** (the app's new look) and **Prompt 19** (several admins per
-company; after migration 061 is deployed).
+**Status (checked against the live site, 12 November 2026):** Prompts 1–16,
+18 and 19 are live on clyzio.com, and backend migration 061 (which Prompt 19
+needs) is deployed. **Prompt 17** (email hardening) can't be checked from
+outside; ask Lovable whether it is done. Still to send: **Prompt 20** (fixes
+from the 12 November test run).
 
 Context Lovable needs: the mobile app is live on the same Supabase project
 (`qvevbbqcrizfywqexlkw`). Do **not** change database schema, RLS policies, or
@@ -851,6 +852,72 @@ was a regular member, and no company had an admin at all.
 >
 > Reply with the authorization line each of the three functions uses now,
 > and tell me when they are deployed and the site is published.
+
+## Prompt 20 — Fixes from the 12 November 2026 test run
+
+*Website-only; no backend changes.*
+
+> Please make these website fixes. Do not change database tables, policies,
+> database functions or any edge function.
+>
+> **1. Homepage: a hook is called conditionally (React error #310).** Eight
+> homepage sections (the "Does your company need to report Scope 3?" checker
+> and the sections around it, including How it works, Pricing and FAQ) start
+> with
+> ```ts
+> const reduce = useIsMobile() || useReducedMotion();
+> ```
+> When the first hook returns `true` the second one is skipped, so the number
+> of hooks changes when the window crosses the 768px breakpoint (rotating a
+> phone, resizing a window) and React throws "Rendered more hooks than during
+> the previous render". Call both hooks every render, in every component that
+> uses this pattern:
+> ```ts
+> const isMobile = useIsMobile();
+> const prefersReducedMotion = useReducedMotion();
+> const reduce = isMobile || prefersReducedMotion;
+> ```
+>
+> **2. App store badges lead to "not found" pages.** The app isn't published
+> yet, so `https://apps.apple.com/app/id6762083645` and
+> `https://play.google.com/store/apps/details?id=com.clyzio.app` both return
+> 404. Add two constants in one place, `APP_STORE_LIVE = false` and
+> `PLAY_STORE_LIVE = false`. While a constant is false, show that badge as a
+> non-clickable "Coming soon" badge (same size, 60% opacity, `aria-disabled`)
+> everywhere it appears: the homepage, the footer, `/invite/:code`,
+> `/profile/:id` and `/ride/:id`. On `/invite/:code`, while neither store is
+> live, make "Sign up on the web" the primary button and change the text to
+> "The Clyzio app is coming soon. You can sign up on the web today." I will
+> ask you to flip each constant when that store listing is live.
+>
+> **3. Sign-in and sign-up fields: password-manager hints.** On `/auth` and
+> `/reset-password`, set `autocomplete="email"` on email fields,
+> `autocomplete="current-password"` on the sign-in password, and
+> `autocomplete="new-password"` on the sign-up and reset password fields
+> (both the password and its confirmation).
+>
+> **4. Search engines.**
+> - The 404 page ("Oops! Page not found") should add
+>   `<meta name="robots" content="noindex">` while it is shown, and remove it
+>   when the visitor navigates away.
+> - Every public page should set `<link rel="canonical">` to its own URL on
+>   `https://clyzio.com` (no query string), the same way the page titles are
+>   set per page now.
+>
+> **5. `/auth/callback` says "Email confirmed" to anyone.** Opening
+> `https://clyzio.com/auth/callback` directly, with no code or token in the
+> link, shows "Email confirmed. Your account is ready." Show that message
+> only after the confirmation in the link has actually succeeded. When the
+> link carries no code or token, redirect to `/auth`; when it carries an
+> error, show "This confirmation link is invalid or has expired" with a
+> "Back to sign in" button.
+>
+> Tell me when the site is published.
+
+**For you, not Lovable:** `www.clyzio.com` shows an error (HTTP 421), because
+the DNS record points at Lovable but Lovable doesn't know the name. In
+Lovable, open Project settings → Domains, add `www.clyzio.com`, and keep
+`clyzio.com` as the primary domain so "www" redirects to it.
 
 ## Do NOT change (mobile app depends on these)
 

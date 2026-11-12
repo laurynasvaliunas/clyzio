@@ -1,5 +1,6 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "../utils/test-utils";
+import { AppState } from "react-native";
+import { act, fireEvent, render, screen, waitFor } from "../utils/test-utils";
 import { supabase } from "../../lib/supabase";
 import CommuteHomeCard, { type PlannedRideSummary } from "../../components/CommuteHomeCard";
 import MapScreen from "../../app/(tabs)";
@@ -112,5 +113,36 @@ describe("Map screen, planned trip", () => {
     fireEvent.press(summary);
 
     expect(mockPush).toHaveBeenCalledWith("/trip/ride-42");
+  });
+
+  // Seen on a phone left open since 28 October: two weeks later the Map still
+  // said "Wednesday, 28 Oct" and showed that day's plan.
+  it("follows the calendar when the app is reopened on a later day", async () => {
+    const headerDate = (d: Date) => d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+    const rideLookups = () => (supabase.from as jest.Mock).mock.calls.filter(([table]) => table === "rides").length;
+    const onAppState = jest.spyOn(AppState, "addEventListener");
+    // Only the clock is faked; timers and promises run as usual.
+    jest.useFakeTimers({
+      now: new Date(2026, 9, 28, 18, 0),
+      doNotFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "setImmediate", "clearImmediate", "nextTick", "queueMicrotask", "requestAnimationFrame", "cancelAnimationFrame", "performance"],
+    });
+
+    try {
+      render(<MapScreen />);
+      await waitFor(() => screen.getByLabelText(/^Tomorrow's commute: Audi A6 etron/));
+      expect(screen.getByText(headerDate(new Date(2026, 9, 28)))).toBeTruthy();
+      const lookupsOnTheFirstDay = rideLookups();
+
+      jest.setSystemTime(new Date(2026, 10, 12, 8, 0));
+      act(() => {
+        onAppState.mock.calls.filter(([event]) => event === "change").forEach(([, listener]) => listener("active"));
+      });
+
+      await waitFor(() => expect(screen.getByText(headerDate(new Date(2026, 10, 12)))).toBeTruthy());
+      await waitFor(() => expect(rideLookups()).toBeGreaterThan(lookupsOnTheFirstDay));
+    } finally {
+      jest.useRealTimers();
+      onAppState.mockRestore();
+    }
   });
 });

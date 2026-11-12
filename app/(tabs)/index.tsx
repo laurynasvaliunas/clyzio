@@ -36,7 +36,7 @@ import CommuteHomeCard, { type PlanDay, type PlannedRideSummary } from "../../co
 import YesterdayImpactCard, { type YesterdayImpact } from "../../components/YesterdayImpactCard";
 import * as SecureStore from "expo-secure-store";
 import { supabase } from "../../lib/supabase";
-import { dayLabel, localISODate, tomorrowLocalISODate } from "../../lib/localDate";
+import { dayLabel, localISODate, tomorrowLocalISODate, useLocalToday } from "../../lib/localDate";
 import { haversineKm } from "../../lib/commuteUtils";
 import { buildWebLink } from "../../lib/deepLinks";
 import { cancelRide } from "../../lib/cancelRide";
@@ -529,6 +529,8 @@ export default function MapScreen() {
     workLat: number | null; workLng: number | null; workAddress: string;
   } | null>(null);
   const [targetDay, setTargetDay] = useState<PlanDay>("tomorrow");
+  // Follows the calendar while the app stays open (see useLocalToday).
+  const today = useLocalToday();
   const [plannedRide, setPlannedRide] = useState<PlannedRideSummary | null>(null);
   // Default home→work route, drawn when the user is idle (no active trip) so
   // the map always shows their commute corridor.
@@ -799,7 +801,8 @@ export default function MapScreen() {
     } catch {
       setPlannedRide(null);
     }
-  }, [targetDay]);
+    // today: "Today"/"Tomorrow" mean a new calendar day once the date changes.
+  }, [targetDay, today]);
 
   // Refresh the planned ride whenever the target day changes or the screen
   // regains focus (e.g. returning from the planner having saved a trip).
@@ -811,7 +814,7 @@ export default function MapScreen() {
   // Today's date label for the top bar ("Wednesday, May 28").
   const dateLabel = useMemo(
     () => new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" }),
-    [],
+    [today],
   );
 
   // Planner prefill (P1): seed the planner with the profile's home→work and the
@@ -948,6 +951,17 @@ export default function MapScreen() {
       return () => clearInterval(t);
     }, [fetchIntentPeers])
   );
+
+  // A new day while the Map stays open (left overnight, or midnight passing):
+  // "yesterday" and "tomorrow" have moved on, so re-read what focus loads.
+  const loadedDay = useRef(today);
+  useEffect(() => {
+    if (loadedDay.current === today) return;
+    loadedDay.current = today;
+    refreshYesterdayImpact();
+    checkExistingIntent().catch(() => {});
+    fetchIntentPeers();
+  }, [today, refreshYesterdayImpact, checkExistingIntent, fetchIntentPeers]);
 
   // Peers already in an open match with me — hide their markers (the
   // daily-commute screen owns that relationship from here on).
