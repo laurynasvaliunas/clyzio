@@ -3,11 +3,10 @@
 Copy each block into Lovable as its own prompt. **Prompt 1 is launch-blocking**
 for the mobile app's deep links — everything else is web polish.
 
-**Status (checked against the live site, 12 November 2026):** Prompts 1–16,
-18 and 19 are live on clyzio.com, and backend migration 061 (which Prompt 19
-needs) is deployed. **Prompt 17** (email hardening) can't be checked from
-outside; ask Lovable whether it is done. Still to send: **Prompt 20** (fixes
-from the 12 November test run).
+**Status (checked against the live site, 14 November 2026):** Prompts 1–16
+and 18–20 are live on clyzio.com. **Prompt 17** (email hardening) can't be
+checked from outside; ask Lovable whether it is done. Still to send:
+**Prompt 21** (fixes from Lovable's own 14 November test run).
 
 Context Lovable needs: the mobile app is live on the same Supabase project
 (`qvevbbqcrizfywqexlkw`). Do **not** change database schema, RLS policies, or
@@ -918,6 +917,37 @@ was a regular member, and no company had an admin at all.
 the DNS record points at Lovable but Lovable doesn't know the name. In
 Lovable, open Project settings → Domains, add `www.clyzio.com`, and keep
 `clyzio.com` as the primary domain so "www" redirects to it.
+
+## Prompt 21 — Fixes from Lovable's 14 November 2026 test run
+
+*Website-only. Item 1 of that report (the "legal" storage rule) is fixed from
+the backend side by migration 062; Lovable must not change it.*
+
+> Please fix items 3–9 from your test report of 14 November. Website only: do
+> not change database tables, policies, storage rules or any function. Skip
+> item 1 (the "legal" storage rule); it is being fixed from the backend side.
+>
+> - **3.** Rename the hero button "Book a 20-minute demo" to "Start free
+>   pilot", so it matches the form it opens and the nav button.
+> - **4.** Each page should end up with exactly one description, and nothing
+>   should still say "all-in-one ride-sharing platform". In `index.html`,
+>   change the description, og:description and twitter:description tags to
+>   the homepage text ("Measure, report, and reduce employee commuting
+>   emissions. CSRD-ready Scope 3 Category 7 reporting with a free 30-day
+>   pilot."). Keep them in `index.html`, because link previews on LinkedIn,
+>   Slack and X read only that file, and mark them `data-rh="true"` so the
+>   per-page SEO component replaces them instead of adding a second copy.
+> - **5.** Change the hero pill text to "Carpooling · CO₂ tracking · Scope 3
+>   reporting".
+> - **6.** Remove the "Dashboard" link from the footer.
+> - **7.** Give the About, Sign in, Reset password and Join pages one visible
+>   `<h1>` each (the page's existing title text is fine).
+> - **8.** Give the blog search field a label for screen readers
+>   (`aria-label="Search the blog"`).
+> - **9.** Add `noindex` to `/auth`, `/reset-password`, `/join` and
+>   `/auth/callback`, using the same robots option the 404 page uses.
+>
+> Tell me when the site is published.
 
 ## Do NOT change (mobile app depends on these)
 
