@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 import {
   View,
   StyleSheet,
@@ -252,6 +252,22 @@ function OutcomeBanner({ outcome }: { outcome: CarpoolOutcome | null }) {
 }
 
 /** A quiet text button for the way out (stop looking / cancel the carpool). */
+/** "Cancel tomorrow's drive" / "Cancel today's ride" / "Cancel your drive on Tue 27 Oct". */
+export function cancelTripLabel(role: "driver" | "passenger", tripDate: string | null | undefined): string {
+  const what = role === "driver" ? "drive" : "ride";
+  if (!tripDate) return `Cancel this ${what}`;
+  const day = dayLabel(tripDate);
+  if (day === "Tomorrow") return `Cancel tomorrow's ${what}`;
+  if (day === "Today") return `Cancel today's ${what}`;
+  return `Cancel your ${what} on ${day}`;
+}
+
+/** "Rasa", "Rasa and Ona", "Rasa, Ona and Tomas". */
+function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
 function QuietButton({ label, a11y, onPress, busy }: { label: string; a11y: string; onPress: () => void; busy?: boolean }) {
   return (
     <TouchableOpacity
@@ -400,12 +416,15 @@ function DriverReviewStep({
   onRespond,
   hasCompany,
   onChat,
+  footer,
 }: {
   matches: TripIntentMatch[];
   tripDate: string | null;
   onRespond: (matchId: string, accepted: boolean) => Promise<void>;
   hasCompany: boolean;
   onChat: OnChat;
+  /** The "cancel this trip" action. */
+  footer?: ReactNode;
 }) {
   // Symmetric approval: every open offer the driver hasn't answered yet, also
   // when another passenger is already confirmed (a free seat).
@@ -483,6 +502,7 @@ function DriverReviewStep({
           </View>
         );
       })}
+      {footer}
     </KeyboardScroll>
   );
 }
@@ -506,9 +526,11 @@ interface WaitingStepProps {
   onWithdraw: (matchIds: string[]) => void;
   busy: boolean;
   onChat: OnChat;
+  /** The "cancel this trip" action. */
+  footer?: ReactNode;
 }
 
-function DriverWaitingStep({ matches, onWithdraw, busy, onChat }: WaitingStepProps) {
+function DriverWaitingStep({ matches, onWithdraw, busy, onChat, footer }: WaitingStepProps) {
   // Driver has approved; waiting on the passenger to approve too.
   const waiting = matches.filter(m => m.driver_approved && !m.passenger_approved && m.status === "awaiting_other");
   return (
@@ -538,11 +560,12 @@ function DriverWaitingStep({ matches, onWithdraw, busy, onChat }: WaitingStepPro
       >
         <Text style={styles.declineBtnText}>{busy ? "Withdrawing…" : "Withdraw request"}</Text>
       </TouchableOpacity>
+      {footer}
     </KeyboardScroll>
   );
 }
 
-function PassengerWaitingStep({ matches, onWithdraw, busy, onChat }: WaitingStepProps) {
+function PassengerWaitingStep({ matches, onWithdraw, busy, onChat, footer }: WaitingStepProps) {
   // Passenger has approved; waiting on the driver to approve too.
   const waiting = matches.filter(m => m.passenger_approved && !m.driver_approved && m.status === "awaiting_other");
   const driverName = waiting[0]?.driver_profile?.first_name ?? "your driver";
@@ -569,6 +592,7 @@ function PassengerWaitingStep({ matches, onWithdraw, busy, onChat }: WaitingStep
       >
         <Text style={styles.declineBtnText}>{busy ? "Withdrawing…" : "Withdraw request"}</Text>
       </TouchableOpacity>
+      {footer}
     </KeyboardScroll>
   );
 }
@@ -583,6 +607,7 @@ function DriverConfirmedStep({
   onCancel,
   busy,
   freeSeats = 0,
+  footer,
 }: {
   matches: TripIntentMatch[];
   onChat: OnChat;
@@ -590,6 +615,8 @@ function DriverConfirmedStep({
   busy: boolean;
   /** Seats still open to other riders. */
   freeSeats?: number;
+  /** The "cancel the whole drive" action (several passengers, or offers too). */
+  footer?: ReactNode;
 }) {
   const router = useRouter();
   const confirmed = matches.filter(m => m.status === "confirmed");
@@ -644,6 +671,7 @@ function DriverConfirmedStep({
           your way and tell you when someone fits.
         </Text>
       )}
+      {footer}
     </KeyboardScroll>
   );
 }
@@ -725,6 +753,7 @@ function PassengerReviewStep({
   isLoading,
   hasCompany,
   onChat,
+  footer,
 }: {
   matches: TripIntentMatch[];
   tripDate: string | null;
@@ -732,6 +761,8 @@ function PassengerReviewStep({
   isLoading: boolean;
   hasCompany: boolean;
   onChat: OnChat;
+  /** The "cancel this trip" action. */
+  footer?: ReactNode;
 }) {
   // Symmetric approval: the passenger reviews any open match they haven't yet
   // approved (whether or not the driver has approved already).
@@ -746,6 +777,7 @@ function PassengerReviewStep({
         <Text style={styles.stepDescription}>
           We're still looking for a driver on your route.
         </Text>
+        {footer}
       </View>
     );
   }
@@ -803,6 +835,7 @@ function PassengerReviewStep({
           )}
         </TouchableOpacity>
       </View>
+      {footer}
     </KeyboardScroll>
   );
 }
@@ -887,6 +920,7 @@ export default function DailyCommuteScreen() {
     respondAsPassenger,
     stopLooking,
     cancelCarpool,
+    cancelTrip,
     subscribeToMatches,
     reset,
   } = useDailyCommuteStore();
@@ -997,6 +1031,47 @@ export default function DailyCommuteScreen() {
       ],
     );
   };
+
+  // Cancel the whole trip (every carpool and offer on it) in one go, from any
+  // step; you can plan a new trip straight after.
+  const handleCancelTrip = () => {
+    if (!intent) return;
+    const label = cancelTripLabel(intent.role, intent.trip_date);
+    const iDrive = intent.role === "driver";
+    const peers = matches
+      .map((m) => (iDrive ? m.passenger_profile?.first_name : m.driver_profile?.first_name))
+      .filter((name): name is string => !!name);
+    const told = peers.length === 0 ? "" : `${joinNames(peers)} ${peers.length === 1 ? "is" : "are"} told right away. `;
+    Alert.alert(`${label}?`, `${told}You can plan a new trip straight after.`, [
+      { text: "Keep it", style: "cancel" },
+      {
+        text: label,
+        style: "destructive",
+        onPress: async () => {
+          setLeaving(true);
+          try {
+            await cancelTrip();
+          } catch (err) {
+            Alert.alert("Couldn't cancel", err instanceof Error ? err.message : "Check your connection and try again.");
+          } finally {
+            setLeaving(false);
+          }
+        },
+      },
+    ]);
+  };
+  const cancelTripFooter = intent ? (
+    <QuietButton
+      label={cancelTripLabel(intent.role, intent.trip_date)}
+      a11y={cancelTripLabel(intent.role, intent.trip_date)}
+      onPress={handleCancelTrip}
+      busy={leaving}
+    />
+  ) : null;
+  // A driver's confirmed screen already has "Cancel carpool" per passenger; the
+  // whole-drive action is only different with several passengers or offers.
+  const confirmedCount = matches.filter((m) => m.status === "confirmed").length;
+  const showWholeDriveCancel = confirmedCount >= 2 || (confirmedCount >= 1 && matches.some(isOffer));
 
   useFocusEffect(
     useCallback(() => {
@@ -1122,10 +1197,10 @@ export default function DailyCommuteScreen() {
         />
       )}
       {step === "driver_review" && (
-        <DriverReviewStep matches={matches} tripDate={tripDate} onRespond={handleDriverRespond} hasCompany={hasCompany} onChat={openChat} />
+        <DriverReviewStep matches={matches} tripDate={tripDate} onRespond={handleDriverRespond} hasCompany={hasCompany} onChat={openChat} footer={cancelTripFooter} />
       )}
       {step === "driver_waiting" && (
-        <DriverWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} onChat={openChat} />
+        <DriverWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} onChat={openChat} footer={cancelTripFooter} />
       )}
       {step === "driver_confirmed" && (
         <DriverConfirmedStep
@@ -1134,6 +1209,7 @@ export default function DailyCommuteScreen() {
           onCancel={handleCancelCarpool}
           busy={leaving}
           freeSeats={driverSeats?.free ?? 0}
+          footer={showWholeDriveCancel ? cancelTripFooter : null}
         />
       )}
       {step === "passenger_details" && (
@@ -1150,10 +1226,10 @@ export default function DailyCommuteScreen() {
         />
       )}
       {step === "passenger_review" && (
-        <PassengerReviewStep matches={matches} tripDate={tripDate} onRespond={handlePassengerRespond} isLoading={isLoading} hasCompany={hasCompany} onChat={openChat} />
+        <PassengerReviewStep matches={matches} tripDate={tripDate} onRespond={handlePassengerRespond} isLoading={isLoading} hasCompany={hasCompany} onChat={openChat} footer={cancelTripFooter} />
       )}
       {step === "passenger_waiting" && (
-        <PassengerWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} onChat={openChat} />
+        <PassengerWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} onChat={openChat} footer={cancelTripFooter} />
       )}
       {step === "passenger_confirmed" && (
         <PassengerConfirmedStep matches={matches} onChat={openChat} onCancel={handleCancelCarpool} busy={leaving} />

@@ -798,7 +798,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         const day = dayLabel(ymdLocal(scheduledDate));
         Alert.alert(
           "You already have a carpool",
-          `There's a confirmed carpool ${day === "Today" || day === "Tomorrow" ? day.toLowerCase() : `on ${day}`}. Cancel it to plan this one instead? Your partner is told right away.`,
+          `There's a confirmed carpool ${day === "Today" || day === "Tomorrow" ? day.toLowerCase() : `on ${day}`}. Cancel it to plan this one instead? Everyone in it is told right away.`,
           [
             { text: "Keep it", style: "cancel" },
             {
@@ -807,9 +807,24 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
               onPress: async () => {
                 setIsSubmittingCarpool(true);
                 try {
-                  const cancelled = err.rideId ? await cancelRide(err.rideId) : { ok: false as const, message: "" };
-                  if (!cancelled.ok) throw new Error(cancelled.message);
-                  await submitCarpool();
+                  // A driver can have several confirmed passengers: the server
+                  // names one ride per refusal, so cancel each in turn, then save.
+                  let rideId: string | null = err.rideId;
+                  for (let attempt = 0; ; attempt++) {
+                    if (!rideId || attempt >= 10) throw new Error("Couldn't cancel the earlier carpool. Please try again.");
+                    const cancelled = await cancelRide(rideId);
+                    if (!cancelled.ok) throw new Error(cancelled.message);
+                    try {
+                      await submitCarpool();
+                      break;
+                    } catch (again) {
+                      if (again instanceof CarpoolError && again.code === "has_confirmed_ride") {
+                        rideId = again.rideId;
+                        continue;
+                      }
+                      throw again;
+                    }
+                  }
                 } catch (e) {
                   showToast({ title: "Could not submit", message: friendlyError(e), type: "error" });
                 } finally {

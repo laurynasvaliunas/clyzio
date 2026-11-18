@@ -148,8 +148,13 @@ interface DailyCommuteState {
   respondAsPassenger: (params: { match_id: string; accepted: boolean }) => Promise<void>;
   /** Close the trip ("Stop looking"). Refused while a carpool is confirmed. */
   stopLooking: () => Promise<void>;
-  /** Cancel a confirmed carpool; you can plan a new trip right after. */
+  /** Cancel one confirmed carpool. A driver with other passengers keeps the drive. */
   cancelCarpool: (rideId: string) => Promise<void>;
+  /**
+   * Cancel the whole trip in one go: every confirmed carpool on it (each
+   * partner is told), then any open offers. You can plan a new trip right after.
+   */
+  cancelTrip: () => Promise<void>;
   /** Map-radar bridge: request a specific colleague → creates a pre-approved match. */
   requestCarpool: (targetUserId: string, requesterRole: "driver" | "rider", tripDate?: string) => Promise<void>;
   subscribeToMatches: () => () => void;
@@ -376,8 +381,47 @@ export const useDailyCommuteStore = create<DailyCommuteState>((set, get) => ({
       set({ isLoading: false });
       throw new Error(outcome.message);
     }
-    // Your trip closed with the cancel: straight back to planning a new one.
-    set({ step: "role_select", intent: null, matches: [], outcome: null, isLoading: false });
+    // Usually the trip closes with the cancel (back to planning). A driver
+    // with other passengers keeps the drive, so show what is really left
+    // instead of assuming.
+    await get().checkExistingIntent();
+    set({ isLoading: false });
+  },
+
+  cancelTrip: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      // Start from the server's view of the trip, not a possibly stale screen.
+      await get().checkExistingIntent();
+      const { intent, matches } = get();
+      if (!intent) {
+        set({ step: "role_select", intent: null, matches: [], outcome: null, isLoading: false });
+        return;
+      }
+      // 1. Each confirmed carpool, through cancel-ride (tells that partner).
+      const rideIds = matches
+        .filter((m) => m.status === "confirmed" && m.ride_id)
+        .map((m) => m.ride_id as string);
+      for (const rideId of rideIds) {
+        const outcome = await cancelRide(rideId);
+        if (!outcome.ok) throw new Error(outcome.message);
+      }
+      // 2. Then the trip itself: closes it and withdraws open offers (tells
+      //    those people), including one the matcher made for a seat freed above.
+      const { error } = await supabase.functions.invoke("cancel-trip-intent", { body: { intent_id: intent.id } });
+      if (error) {
+        const e = await functionError(error);
+        if (!(e instanceof CarpoolError && e.code === "intent_not_found")) {
+          throw e instanceof CarpoolError ? new Error(e.code) : e;
+        }
+      }
+      set({ step: "role_select", intent: null, matches: [], outcome: null, isLoading: false });
+    } catch (err) {
+      // Whatever did get cancelled stays cancelled: show the real state.
+      await get().checkExistingIntent().catch(() => undefined);
+      set({ isLoading: false });
+      throw err;
+    }
   },
 
   requestCarpool: async (targetUserId, requesterRole, tripDate) => {

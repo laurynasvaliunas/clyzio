@@ -10,7 +10,7 @@ import {
   type TripIntentMatch,
 } from "../../store/useDailyCommuteStore";
 import { pickupHint, pickupMapUrl } from "../../components/PickupDetails";
-import { dayLabel, localISODate } from "../../lib/localDate";
+import { dayLabel, localISODate, tomorrowLocalISODate } from "../../lib/localDate";
 import { supabase } from "../../lib/supabase";
 
 // Migration 053: one carpool lifecycle — riders along the driver's route with
@@ -329,7 +329,10 @@ describe("Daily commute - stop, cancel and plan again", () => {
 
   it("goes straight back to planning after a cancel", async () => {
     invoke.mockResolvedValue({ data: { ok: true }, error: null });
-    showStep("passenger_confirmed", [offer({ status: "confirmed", ride_id: "ride-9" })]);
+    // What the server has after a rider cancels: their trip is closed.
+    mockTables({ trip_intents: [intent({ status: "expired" })], trip_intent_matches: [] });
+    showStep("passenger_confirmed", [offer({ status: "confirmed", ride_id: "ride-9" })],
+      { checkExistingIntent: initialStore.checkExistingIntent });
     await useDailyCommuteStore.getState().cancelCarpool("ride-9");
     expect(invoke).toHaveBeenCalledWith("cancel-ride", { body: { ride_id: "ride-9" } });
     expect(useDailyCommuteStore.getState()).toMatchObject({ step: "role_select", intent: null, matches: [] });
@@ -339,6 +342,96 @@ describe("Daily commute - stop, cancel and plan again", () => {
     showStep("passenger_submitted", [], { outcome: { kind: "partner_cancelled", name: "Tomas" } });
     const { findByText } = render(<DailyCommuteScreen />);
     expect(await findByText("Tomas cancelled. We're looking for another match.")).toBeTruthy();
+  });
+});
+
+// Cancelling and replacing trips, for both roles (18 Nov 2026): one action
+// cancels the whole trip from any step, and cancelling one passenger shows
+// what is really left instead of assuming the trip closed.
+describe("Daily commute - cancel a trip and plan again", () => {
+  const confirmed = (id: string, ride: string, name: string) =>
+    offer({ id, status: "confirmed", driver_approved: true, passenger_approved: true, ride_id: ride,
+      passenger_user_id: name.toLowerCase(), passenger_profile: { first_name: name } });
+  const tomorrowTrip = (role: "driver" | "passenger") =>
+    intent({ id: role === "driver" ? "di" : "pi", role, trip_date: tomorrowLocalISODate(),
+      passenger_capacity: role === "driver" ? 2 : null }) as any;
+  const invokedWith = () => invoke.mock.calls.map(([name, opts]) => [name, opts?.body]);
+
+  it("dropping one of two passengers keeps the drive on screen", async () => {
+    invoke.mockResolvedValue({ data: { ok: true }, error: null });
+    const checkExistingIntent = jest.fn().mockResolvedValue(undefined);
+    showStep("driver_confirmed", [confirmed("c1", "ride-1", "Rasa"), confirmed("c2", "ride-2", "Ona")],
+      { intent: tomorrowTrip("driver"), checkExistingIntent });
+
+    await useDailyCommuteStore.getState().cancelCarpool("ride-2");
+
+    expect(invokedWith()).toEqual([["cancel-ride", { ride_id: "ride-2" }]]);
+    expect(checkExistingIntent).toHaveBeenCalled();
+    // Not forced back to "plan a new trip": the screen shows what the server has.
+    expect(useDailyCommuteStore.getState().step).toBe("driver_confirmed");
+  });
+
+  it("cancels every carpool on the trip, then the trip itself", async () => {
+    invoke.mockResolvedValue({ data: { ok: true }, error: null });
+    showStep("driver_confirmed", [confirmed("c1", "ride-1", "Rasa"), confirmed("c2", "ride-2", "Ona"), offer({ id: "m3" })],
+      { intent: tomorrowTrip("driver") });
+
+    await useDailyCommuteStore.getState().cancelTrip();
+
+    expect(invokedWith()).toEqual([
+      ["cancel-ride", { ride_id: "ride-1" }],
+      ["cancel-ride", { ride_id: "ride-2" }],
+      ["cancel-trip-intent", { intent_id: "di" }],
+    ]);
+    expect(useDailyCommuteStore.getState()).toMatchObject({ step: "role_select", intent: null, matches: [] });
+  });
+
+  it("stops at a cancel that fails, and shows the real state", async () => {
+    invoke.mockResolvedValueOnce({ data: null, error: new Error("offline") });
+    const checkExistingIntent = jest.fn().mockResolvedValue(undefined);
+    showStep("driver_confirmed", [confirmed("c1", "ride-1", "Rasa"), confirmed("c2", "ride-2", "Ona")],
+      { intent: tomorrowTrip("driver"), checkExistingIntent });
+
+    await expect(useDailyCommuteStore.getState().cancelTrip()).rejects.toThrow("Check your connection and try again.");
+    expect(invokedWith()).toEqual([["cancel-ride", { ride_id: "ride-1" }]]);
+    expect(checkExistingIntent).toHaveBeenCalledTimes(2);
+  });
+
+  it("offers the driver one action to cancel tomorrow's drive while answering riders", async () => {
+    const cancelTrip = jest.fn().mockResolvedValue(undefined);
+    showStep("driver_review", [offer(), offer({ id: "m2", passenger_user_id: "ona", passenger_profile: { first_name: "Ona" } })],
+      { intent: tomorrowTrip("driver"), cancelTrip });
+    const alert = tapAlert("Cancel tomorrow's drive");
+    const { findByLabelText } = render(<DailyCommuteScreen />);
+
+    fireEvent.press(await findByLabelText("Cancel tomorrow's drive"));
+    expect(alert.mock.calls[0][0]).toBe("Cancel tomorrow's drive?");
+    expect(alert.mock.calls[0][1]).toBe("Rasa and Ona are told right away. You can plan a new trip straight after.");
+    await waitFor(() => expect(cancelTrip).toHaveBeenCalled());
+  });
+
+  it("offers the rider the same while waiting for a driver to answer", async () => {
+    const cancelTrip = jest.fn().mockResolvedValue(undefined);
+    showStep("passenger_waiting", [offer({ status: "awaiting_other", passenger_approved: true, passenger_user_id: "test-user-id" })],
+      { intent: tomorrowTrip("passenger"), cancelTrip });
+    tapAlert("Cancel tomorrow's ride");
+    const { findByLabelText, getByText } = render(<DailyCommuteScreen />);
+
+    expect(getByText("Withdraw request")).toBeTruthy();
+    fireEvent.press(await findByLabelText("Cancel tomorrow's ride"));
+    await waitFor(() => expect(cancelTrip).toHaveBeenCalled());
+  });
+
+  it("shows the whole-drive cancel only when it differs from cancelling the one carpool", async () => {
+    showStep("driver_confirmed", [confirmed("c1", "ride-1", "Rasa")], { intent: tomorrowTrip("driver") });
+    const one = render(<DailyCommuteScreen />);
+    expect(await one.findByLabelText("Cancel the carpool with Rasa")).toBeTruthy();
+    expect(one.queryByLabelText("Cancel tomorrow's drive")).toBeNull();
+    one.unmount();
+
+    showStep("driver_confirmed", [confirmed("c1", "ride-1", "Rasa"), confirmed("c2", "ride-2", "Ona")], { intent: tomorrowTrip("driver") });
+    const two = render(<DailyCommuteScreen />);
+    expect(await two.findByLabelText("Cancel tomorrow's drive")).toBeTruthy();
   });
 });
 

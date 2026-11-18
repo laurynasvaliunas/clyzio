@@ -4,6 +4,8 @@ import { act, fireEvent, render, screen, waitFor } from "../utils/test-utils";
 import TripPlannerModal from "../../components/TripPlannerModal";
 import { supabase } from "../../lib/supabase";
 import { searchAddresses, type AddressSuggestion } from "../../lib/addressSearch";
+import { Alert } from "react-native";
+import { useDailyCommuteStore, CarpoolError } from "../../store/useDailyCommuteStore";
 
 // "Plan your route": Passenger instead of Rider, several stops, and the
 // greenest option highlighted on its card instead of an insight banner.
@@ -191,6 +193,33 @@ describe("Plan your route", () => {
     // Choosing another mode hides it again.
     fireEvent.press(screen.getByText("Bike"));
     expect(screen.queryByText("Which vehicle?")).toBeNull();
+  });
+
+  it("replaces a carpool day that has two confirmed passengers: cancels each, then saves", async () => {
+    mockTables();
+    const invoke = jest.fn().mockResolvedValue({ data: { ok: true }, error: null });
+    (supabase as any).functions = { invoke };
+    const submitIntent = jest.fn()
+      .mockRejectedValueOnce(new CarpoolError("has_confirmed_ride", "ride-a"))
+      .mockRejectedValueOnce(new CarpoolError("has_confirmed_ride", "ride-b"))
+      .mockResolvedValueOnce(undefined);
+    useDailyCommuteStore.setState({ submitIntent });
+    const alert = jest.spyOn(Alert, "alert").mockImplementation((_t, _m, buttons) => {
+      buttons?.find((b) => b.text === "Cancel it and continue")?.onPress?.();
+    });
+    const { onClose } = renderPlanner(FAR_DEST);
+
+    fireEvent.press(await screen.findByText("Driver"));
+    fireEvent.press(await screen.findByText("Offer ride"));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(invoke.mock.calls.map(([name, opts]) => [name, opts.body])).toEqual([
+      ["cancel-ride", { ride_id: "ride-a" }],
+      ["cancel-ride", { ride_id: "ride-b" }],
+    ]);
+    expect(submitIntent).toHaveBeenCalledTimes(3);
+    expect(alert).toHaveBeenCalledTimes(1);
+    alert.mockRestore();
   });
 
   it("highlights the greenest option for the distance instead of an insight banner", async () => {
