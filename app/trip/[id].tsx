@@ -35,6 +35,7 @@ import {
   usePartnerPosition,
 } from "../../lib/liveLocation";
 import { useLiveShareStore } from "../../store/useLiveShareStore";
+import { sheetBottomPadding } from "../../lib/sheetInsets";
 import { useChatStore } from "../../store/useChatStore";
 import { UnreadBadge } from "../../components/ui/UnreadBadge";
 import ChatModal from "../../components/ChatModal";
@@ -930,7 +931,7 @@ export default function TripScreen() {
         onRequestClose={() => setShowSafetyModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.safetyModal}>
+          <View style={[styles.safetyModal, { paddingBottom: sheetBottomPadding(Platform.OS, 24, insets.bottom) }]}>
             <Text style={styles.safetyModalTitle}>Safety toolkit</Text>
             
             <TouchableOpacity style={styles.safetyOption} onPress={handleShareRide}>
@@ -964,7 +965,7 @@ export default function TripScreen() {
         onRequestClose={() => setShowArrivalModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.arrivalModal}>
+          <View style={[styles.arrivalModal, { paddingBottom: sheetBottomPadding(Platform.OS, 32, insets.bottom) }]}>
             <Text style={styles.arrivalTitle}>You&apos;ve arrived</Text>
             <Text style={styles.arrivalSubtitle}>
               {isSoloTrip || isDriver

@@ -35,7 +35,8 @@ describe("Setup done - independent matching choice", () => {
     const { findByLabelText, getByLabelText } = render(<DoneScreen />);
 
     const toggle = await findByLabelText("Match with other independent commuters");
-    expect(toggle.props.value).toBe(true);
+    // iOS's switch holds `value`, Android's `on`.
+    expect(toggle.props.value ?? toggle.props.on).toBe(true);
 
     fireEvent.press(getByLabelText("Plan my first commute"));
     await waitFor(() =>

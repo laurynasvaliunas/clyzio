@@ -18,6 +18,13 @@
       "distribution": "internal",
       "channel": "development"
     },
+    "development:android": {
+      "extends": "development:device",
+      "environment": "production",
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "preview": {
       "distribution": "internal",
       "channel": "preview",

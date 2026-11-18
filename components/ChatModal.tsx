@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text, TextInput } from "./ui/AppText";
 import { Send, X } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
@@ -58,6 +59,14 @@ export default function ChatModal({
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(true);
   const flatListRef = useRef<FlatList>(null);
+
+  // Android draws this modal under the navigation bar (edge-to-edge), so the
+  // message box needs the bar's height below it, except while the keyboard is
+  // up: the keyboard already sits above the bar. iOS keeps its 32.
+  const insets = useSafeAreaInsets();
+  const keyboardOpen = useKeyboardState((k) => k.isVisible);
+  const inputPaddingBottom =
+    Platform.OS === "ios" ? 32 : keyboardOpen ? 12 : Math.max(12, insets.bottom + 8);
 
   // While open, this chat is read: clear its unread badge and keep new
   // messages from raising toasts (components/ChatWatcher).
@@ -228,7 +237,7 @@ export default function ChatModal({
         )}
 
         {/* Input Area */}
-        <View style={styles.inputContainer}>
+        <View testID="chat-input-bar" style={[styles.inputContainer, { paddingBottom: inputPaddingBottom }]}>
           <TextInput
             style={styles.input}
             placeholder="Type a message"
@@ -369,7 +378,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingBottom: Platform.OS === "ios" ? 32 : 12,
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
     borderTopColor: "#EEF6F7",

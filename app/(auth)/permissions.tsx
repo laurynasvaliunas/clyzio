@@ -129,6 +129,17 @@ export default function PermissionsScreen() {
         const res = await Location.requestForegroundPermissionsAsync();
         status = res.status === 'granted' ? 'granted' : 'denied';
       } else if (step === 'notifications') {
+        // Android: the channel comes first. Android 13+ only shows the
+        // permission dialog once the app has a notification channel, and a
+        // failure here must not cost the user the permission or the token.
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#007C89',
+          }).catch(() => undefined);
+        }
         // On Android the notifications permission only matters on 13+. We
         // still call this — Expo handles the version gate internally.
         const res = await Notifications.requestPermissionsAsync({
@@ -139,14 +150,6 @@ export default function PermissionsScreen() {
           },
         });
         status = res.granted ? 'granted' : 'denied';
-        if (status === 'granted' && Platform.OS === 'android') {
-          await Notifications.setNotificationChannelAsync('default', {
-            name: 'default',
-            importance: Notifications.AndroidImportance.MAX,
-            vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#007C89',
-          });
-        }
         // Save the push token now — the sign-in registration ran before this
         // permission existed, so without this no carpool push ever arrives.
         if (status === 'granted') registerAndSavePushToken().catch(() => undefined);

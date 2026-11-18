@@ -8,6 +8,7 @@ import { brand, getPalette, spacing } from '../lib/theme/tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { t } from '../lib/i18n';
+import { useSheetBottomPadding } from '../lib/sheetInsets';
 
 // Chips depend on who is being rated: a driver rating their passenger used to
 // be offered "Safe driver" / "Clean car".
@@ -60,6 +61,7 @@ export default function RatingSheet({
   const [tags, setTags] = useState<string[]>([]);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const sheetPaddingBottom = useSheetBottomPadding(40);
 
   const toggleTag = (key: string) =>
     setTags((curr) => (curr.includes(key) ? curr.filter((k) => k !== key) : [...curr, key]));
@@ -106,7 +108,7 @@ export default function RatingSheet({
     >
       {/* The sheet rises with the keyboard, so the comment field stays visible. */}
       <KeyboardAvoidingView behavior="padding" style={[styles.backdrop, { backgroundColor: p.overlay }]}>
-        <Card style={styles.sheet} elevation="lg">
+        <Card style={{ ...styles.sheet, paddingBottom: sheetPaddingBottom }} elevation="lg">
           <Text variant="title">{t('rating.title')}</Text>
           <Text variant="body" tone="secondary" style={{ marginTop: spacing[2] }}>
             {t('rating.subtitle', { name: partnerName })}

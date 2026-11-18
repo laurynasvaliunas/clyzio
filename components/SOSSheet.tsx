@@ -7,6 +7,7 @@ import { getPalette, semantic, spacing } from '../lib/theme/tokens';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { t } from '../lib/i18n';
+import { useSheetBottomPadding } from '../lib/sheetInsets';
 
 interface Props {
   visible: boolean;
@@ -29,6 +30,7 @@ interface Props {
 export default function SOSSheet({ visible, onClose, rideId }: Props) {
   const { isDark } = useTheme();
   const p = getPalette(isDark);
+  const sheetPaddingBottom = useSheetBottomPadding(40);
 
   const emergencyNumber = resolveEmergencyNumber();
 
@@ -84,7 +86,7 @@ export default function SOSSheet({ visible, onClose, rideId }: Props) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={[styles.backdrop, { backgroundColor: p.overlay }]}>
-        <Card style={styles.sheet} elevation="lg">
+        <Card style={{ ...styles.sheet, paddingBottom: sheetPaddingBottom }} elevation="lg">
           <View style={styles.headerRow}>
             <Text variant="title" tone="danger">
               {t('sos.title')}

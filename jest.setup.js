@@ -168,11 +168,12 @@ jest.mock("@react-navigation/native", () => {
   };
 });
 
-// Mock react-native-safe-area-context
+// Mock react-native-safe-area-context. A test can set globalThis.__safeAreaInsets
+// (e.g. { bottom: 48 } for Android's 3-button navigation bar); reset in afterEach.
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0, ...globalThis.__safeAreaInsets }),
 }));
 
 // Mock expo-image-picker
@@ -213,6 +214,9 @@ jest.mock("expo-notifications", () => ({
   getPermissionsAsync: jest.fn().mockResolvedValue({ status: "denied" }),
   requestPermissionsAsync: jest.fn().mockResolvedValue({ status: "denied" }),
   getExpoPushTokenAsync: jest.fn().mockRejectedValue(new Error("Not in Expo Go")),
+  // Android-only calls, so the suite also runs under jest-expo/android.
+  setNotificationChannelAsync: jest.fn().mockResolvedValue(null),
+  AndroidImportance: { MIN: 1, LOW: 2, DEFAULT: 3, HIGH: 4, MAX: 5 },
 }));
 
 // Mock expo-secure-store with an in-memory store. Exposed on globalThis so
