@@ -562,6 +562,41 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       ? computeLocalModes(routeDistance, 1, userCarCO2)[0]?.id ?? null
       : null;
 
+  /** "Which vehicle?" chips, shown right under the Car card when it is picked. */
+  const renderVehiclePicker = () => (
+    <View style={styles.vehiclePickerWrap}>
+      <Text style={styles.vehiclePickerLabel}>Which vehicle?</Text>
+      <View style={styles.vehicleChipRow}>
+        {garage.map((v) => {
+          const active = v.id === selectedVehicleId;
+          const name =
+            [v.make, v.model].filter(Boolean).join(" ") ||
+            v.type.charAt(0).toUpperCase() + v.type.slice(1);
+          return (
+            <TouchableOpacity
+              key={v.id}
+              style={[styles.vehicleChip, active && styles.vehicleChipActive]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSelectedVehicleId(v.id);
+              }}
+            >
+              <Text
+                style={[
+                  styles.vehicleChipText,
+                  active && { color: COLORS.primary, fontWeight: "700" },
+                ]}
+                numberOfLines={1}
+              >
+                {name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+
   const getModesByRole = () => {
     if (role === "solo") {
       // Solo: every mode, in display order (PDF Stage 3 option cards).
@@ -982,7 +1017,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
               >
                 <Plus size={18} color={COLORS.primary} />
                 <Text style={styles.addWaypointText}>
-                  {stops.length === 0 ? "Add Kindergarten / School Stop" : "Add another stop"}
+                  {stops.length === 0 ? "Add Stop (like Kindergarten / School)" : "Add another stop"}
                 </Text>
               </TouchableOpacity>
             )}
@@ -1126,8 +1161,8 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                       }
                       const isGreenest = m.id === greenestModeId;
                       return (
+                        <React.Fragment key={m.id}>
                         <TouchableOpacity
-                          key={m.id}
                           style={[styles.modeItem, isGreenest && styles.modeItemGreenest, isSelected && styles.modeItemActive]}
                           onPress={() => {
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1150,6 +1185,9 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                           </View>
                           <Text style={styles.modeCo2}>{co2Display}</Text>
                         </TouchableOpacity>
+                        {/* Which garage vehicle for this trip? (drives the CO₂ comparison) */}
+                        {m.id === "my_car" && isSelected && garage.length > 0 && renderVehiclePicker()}
+                        </React.Fragment>
                       );
                     })}
                   </View>
@@ -1211,41 +1249,6 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                         No transit routes found - we'll estimate with an average.
                       </Text>
                     ) : null}
-                  </View>
-                )}
-
-                {/* Which garage vehicle for this trip? (drives the CO₂ comparison) */}
-                {selectedMode?.id === "my_car" && garage.length > 0 && (
-                  <View style={styles.vehiclePickerWrap}>
-                    <Text style={styles.vehiclePickerLabel}>Which vehicle?</Text>
-                    <View style={styles.vehicleChipRow}>
-                      {garage.map((v) => {
-                        const active = v.id === selectedVehicleId;
-                        const name =
-                          [v.make, v.model].filter(Boolean).join(" ") ||
-                          v.type.charAt(0).toUpperCase() + v.type.slice(1);
-                        return (
-                          <TouchableOpacity
-                            key={v.id}
-                            style={[styles.vehicleChip, active && styles.vehicleChipActive]}
-                            onPress={() => {
-                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                              setSelectedVehicleId(v.id);
-                            }}
-                          >
-                            <Text
-                              style={[
-                                styles.vehicleChipText,
-                                active && { color: COLORS.primary, fontWeight: "700" },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {name}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
                   </View>
                 )}
 
@@ -1515,7 +1518,7 @@ const styles = StyleSheet.create({
   },
 
   // Garage vehicle picker
-  vehiclePickerWrap: { marginTop: GAP },
+  vehiclePickerWrap: { marginBottom: GAP, paddingHorizontal: 4 },
   vehiclePickerLabel: {
     fontSize: 13,
     fontWeight: "600",

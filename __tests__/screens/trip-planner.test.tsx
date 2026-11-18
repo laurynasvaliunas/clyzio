@@ -1,4 +1,5 @@
 import React from "react";
+import { Text } from "react-native";
 import { act, fireEvent, render, screen, waitFor } from "../utils/test-utils";
 import TripPlannerModal from "../../components/TripPlannerModal";
 import { supabase } from "../../lib/supabase";
@@ -40,8 +41,8 @@ async function pick(label: string) {
   fireEvent.press(screen.getByLabelText(label));
 }
 
-/** Every table answers with nothing; "rides" records what is inserted. */
-function mockTables() {
+/** Every table answers with nothing (or `profile`); "rides" records what is inserted. */
+function mockTables({ profile = null }: { profile?: Record<string, unknown> | null } = {}) {
   const inserted: any[] = [];
   (supabase.from as jest.Mock).mockImplementation((table: string) => {
     const chain: any = {};
@@ -49,7 +50,7 @@ function mockTables() {
       chain[m] = jest.fn(() => chain);
     }
     chain.limit = jest.fn().mockResolvedValue({ data: [], error: null });
-    chain.single = jest.fn().mockResolvedValue({ data: null, error: null });
+    chain.single = jest.fn().mockResolvedValue({ data: table === "profiles" ? profile : null, error: null });
     chain.maybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
     chain.then = (res: any, rej: any) => Promise.resolve({ data: [], error: null }).then(res, rej);
     if (table === "rides") {
@@ -96,7 +97,7 @@ describe("Plan your route", () => {
     mockTables();
     renderPlanner();
 
-    fireEvent.press(await screen.findByText("Add Kindergarten / School Stop"));
+    fireEvent.press(await screen.findByText("Add Stop (like Kindergarten / School)"));
     expect(screen.getByPlaceholderText("School / Kindergarten stop")).toBeTruthy();
     fireEvent.press(screen.getByText("Add another stop"));
     fireEvent.press(screen.getByText("Add another stop"));
@@ -125,7 +126,7 @@ describe("Plan your route", () => {
       text.startsWith("Mokyklos") ? [place("Mokyklos g. 1", 25.285, 54.70)]
       : text.startsWith("Darželio") ? [place("Darželio g. 2", 25.29, 54.75)]
       : []);
-    fireEvent.press(await screen.findByText("Add Kindergarten / School Stop"));
+    fireEvent.press(await screen.findByText("Add Stop (like Kindergarten / School)"));
     typeInto("School / Kindergarten stop", "Mokyklos");
     await pick("Mokyklos g. 1, Vilnius, Lithuania");
 
@@ -156,6 +157,40 @@ describe("Plan your route", () => {
     await waitFor(() => expect(onTripStart).toHaveBeenCalled());
     expect(inserted[0].waypoints).toBeNull();
     expect(onTripStart.mock.calls[0][0].waypoints).toEqual([]);
+  });
+
+  it("asks which vehicle right under the Car card, not at the end of the list", async () => {
+    mockTables({
+      profile: {
+        car_fuel_type: "petrol",
+        vehicles: [
+          { id: "v1", type: "car", make: "Toyota", model: "Corolla", fuel_type: "petrol" },
+          { id: "v2", type: "car", make: "Tesla", model: "Model 3", fuel_type: "electric" },
+        ],
+        primary_vehicle_id: "v1",
+        share_pickup_address: true,
+        company_id: null,
+      },
+    });
+    renderPlanner(FAR_DEST);
+    expect(screen.queryByText("Which vehicle?")).toBeNull();
+
+    fireEvent.press(await screen.findByText("Car"));
+    expect(await screen.findByText("Which vehicle?")).toBeTruthy();
+
+    // On screen, top to bottom: the Car card, the vehicle chips, then the next mode.
+    const texts = screen.UNSAFE_getAllByType(Text).map((n) => [n.props.children].flat().join(""));
+    const car = texts.indexOf("Car");
+    const question = texts.indexOf("Which vehicle?");
+    const bike = texts.indexOf("Bike");
+    expect(car).toBeGreaterThan(-1);
+    // Only the Car card's own CO₂ figure sits between its name and the question.
+    expect(texts.slice(car + 1, question)).toEqual([expect.stringMatching(/CO₂$/)]);
+    expect(texts.slice(question + 1, bike)).toEqual(["Toyota Corolla", "Tesla Model 3"]);
+
+    // Choosing another mode hides it again.
+    fireEvent.press(screen.getByText("Bike"));
+    expect(screen.queryByText("Which vehicle?")).toBeNull();
   });
 
   it("highlights the greenest option for the distance instead of an insight banner", async () => {
