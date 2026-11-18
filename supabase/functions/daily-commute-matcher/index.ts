@@ -12,7 +12,7 @@
  *
  * A rider fits a driver when the driver's route passes them on the way (pickup
  * on the route within a short walk, or at their door for a small detour) and
- * the driver reaches the pickup within ±15 min of the rider's leaving time —
+ * the driver reaches the pickup within ±30 min of the rider's leaving time —
  * see _shared/route.ts. The database refuses anything else (seats, one live
  * match per rider, closed trips), so racing runs can't double-book.
  */
@@ -27,6 +27,7 @@ import { sendPush } from '../_shared/expoPush.ts';
 import { reverseGeocode, mapboxToken as getMapboxToken } from '../_shared/geocode.ts';
 import {
   buildRoute,
+  DEFAULT_LIMITS,
   distanceToRouteM,
   type DrivingRoute,
   fetchDrivingRoute,
@@ -130,7 +131,11 @@ class MatchRun {
     if (distanceToRouteM(line, home(rider)) > CORRIDOR_M || distanceToRouteM(line, work(rider)) > CORRIDOR_M) {
       return null;
     }
-    if (riderDepartMin < driverDepartMin - 15 || riderDepartMin > driverDepartMin + line.durationS / 60 + 30) {
+    // Rough time check on the straight line before any routing (planRide has
+    // the real one): not long before the driver sets off, nor long after the
+    // driver could pass (15 min slack for the straight-line estimate).
+    const gap = DEFAULT_LIMITS.maxTimeGapMin;
+    if (riderDepartMin < driverDepartMin - gap || riderDepartMin > driverDepartMin + line.durationS / 60 + gap + 15) {
       return null;
     }
 

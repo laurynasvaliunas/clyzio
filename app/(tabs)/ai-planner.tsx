@@ -30,7 +30,7 @@ import {
   X,
 } from "lucide-react-native";
 import ModeIcon from "../../components/ModeIcon";
-import { MAPBOX_TOKEN } from "../../lib/config";
+import { searchAddresses, MIN_QUERY_LENGTH, type AddressSuggestion } from "../../lib/addressSearch";
 import { supabase } from "../../lib/supabase";
 import { useAIStore, CommuteSuggestion } from "../../store/useAIStore";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -386,9 +386,11 @@ interface PlannerAddressInputProps {
 
 function PlannerAddressInput({ placeholder, value, onSelect, TC }: PlannerAddressInputProps) {
   const [text, setText] = useState(value);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<AddressSuggestion[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Only the latest search may fill the list (see lib/addressSearch.ts).
+  const searchSeq = useRef(0);
 
   // Sync external value changes (e.g. when profile loads)
   useEffect(() => { setText(value); }, [value]);
@@ -396,24 +398,24 @@ function PlannerAddressInput({ placeholder, value, onSelect, TC }: PlannerAddres
   const searchPlaces = (searchText: string) => {
     setText(searchText);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    if (searchText.length < 3) { setResults([]); return; }
+    const seq = ++searchSeq.current;
+    if (searchText.trim().length < MIN_QUERY_LENGTH) { setResults([]); return; }
     debounceTimer.current = setTimeout(async () => {
-      try {
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchText)}.json?access_token=${MAPBOX_TOKEN}&limit=5&types=address,place,locality,neighborhood`;
-        const res = await fetch(url);
-        const json = await res.json();
-        setResults(json.features ?? []);
-      } catch (_) { /* silent */ }
+      const found = await searchAddresses(searchText);
+      if (seq === searchSeq.current) setResults(found);
     }, 350);
   };
 
-  const handleSelect = (feature: any) => {
+  const handleSelect = (item: AddressSuggestion) => {
     Keyboard.dismiss();
-    const [lng, lat] = feature.geometry.coordinates;
-    setText(feature.place_name);
+    // A search still on its way must not reopen the list after the pick.
+    searchSeq.current += 1;
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    const [lng, lat] = item.coordinates;
+    setText(item.place_name);
     setResults([]);
     setIsFocused(false);
-    onSelect({ lat, lng, description: feature.place_name });
+    onSelect({ lat, lng, description: item.place_name });
   };
 
   return (
@@ -433,7 +435,12 @@ function PlannerAddressInput({ placeholder, value, onSelect, TC }: PlannerAddres
         />
         {text.length > 0 && isFocused && (
           <TouchableOpacity
-            onPress={() => { setText(""); setResults([]); }}
+            onPress={() => {
+              searchSeq.current += 1;
+              if (debounceTimer.current) clearTimeout(debounceTimer.current);
+              setText("");
+              setResults([]);
+            }}
             accessibilityRole="button"
             accessibilityLabel="Clear address"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -449,11 +456,20 @@ function PlannerAddressInput({ placeholder, value, onSelect, TC }: PlannerAddres
               key={`${item.id}-${idx}`}
               style={plannerInputStyles.dropdownItem}
               onPress={() => handleSelect(item)}
+              accessibilityRole="button"
+              accessibilityLabel={item.place_name}
             >
               <MapPin size={14} color={COLORS.gray} />
-              <Text style={[plannerInputStyles.dropdownText, { color: TC.text }]} numberOfLines={1}>
-                {item.place_name}
-              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: "600", color: TC.text }} numberOfLines={1}>
+                  {item.title}
+                </Text>
+                {!!item.subtitle && (
+                  <Text style={{ fontSize: 12, color: COLORS.gray, marginTop: 1 }} numberOfLines={1}>
+                    {item.subtitle}
+                  </Text>
+                )}
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -488,7 +504,6 @@ const plannerInputStyles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "rgba(0,0,0,0.06)",
   },
-  dropdownText: { flex: 1, fontSize: 13 },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────

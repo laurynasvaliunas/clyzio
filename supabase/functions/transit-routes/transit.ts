@@ -46,6 +46,11 @@ export interface TransitOption {
   distance_km: number;
   co2_per_km: number;
   co2_kg: number;
+  /**
+   * The whole route (walks included) as a Google encoded polyline, so the map
+   * draws this option and not a car route. Null when Google sent none.
+   */
+  polyline: string | null;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -81,7 +86,21 @@ export function normalizeRoute(route: any): TransitOption | null {
     distance_km: distanceKm,
     co2_per_km: co2PerKm,
     co2_kg: Math.round(distanceKm * co2PerKm * 1000) / 1000,
+    polyline: typeof route?.overview_polyline?.points === 'string' && route.overview_polyline.points.length > 0
+      ? route.overview_polyline.points
+      : null,
   };
+}
+
+/**
+ * Lookups cached before options carried their route (15 Nov 2026) can't draw
+ * it; they are fetched again instead of waiting out the cache.
+ */
+// deno-lint-ignore no-explicit-any
+export function cachedPayloadIsCurrent(payload: any): boolean {
+  return Array.isArray(payload?.options) &&
+    // deno-lint-ignore no-explicit-any
+    payload.options.every((o: any) => o != null && 'polyline' in o);
 }
 
 /**

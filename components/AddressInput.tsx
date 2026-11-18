@@ -10,7 +10,7 @@ import { Text, TextInput } from "./ui/AppText";
 import { X } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
-import { MAPBOX_TOKEN } from "../lib/config";
+import { searchAddresses, type AddressSuggestion, type LatLng } from "../lib/addressSearch";
 import { elevation as ELEVATION } from "../lib/theme/tokens";
 
 const COLORS = {
@@ -27,11 +27,7 @@ const COLORS = {
   red: "#DC2626",
 };
 
-interface Suggestion {
-  id: string;
-  place_name: string;
-  coordinates: [number, number]; // [lng, lat]
-}
+type Suggestion = AddressSuggestion;
 
 interface AddressInputProps {
   placeholder: string;
@@ -48,6 +44,8 @@ interface AddressInputProps {
   onFocus?: () => void;
   onBlur?: () => void;
   listViewDisplayed?: boolean;
+  /** Search around this point (e.g. the trip's other end) instead of the saved home. */
+  near?: LatLng | null;
 }
 
 export default function AddressInput({
@@ -63,11 +61,21 @@ export default function AddressInput({
   isDark = false,
   onFocus,
   onBlur,
+  near,
 }: AddressInputProps) {
   const [query, setQuery] = useState(value ?? "");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Only the latest search may fill the list: an answer for earlier text, or
+  // one that arrives after a pick, a clear or leaving the field, is dropped.
+  const searchSeq = useRef(0);
+  const cancelSearch = () => {
+    searchSeq.current += 1;
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = null;
+  };
+  useEffect(() => cancelSearch, []);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   // Keep the input in sync if the parent resets/loads `value` asynchronously
@@ -86,25 +94,10 @@ export default function AddressInput({
   const borderColor = theme === "accent" ? COLORS.accent : isFocused ? COLORS.primary : "transparent";
 
   const fetchSuggestions = useCallback(async (text: string) => {
-    if (text.length < 3) {
-      setSuggestions([]);
-      return;
-    }
-    try {
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(text)}.json?access_token=${MAPBOX_TOKEN}&limit=5&types=address,place,locality,neighborhood`;
-      const res = await fetch(url);
-      const json = await res.json();
-      setSuggestions(
-        (json.features ?? []).map((f: any) => ({
-          id: f.id,
-          place_name: f.place_name,
-          coordinates: f.geometry.coordinates as [number, number],
-        }))
-      );
-    } catch {
-      setSuggestions([]);
-    }
-  }, []);
+    const seq = ++searchSeq.current;
+    const found = await searchAddresses(text, { near });
+    if (seq === searchSeq.current) setSuggestions(found);
+  }, [near]);
 
   const handleChangeText = (text: string) => {
     setQuery(text);
@@ -112,12 +105,13 @@ export default function AddressInput({
     // even when the user never selects a Mapbox suggestion. Without this,
     // plain typing stays trapped in local state and the parent saves null.
     onChangeText?.(text);
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    cancelSearch();
     debounceTimer.current = setTimeout(() => fetchSuggestions(text), 350);
   };
 
   const handleSelect = (item: Suggestion) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    cancelSearch();
     setQuery(item.place_name);
     setSuggestions([]);
     if (onPress) {
@@ -145,6 +139,7 @@ export default function AddressInput({
 
   const handleBlur = () => {
     setIsFocused(false);
+    cancelSearch();
     // Small delay so tap on suggestion registers before list hides
     setTimeout(() => setSuggestions([]), 150);
     if (onBlur) onBlur();
@@ -152,6 +147,7 @@ export default function AddressInput({
 
   const handleClear = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    cancelSearch();
     setQuery("");
     setSuggestions([]);
     if (onClear) onClear();
@@ -211,13 +207,17 @@ export default function AddressInput({
                 key={item.id}
                 style={styles.suggestionRow}
                 onPress={() => handleSelect(item)}
+                accessibilityRole="button"
+                accessibilityLabel={item.place_name}
               >
-                <Text
-                  style={[styles.suggestionText, { color: isDark ? COLORS.white : textColor }]}
-                  numberOfLines={2}
-                >
-                  {item.place_name}
+                <Text style={[styles.suggestionText, { color: COLORS.dark }]} numberOfLines={1}>
+                  {item.title}
                 </Text>
+                {!!item.subtitle && (
+                  <Text style={styles.suggestionSubtext} numberOfLines={1}>
+                    {item.subtitle}
+                  </Text>
+                )}
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -274,6 +274,13 @@ const styles = StyleSheet.create({
   suggestionText: {
     fontSize: 14,
     lineHeight: 18,
+    fontWeight: "600",
+  },
+  suggestionSubtext: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: COLORS.grayDark,
+    marginTop: 1,
   },
   clearBtn: {
     width: 32,

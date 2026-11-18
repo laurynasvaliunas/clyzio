@@ -1,5 +1,6 @@
 // deno test supabase/functions/transit-routes/transit.test.ts
 import {
+  cachedPayloadIsCurrent,
   mapVehicleType,
   normalizeRoute,
   TRANSIT_CO2_FACTORS,
@@ -91,4 +92,23 @@ Deno.test('the cache key separates the same hour on different dates', () => {
   assert(friday !== saturday, 'Friday and Saturday share a key');
   assert(friday === fridayLater, 'the same hour on the same day should share a key');
   assert(friday === transitCacheKey({ lat: 54.6912, lng: 25.2801 }, b, new Date('2026-10-30T16:00:00Z')), 'nearby starts share a key');
+});
+
+Deno.test('an option carries its own route for the map', () => {
+  const withLine = { ...route([{ name: '3G', type: 'BUS', metres: 6000 }]), overview_polyline: { points: '_p~iF~ps|U_ulLnnqC' } };
+  assert(normalizeRoute(withLine)?.polyline === '_p~iF~ps|U_ulLnnqC', 'the route Google drew for this option');
+  assert(normalizeRoute(route([{ name: '3G', type: 'BUS', metres: 6000 }]))?.polyline === null, 'null without one');
+  assert(normalizeRoute({ ...withLine, overview_polyline: { points: '' } })?.polyline === null, 'null when empty');
+});
+
+Deno.test('lookups cached without routes are fetched again', () => {
+  const fresh = normalizeRoute({ ...route([{ name: '9', type: 'TROLLEYBUS', metres: 6000 }]), overview_polyline: { points: 'abc' } });
+  assert(fresh, 'option');
+  const { polyline: _dropped, ...old } = fresh;
+  assert(cachedPayloadIsCurrent({ options: [fresh] }), 'a payload with routes is served from the cache');
+  assert(cachedPayloadIsCurrent({ options: [{ ...old, polyline: null }] }), 'so is one where Google had no route');
+  assert(cachedPayloadIsCurrent({ options: [] }), 'and an empty result');
+  assert(!cachedPayloadIsCurrent({ options: [old] }), 'a payload from before routes were added is not');
+  assert(!cachedPayloadIsCurrent({ options: [fresh, old] }), 'nor a mixed one');
+  assert(!cachedPayloadIsCurrent(null) && !cachedPayloadIsCurrent({}), 'nor a broken one');
 });

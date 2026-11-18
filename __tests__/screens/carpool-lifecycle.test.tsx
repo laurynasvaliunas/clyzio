@@ -261,6 +261,53 @@ describe("Daily commute - the driver decides with the pickup in front of them", 
   });
 });
 
+// A driver who offers more than one seat: the count is on screen at every
+// step, and the free seat stays on offer after the first passenger is confirmed.
+describe("Daily commute - the driver sees their seats", () => {
+  const driverTrip = (seats: number) => intent({ id: "di", role: "driver", passenger_capacity: seats }) as any;
+  const riding = (over: Partial<TripIntentMatch> = {}) =>
+    offer({ id: "c1", status: "confirmed", driver_approved: true, passenger_approved: true, ride_id: "ride-1", ...over });
+  const ona = { id: "m2", passenger_user_id: "ona", passenger_profile: { first_name: "Ona" } };
+
+  it("shows every seat free while searching", async () => {
+    showStep("driver_submitted", [], { intent: driverTrip(2) });
+    const { findByLabelText } = render(<DailyCommuteScreen />);
+    expect(await findByLabelText("0 of 2 seats taken. 2 seats still free.")).toBeTruthy();
+  });
+
+  it("keeps the second seat on offer after the first passenger is confirmed", async () => {
+    showStep("driver_confirmed", [riding()], { intent: driverTrip(2) });
+    const { findByText, getByText } = render(<DailyCommuteScreen />);
+    expect(await findByText("1 of 2 seats taken")).toBeTruthy();
+    expect(getByText("1 seat still free")).toBeTruthy();
+    expect(getByText(/^1 seat is still free\. We keep looking for riders/)).toBeTruthy();
+  });
+
+  it("shows a second rider for the free seat next to the confirmed passenger", async () => {
+    showStep("driver_review", [riding(), offer(ona)], { intent: driverTrip(2) });
+    const { findByText, getByText, getByLabelText } = render(<DailyCommuteScreen />);
+    expect(await findByText("1 of 2 seats taken")).toBeTruthy();
+    expect(getByText("1 offer waiting for an answer")).toBeTruthy();
+    expect(getByLabelText("Accept Ona")).toBeTruthy();
+    expect(getByText(/1 already riding with you\./)).toBeTruthy();
+  });
+
+  it("says the car is full once both seats are confirmed", async () => {
+    showStep("driver_confirmed", [riding(), riding({ ...ona, id: "c2", ride_id: "ride-2" })], { intent: driverTrip(2) });
+    const { findByText, getByText, queryByText } = render(<DailyCommuteScreen />);
+    expect(await findByText("2 of 2 seats taken")).toBeTruthy();
+    expect(getByText("Your car is full")).toBeTruthy();
+    expect(queryByText(/still free/)).toBeNull();
+  });
+
+  it("doesn't show seats to a rider", async () => {
+    showStep("passenger_submitted", []);
+    const { findByText, queryByText } = render(<DailyCommuteScreen />);
+    expect(await findByText("You're registered!")).toBeTruthy();
+    expect(queryByText(/seats? taken/)).toBeNull();
+  });
+});
+
 describe("Daily commute - stop, cancel and plan again", () => {
   it("lets a searching rider stop looking", async () => {
     const stopLooking = jest.fn().mockResolvedValue(undefined);

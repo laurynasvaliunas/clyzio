@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { setAddressSearchBias } from "./addressSearch";
 
 /**
  * The Expo push token this device registered for the signed-in user.
@@ -36,5 +37,7 @@ export async function signOut(): Promise<void> {
     /* never block sign-out */
   }
   devicePushToken = null;
+  // The next person on this phone doesn't search around this one's home.
+  setAddressSearchBias(null);
   await supabase.auth.signOut();
 }

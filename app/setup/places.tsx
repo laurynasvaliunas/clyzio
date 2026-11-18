@@ -21,6 +21,7 @@ import { friendlyError } from "../../lib/friendlyError";
 import { MAPBOX_TOKEN, IS_MAPBOX_TOKEN_VALID } from "../../lib/config";
 import { useToast } from "../../contexts/ToastContext";
 import AddressInput from "../../components/AddressInput";
+import { setAddressSearchBias } from "../../lib/addressSearch";
 import SetupProgress from "../../components/SetupProgress";
 import { elevation as ELEVATION } from "../../lib/theme/tokens";
 import { GlowBackdrop } from "../../components/ui";
@@ -106,6 +107,8 @@ export default function PlacesScreen() {
         });
         if (cancelled) return;
         const { latitude, longitude } = pos.coords;
+        // The address fields suggest places around here until a home is saved.
+        setAddressSearchBias({ lat: latitude, lng: longitude }, { onlyIfUnset: true });
         // Reverse-geocode with Mapbox so we have an address to show, not a coord.
         const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${MAPBOX_TOKEN}&limit=1&types=address`;
         const res = await fetch(url);
@@ -371,6 +374,7 @@ export default function PlacesScreen() {
             value={work?.address ?? ""}
             icon={<Briefcase size={16} color={COLORS.inkSoft} />}
             zIndex={100}
+            near={hasCoords(home) ? { lat: home.lat, lng: home.lng } : null}
             onPress={onWorkPick}
             onChangeText={onWorkText}
             onClear={() => setWork(null)}

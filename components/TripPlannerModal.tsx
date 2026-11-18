@@ -9,6 +9,7 @@ import {
   Keyboard,
   ActivityIndicator,
   Alert,
+  ScrollView,
   useWindowDimensions,
 } from "react-native";
 import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
@@ -46,7 +47,7 @@ import { cancelRide } from "../lib/cancelRide";
 import { dayLabel } from "../lib/localDate";
 import OpenTripToggle from "./OpenTripToggle";
 
-import { MAPBOX_TOKEN } from "../lib/config";
+import { searchAddresses, MIN_QUERY_LENGTH, type AddressSuggestion, type LatLng } from "../lib/addressSearch";
 import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
 /**
  * Sheet size for the current window and keyboard. Once the mode section is
@@ -118,6 +119,8 @@ interface CustomAddressInputProps {
   /** Keyboard return key: "next" jumps to `onSubmitEditing`'s field. */
   returnKeyType?: "next" | "done";
   onSubmitEditing?: () => void;
+  /** Search around this point (the trip's other end) instead of the saved home. */
+  near?: LatLng | null;
 }
 const CustomAddressInput = ({
   placeholder,
@@ -127,38 +130,39 @@ const CustomAddressInput = ({
   initialValue,
   returnKeyType = "done",
   onSubmitEditing,
+  near,
 }: CustomAddressInputProps) => {
   const [text, setText] = useState(initialValue ?? "");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<AddressSuggestion[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Only the latest search may fill the list (see lib/addressSearch.ts).
+  const searchSeq = useRef(0);
 
   const searchPlaces = (searchText: string) => {
     setText(searchText);
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    if (searchText.length < 3) {
+    const seq = ++searchSeq.current;
+    if (searchText.trim().length < MIN_QUERY_LENGTH) {
       setResults([]);
       return;
     }
     debounceTimer.current = setTimeout(async () => {
-      try {
-        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchText)}.json?access_token=${MAPBOX_TOKEN}&limit=5&types=address,place,locality,neighborhood`;
-        const response = await fetch(url);
-        const json = await response.json();
-        setResults(json.features ?? []);
-      } catch (error) {
-        console.error(error);
-      }
+      const found = await searchAddresses(searchText, { near });
+      if (seq === searchSeq.current) setResults(found);
     }, 350);
   };
 
-  const handleSelect = (feature: any) => {
+  const handleSelect = (item: AddressSuggestion) => {
     Keyboard.dismiss();
-    setText(feature.place_name);
+    // A search still on its way must not reopen the list after the pick.
+    searchSeq.current += 1;
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    setText(item.place_name);
     setResults([]);
     setIsFocused(false);
-    const [lng, lat] = feature.geometry.coordinates;
-    onSelect({ description: feature.place_name, location: { lat, lng } });
+    const [lng, lat] = item.coordinates;
+    onSelect({ description: item.place_name, location: { lat, lng } });
   };
 
   return (
@@ -185,18 +189,31 @@ const CustomAddressInput = ({
       </View>
 
       {isFocused && results.length > 0 && (
-        <View style={styles.resultsList}>
+        // Its own scroll box: five rows are taller than the space under the field.
+        <ScrollView
+          style={styles.resultsList}
+          contentContainerStyle={styles.resultsListContent}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+        >
           {results.map((item, index) => (
             <TouchableOpacity
               key={`${item.id}-${index}`}
               style={styles.resultItem}
               onPress={() => handleSelect(item)}
+              accessibilityRole="button"
+              accessibilityLabel={item.place_name}
             >
               <MapPin size={16} color={COLORS.gray} />
-              <Text style={styles.resultText}>{item.place_name}</Text>
+              <View style={styles.resultTextWrap}>
+                <Text style={styles.resultTitle} numberOfLines={1}>{item.title}</Text>
+                {!!item.subtitle && (
+                  <Text style={styles.resultSubtitle} numberOfLines={1}>{item.subtitle}</Text>
+                )}
+              </View>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -213,6 +230,8 @@ interface TripPlannerModalProps {
     mode: any;
     role: string;
     scheduledTime?: Date;
+    /** Public transport: the chosen option's route as an encoded polyline. */
+    routePolyline?: string | null;
   }) => void;
   initialMode?: string; // Pre-select a transport mode when opened from AI Planner
   initialOrigin?: { lat: number; lng: number; description: string }; // Pre-fill origin (AI Planner / Map home)
@@ -275,6 +294,8 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     // Unix seconds; absent from responses cached before the 28 Oct 2026 deploy.
     departure_ts?: number | null; arrival_ts?: number | null;
     distance_km: number; co2_per_km: number; co2_kg: number;
+    // The option's own route (encoded polyline); absent from older responses.
+    polyline?: string | null;
   };
   /** "08:09" in the phone's own clock format, else Google's text. */
   const transitLeaves = (opt: TransitOption) =>
@@ -635,6 +656,12 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         mode: selectedMode,
         role,
         scheduledTime: scheduledDate,
+        // Public transport: the picked option's own route (the fastest one
+        // when none was tapped), so the map draws it and not a car route.
+        routePolyline:
+          selectedMode?.id === "public"
+            ? transitOptions[selectedTransitIdx ?? 0]?.polyline ?? null
+            : null,
       });
       
       // Reset state
@@ -886,6 +913,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                 <CustomAddressInput
                   placeholder="School / Kindergarten stop"
                   icon={<School size={20} color={COLORS.accent} />}
+                  near={originCoords}
                   returnKeyType="next"
                   onSubmitEditing={() => destInputRef.current?.focus()}
                   onSelect={(data) => {
@@ -920,6 +948,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
               key={`dest-${addressMountKey}`}
               placeholder="Destination"
               icon={<MapPin size={20} color={COLORS.red} />}
+              near={originCoords}
               inputRef={destInputRef}
               initialValue={destDescription}
               onSelect={(data) => {
@@ -1043,8 +1072,8 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
 
                     <Text style={styles.carpoolHint}>
                       {role === "driver"
-                        ? "We'll match you with riders on this route leaving within 15 min."
-                        : "We'll match you with a driver on this route leaving within 15 min."}
+                        ? "We'll match you with riders on your way who leave within 30 min of when you pass them."
+                        : "We'll match you with a driver on this route who can pick you up within 30 min of this time."}
                     </Text>
                   </View>
                 ) : (
@@ -1320,21 +1349,33 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: "white",
     borderRadius: 15,
-    padding: 8,
-    maxHeight: 200,
+    // About four rows; the rest scroll inside the box.
+    maxHeight: 232,
     zIndex: 1000,
     boxShadow: ELEVATION.light.e2,
+  },
+  resultsListContent: {
+    padding: 8,
   },
   resultItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
     gap: 10,
   },
-  resultText: {
+  resultTextWrap: {
     flex: 1,
+  },
+  resultTitle: {
     fontSize: 14,
+    fontWeight: "600",
     color: COLORS.dark,
+  },
+  resultSubtitle: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 1,
   },
 
   // Role selector (top of sheet) — Solo / Driver / Rider

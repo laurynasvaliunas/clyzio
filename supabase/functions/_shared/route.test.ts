@@ -98,10 +98,15 @@ Deno.test('wrong direction, far destination and the time gate are rejected', asy
     'destination 2 km from the route');
   assert((await planRide(route, { origin: [25.25, LAT], destination: [25.255, LAT], departMin: 485 }, 480)) === null,
     'less than 1 km together');
-  assert((await planRide(route, { origin: [25.25, LAT], destination: [25.38, LAT], departMin: 510 }, 480)) === null,
-    'leaving 25 min after the driver passes');
-  assert((await planRide(route, { origin: [25.25, LAT], destination: [25.38, LAT], departMin: 499 }, 480)) !== null,
-    'leaving 14 min after the driver passes is within ±15');
+  // The driver passes this rider about 5 min after setting off at 08:00.
+  assert((await planRide(route, { origin: [25.25, LAT], destination: [25.38, LAT], departMin: 517 }, 480)) === null,
+    'leaving 32 min after the driver passes');
+  assert((await planRide(route, { origin: [25.25, LAT], destination: [25.38, LAT], departMin: 510 }, 480)) !== null,
+    'leaving 25 min after the driver passes is within ±30');
+  assert((await planRide(route, { origin: [25.25, LAT], destination: [25.38, LAT], departMin: 454 }, 480)) === null,
+    'wanting to leave 31 min before the driver gets there');
+  assert((await planRide(route, { origin: [25.25, LAT], destination: [25.38, LAT], departMin: 457 }, 480)) !== null,
+    'wanting to leave 28 min before the driver gets there is within ±30');
   assert((await planRide(route, { origin: [25.25, LAT], destination: [25.38, LAT], departMin: null }, 480)) === null,
     'no leaving time, no match');
 });

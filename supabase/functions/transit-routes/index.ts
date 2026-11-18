@@ -2,7 +2,8 @@
  * transit-routes — public-transit options via Google Directions (mode=transit).
  *
  * Powers the planner's Branch B (Bus / Tram / Metro / Trolleybus / Rail with
- * departure times + per-option CO₂). The Google key stays server-side. Results
+ * departure times + per-option CO₂) and gives each option its route, which the
+ * map draws for a public-transport trip. The Google key stays server-side. Results
  * are cached 6h in `transit_route_cache`, keyed by commute corridor + departure
  * date and hour, so colleagues on the same route share a lookup and we stay
  * under the free tier.
@@ -12,7 +13,13 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { verifyAuth } from '../_shared/auth.ts';
 import { respondJSON, respondError, respondInternalError } from '../_shared/respond.ts';
 import { parseBody, TransitRoutesSchema } from '../_shared/validate.ts';
-import { normalizeRoute, transitCacheKey, uniqueOptions, type TransitOption } from './transit.ts';
+import {
+  cachedPayloadIsCurrent,
+  normalizeRoute,
+  transitCacheKey,
+  type TransitOption,
+  uniqueOptions,
+} from './transit.ts';
 
 const CACHE_TTL_HOURS = 6;
 
@@ -52,7 +59,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (cached?.created_at) {
       const ageMs = Date.now() - new Date(cached.created_at).getTime();
-      if (ageMs < CACHE_TTL_HOURS * 60 * 60 * 1000) {
+      if (ageMs < CACHE_TTL_HOURS * 60 * 60 * 1000 && cachedPayloadIsCurrent(cached.payload)) {
         return respondJSON(cached.payload);
       }
     }

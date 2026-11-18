@@ -7,7 +7,7 @@
  *     door, if that adds at most ~2 km of driving.
  *   • drop-off — the point on the route nearest the rider's destination
  *     (≤ 1 km walk), further along than the pickup.
- *   • time — the driver reaches the pickup within ±15 min of when the rider
+ *   • time — the driver reaches the pickup within ±30 min of when the rider
  *     wants to leave. Times come from Mapbox's per-segment durations, not
  *     guesses.
  *
@@ -46,7 +46,9 @@ export const DEFAULT_LIMITS: RideLimits = {
   doorPrefilterM: 1500,
   maxDropoffWalkM: 1000,
   minSharedM: 1000,
-  maxTimeGapMin: 15,
+  // 30 since 18 Nov 2026 (was 15): with few commuters, riders whose driver
+  // passed 20–25 min after their time were never offered the free seat.
+  maxTimeGapMin: 30,
 };
 
 export interface RidePlan {

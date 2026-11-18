@@ -34,6 +34,7 @@ import { dayLabel, tomorrowLocalISODate } from "../lib/localDate";
 import OpenTripToggle from "../components/OpenTripToggle";
 import { supabase } from "../lib/supabase";
 import { formatClockTime } from "../lib/format";
+import { seatSummary, seatsOpenLabel, seatsTakenLabel, type SeatSummary } from "../lib/carpoolSeats";
 import { useTheme } from "../contexts/ThemeContext";
 import { getThemeColors } from "../lib/theme";
 import { elevation as ELEVATION, depth } from "../lib/theme/tokens";
@@ -305,6 +306,45 @@ function SubmittedStep({
   );
 }
 
+// ─── Driver's seats ───────────────────────────────────────────────────────────
+
+/**
+ * How many of the driver's seats are taken, on every step of their trip. A
+ * dot per seat: filled = passenger confirmed, ringed = offer waiting for an
+ * answer, empty = still open to riders.
+ */
+function DriverSeatsBar({ seats }: { seats: SeatSummary }) {
+  const open = seatsOpenLabel(seats);
+  const label = seatsTakenLabel(seats);
+  return (
+    <View
+      style={styles.seatsBar}
+      accessible
+      accessibilityLabel={open ? `${label}. ${open}.` : `${label}.`}
+    >
+      <Users size={18} color={COLORS.primary} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.seatsBarTitle}>{label}</Text>
+        {!!open && <Text style={styles.seatsBarSub}>{open}</Text>}
+      </View>
+      {seats.total > 0 && seats.total <= 9 && (
+        <View style={styles.seatDots}>
+          {Array.from({ length: seats.total }, (_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.seatDot,
+                i < seats.taken && styles.seatDotTaken,
+                i >= seats.taken && i < seats.taken + seats.offered && styles.seatDotOffered,
+              ]}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 // ─── Chat ─────────────────────────────────────────────────────────────────────
 
 type OnChat = (match: TripIntentMatch) => void;
@@ -542,11 +582,14 @@ function DriverConfirmedStep({
   onChat,
   onCancel,
   busy,
+  freeSeats = 0,
 }: {
   matches: TripIntentMatch[];
   onChat: OnChat;
   onCancel: OnCancelCarpool;
   busy: boolean;
+  /** Seats still open to other riders. */
+  freeSeats?: number;
 }) {
   const router = useRouter();
   const confirmed = matches.filter(m => m.status === "confirmed");
@@ -595,6 +638,12 @@ function DriverConfirmedStep({
           Waiting for {waiting.map((m) => m.passenger_profile?.first_name ?? "a passenger").join(", ")} to accept too.
         </Text>
       )}
+      {freeSeats > 0 && (
+        <Text style={styles.stepHint}>
+          {freeSeats === 1 ? "1 seat is" : `${freeSeats} seats are`} still free. We keep looking for riders on
+          your way and tell you when someone fits.
+        </Text>
+      )}
     </KeyboardScroll>
   );
 }
@@ -622,7 +671,7 @@ function PassengerDetailsStep({
     <KeyboardScroll contentContainerStyle={styles.stepContainer} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Leaving Time</Text>
       <Text style={styles.stepSubtitle}>{getTomorrow()}</Text>
-      <Text style={styles.stepDescription}>What time do you want to leave? We'll match you with a driver leaving within 15 minutes.</Text>
+      <Text style={styles.stepDescription}>What time do you want to leave? We'll match you with a driver who can pick you up within 30 minutes of it.</Text>
 
       <View style={styles.fieldCard}>
         <Text style={styles.fieldLabel}>I want to leave at</Text>
@@ -982,7 +1031,7 @@ export default function DailyCommuteScreen() {
   const handlePassengerDetailsSubmit = async (leavingTime: string, openToIndependents: boolean) => {
     try {
       // Passenger now gives a LEAVING time so the matcher can compare it with
-      // when the driver reaches the pickup (±15 min, see daily-commute-matcher).
+      // when the driver reaches the pickup (±30 min, see daily-commute-matcher).
       await submitIntent({
         role: "passenger",
         departure_time: leavingTime,
@@ -1020,6 +1069,10 @@ export default function DailyCommuteScreen() {
   const showBackBtn = ["driver_details", "passenger_details"].includes(step);
   const showCloseBtn = !showBackBtn;
   const tripDate = intent?.trip_date ?? null;
+  // A driver sees their seats on every step of an open trip.
+  const driverSeats = ["driver_submitted", "driver_review", "driver_waiting", "driver_confirmed"].includes(step)
+    ? seatSummary(intent, matches)
+    : null;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: TC.background }]}>
@@ -1051,6 +1104,8 @@ export default function DailyCommuteScreen() {
         </View>
       )}
 
+      {driverSeats && <DriverSeatsBar seats={driverSeats} />}
+
       {/* Steps */}
       {step === "role_select" && <RoleSelectStep onSelect={handleRoleSelect} outcome={outcome} />}
       {step === "driver_details" && (
@@ -1073,7 +1128,13 @@ export default function DailyCommuteScreen() {
         <DriverWaitingStep matches={matches} onWithdraw={handleWithdraw} busy={withdrawing} onChat={openChat} />
       )}
       {step === "driver_confirmed" && (
-        <DriverConfirmedStep matches={matches} onChat={openChat} onCancel={handleCancelCarpool} busy={leaving} />
+        <DriverConfirmedStep
+          matches={matches}
+          onChat={openChat}
+          onCancel={handleCancelCarpool}
+          busy={leaving}
+          freeSeats={driverSeats?.free ?? 0}
+        />
       )}
       {step === "passenger_details" && (
         <PassengerDetailsStep onSubmit={handlePassengerDetailsSubmit} isLoading={isLoading} hasCompany={hasCompany} />
@@ -1441,6 +1502,52 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  seatsBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginHorizontal: 20,
+    marginTop: 12,
+    marginBottom: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.white,
+    borderRadius: 15,
+    borderWidth: 1.5,
+    borderColor: "#E1ECEE",
+  },
+  seatsBarTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.primaryDark,
+  },
+  seatsBarSub: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 1,
+  },
+  seatDots: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    gap: 5,
+    maxWidth: 96,
+  },
+  seatDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#C9D8DC",
+    backgroundColor: "transparent",
+  },
+  seatDotTaken: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary,
+  },
+  seatDotOffered: {
+    borderColor: COLORS.primary,
   },
   waitingCard: {
     alignSelf: "stretch",

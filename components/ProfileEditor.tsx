@@ -757,6 +757,11 @@ export default function ProfileEditor({
             value={profile.work_address}
             icon={<Briefcase size={16} color={COLORS.gray} />}
             zIndex={100}
+            near={
+              profile.home_lat != null && profile.home_long != null
+                ? { lat: profile.home_lat, lng: profile.home_long }
+                : null
+            }
             onChangeText={(text) =>
               setProfile((prev) => ({
                 ...prev,

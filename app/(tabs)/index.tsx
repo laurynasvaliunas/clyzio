@@ -38,6 +38,9 @@ import * as SecureStore from "expo-secure-store";
 import { supabase } from "../../lib/supabase";
 import { dayLabel, localISODate, tomorrowLocalISODate, useLocalToday } from "../../lib/localDate";
 import { haversineKm } from "../../lib/commuteUtils";
+import { decodePolyline } from "../../lib/polyline";
+import { setAddressSearchBias } from "../../lib/addressSearch";
+import { seatSummary, seatsOpenLabel } from "../../lib/carpoolSeats";
 import { buildWebLink } from "../../lib/deepLinks";
 import { cancelRide } from "../../lib/cancelRide";
 import { co2Share } from "../../lib/completeTrip";
@@ -631,6 +634,11 @@ export default function MapScreen() {
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
+      // Until a home is saved, address fields suggest places around here.
+      setAddressSearchBias(
+        { lat: location.coords.latitude, lng: location.coords.longitude },
+        { onlyIfUnset: true },
+      );
 
       cameraRef.current?.setCamera({
         centerCoordinate: [location.coords.longitude, location.coords.latitude],
@@ -663,15 +671,28 @@ export default function MapScreen() {
 
   // centerToUserLocation is called via onDidFinishLoadingMap once the camera ref is ready
 
-  // ✅ Fetch real road route via Mapbox Directions whenever activeTrip changes
+  // ✅ The active trip's route. Public transport follows the picked option's
+  // own route (lines and walks, from Google); everything else is a real road
+  // route from Mapbox Directions.
   useEffect(() => {
     if (!activeTrip?.origin || !activeTrip?.destination) {
       setRouteCoords(null);
       return;
     }
+    const modeId = activeTrip.mode?.id ?? "my_car";
+    if (modeId === "public") {
+      const transitLine = decodePolyline(activeTrip.routePolyline);
+      if (transitLine.length > 1) {
+        setRouteCoords(transitLine);
+        return;
+      }
+      // No route came with the option (none found, or an older server): the
+      // road route below stands in.
+    }
+    // A slow answer for an earlier trip must not replace this trip's route.
+    let cancelled = false;
     const fetchRoute = async () => {
       try {
-        const modeId = activeTrip.mode?.id ?? "my_car";
         const profile =
           modeId === "walking" ? "walking"
           : modeId === "bike" || modeId === "ebike" || modeId === "nomotor" ? "cycling"
@@ -686,7 +707,7 @@ export default function MapScreen() {
         const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${waypoints}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
         const res = await fetch(url);
         const json = await res.json();
-        if (json.routes?.length > 0) {
+        if (!cancelled && json.routes?.length > 0) {
           setRouteCoords(json.routes[0].geometry.coordinates);
         }
       } catch (e) {
@@ -694,6 +715,7 @@ export default function MapScreen() {
       }
     };
     fetchRoute();
+    return () => { cancelled = true; };
   }, [activeTrip]);
 
   // ✅ Fetch user profile for avatar + home/work places (Stage 2)
@@ -719,6 +741,12 @@ export default function MapScreen() {
           workLng: data.work_long ?? null,
           workAddress: data.work_address ?? "",
         });
+        // Address fields suggest places around the saved home (else work).
+        if (data.home_lat != null && data.home_long != null) {
+          setAddressSearchBias({ lat: data.home_lat, lng: data.home_long });
+        } else if (data.work_lat != null && data.work_long != null) {
+          setAddressSearchBias({ lat: data.work_lat, lng: data.work_long });
+        }
       }
     };
     fetchProfile();
@@ -1247,6 +1275,13 @@ export default function MapScreen() {
         lats.push(tripData.waypoint.lat);
         lngs.push(tripData.waypoint.lng);
       }
+      // A public-transport route can swing wide of the straight line.
+      if (tripData.mode?.id === "public") {
+        for (const [lng, lat] of decodePolyline(tripData.routePolyline)) {
+          lats.push(lat);
+          lngs.push(lng);
+        }
+      }
       cameraRef.current?.setCamera({
         bounds: boundsWithPadding(
           [Math.max(...lngs), Math.max(...lats)],
@@ -1533,7 +1568,8 @@ export default function MapScreen() {
           </PointAnnotation>
         )}
 
-        {/* Route Line — follows real roads via Mapbox Directions */}
+        {/* Route Line — real roads via Mapbox Directions, or the chosen
+            public-transport option's own route */}
         {routeCoords && routeCoords.length > 1 && (
           <ShapeSource
             id="route"
@@ -1689,9 +1725,14 @@ export default function MapScreen() {
           if (day !== "Tomorrow") label = `${label} · ${day}`;
 
           const textColor = pillColor === "#F59E0B" ? "#0B2540" : "#fff";
-          const seatsLabel = isDriver && intent.passenger_capacity != null
-            ? ` · ${confirmedMatches.length}/${intent.passenger_capacity} seats`
-            : "";
+          // Drivers: seats taken in the title ("1/2 seats"); once someone is
+          // confirmed, the line below names them and says what is left.
+          const seats = seatSummary(intent, matches);
+          const seatsLabel = seats && seats.total > 0 ? ` · ${seats.taken}/${seats.total} seats` : "";
+          if (seats && seats.total > 0 && needsMyApproval.length === 0 && confirmedMatches.length > 0) {
+            const names = confirmedMatches.map(m => m.passenger_profile?.first_name ?? "Passenger").join(", ");
+            sublabel = [names, seatsOpenLabel(seats)].filter(Boolean).join(" · ");
+          }
 
           return (
             <TouchableOpacity
