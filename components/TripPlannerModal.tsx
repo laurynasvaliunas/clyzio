@@ -29,7 +29,6 @@ import {
   Plus,
   Minus,
   School,
-  TrendingDown,
 } from "lucide-react-native";
 import { modeIconFor } from "./ModeIcon";
 import { modeKgPerKm } from "../lib/emissionFactors";
@@ -72,7 +71,23 @@ const COLORS = {
   accent: "#F59E0B",    // sun
   green: "#059669",     // leaf
   red: "#DC2626",       // clay
+  roleLayer: "#D3F4F7", // brand cyan tint: the Solo / Driver / Passenger layer
+  roleLayerEdge: "#AEE9EE",
+  greenestBg: "#ECFDF5", // light green: the greenest option for this trip
+  greenestEdge: "#A7F3D0",
 };
+
+/** A stop on the way (school, kindergarten…), in the order it's visited. */
+interface PlannerStop {
+  key: string;
+  /** Null until an address is picked; such a stop isn't saved. */
+  coords: { lat: number; lng: number } | null;
+  description: string;
+}
+/** Stops one trip can have (Mapbox routes through up to 25 points). */
+const MAX_STOPS = 5;
+let stopSeq = 0;
+const newStop = (): PlannerStop => ({ key: `stop-${++stopSeq}`, coords: null, description: "" });
 
 /** One vertical gap between every stacked block in the sheet. */
 const GAP = 12;
@@ -121,6 +136,8 @@ interface CustomAddressInputProps {
   onSubmitEditing?: () => void;
   /** Search around this point (the trip's other end) instead of the saved home. */
   near?: LatLng | null;
+  /** Stacking order; a field higher up needs a higher one so its list covers the fields below. */
+  zIndex?: number;
 }
 const CustomAddressInput = ({
   placeholder,
@@ -131,6 +148,7 @@ const CustomAddressInput = ({
   returnKeyType = "done",
   onSubmitEditing,
   near,
+  zIndex,
 }: CustomAddressInputProps) => {
   const [text, setText] = useState(initialValue ?? "");
   const [results, setResults] = useState<AddressSuggestion[]>([]);
@@ -138,6 +156,14 @@ const CustomAddressInput = ({
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Only the latest search may fill the list (see lib/addressSearch.ts).
   const searchSeq = useRef(0);
+  // A field that goes away (stop removed, planner closed) drops its pending search.
+  useEffect(
+    () => () => {
+      searchSeq.current += 1;
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    },
+    [],
+  );
 
   const searchPlaces = (searchText: string) => {
     setText(searchText);
@@ -166,7 +192,7 @@ const CustomAddressInput = ({
   };
 
   return (
-    <View style={styles.inputContainer}>
+    <View style={[styles.inputContainer, zIndex != null && { zIndex }]}>
       <View style={styles.inputRow}>
         {icon}
         <TextInput
@@ -226,7 +252,8 @@ interface TripPlannerModalProps {
     rideId?: string | null;
     origin: { lat: number; lng: number; description: string };
     destination: { lat: number; lng: number; description: string };
-    waypoint?: { lat: number; lng: number; description: string } | null;
+    /** Stops on the way, in order. */
+    waypoints?: Array<{ lat: number; lng: number; description: string }>;
     mode: any;
     role: string;
     scheduledTime?: Date;
@@ -257,11 +284,10 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
   // Location state (isolated from parent)
   const [originCoords, setOriginCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [destCoords, setDestCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [waypointCoords, setWaypointCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [originDescription, setOriginDescription] = useState("");
   const [destDescription, setDestDescription] = useState("");
-  const [waypointDescription, setWaypointDescription] = useState("");
-  const [showWaypointInput, setShowWaypointInput] = useState(false);
+  // Stops on the way, in order (was a single school / kindergarten stop).
+  const [stops, setStops] = useState<PlannerStop[]>([]);
   const [routeDistance, setRouteDistance] = useState<number>(0); // Distance in km
   
   // Mode state
@@ -529,6 +555,13 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     return R * c;
   };
 
+  // The greenest practical mode for this distance (walk up to 4 km, bike up
+  // to 20 km, else e-bike), highlighted in the solo mode list.
+  const greenestModeId =
+    role === "solo" && routeDistance > 0
+      ? computeLocalModes(routeDistance, 1, userCarCO2)[0]?.id ?? null
+      : null;
+
   const getModesByRole = () => {
     if (role === "solo") {
       // Solo: every mode, in display order (PDF Stage 3 option cards).
@@ -596,6 +629,11 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       const tripCO2 = distance * (selectedMode?.co2 || 0);
       const co2SavedKg = Math.max(0, baselineCO2 - tripCO2);
 
+      // Stops with a picked address, in order.
+      const tripStops = stops.flatMap((s) =>
+        s.coords ? [{ lat: s.coords.lat, lng: s.coords.lng, description: s.description }] : [],
+      );
+
       const rideData: any = {
         // For solo rides, set rider_id to track ownership
         driver_id: role === "driver" ? user.id : null,
@@ -618,11 +656,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
             ? transitOptions[selectedTransitIdx]?.submode ?? null
             : null,
         co2_saved: parseFloat(co2SavedKg.toFixed(3)), // Store in kg with 3 decimal precision
-        waypoints: waypointCoords ? JSON.stringify([{
-          lat: waypointCoords.lat,
-          lng: waypointCoords.lng,
-          description: waypointDescription,
-        }]) : null,
+        waypoints: tripStops.length > 0 ? JSON.stringify(tripStops) : null,
       };
       
       if (__DEV__) {
@@ -652,7 +686,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
         rideId: data?.[0]?.id ?? null,
         origin: { ...originCoords, description: originDescription },
         destination: { ...destCoords, description: destDescription },
-        waypoint: waypointCoords ? { ...waypointCoords, description: waypointDescription } : null,
+        waypoints: tripStops,
         mode: selectedMode,
         role,
         scheduledTime: scheduledDate,
@@ -668,11 +702,9 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
       setStep("location");
       setOriginCoords(null);
       setDestCoords(null);
-      setWaypointCoords(null);
       setOriginDescription("");
       setDestDescription("");
-      setWaypointDescription("");
-      setShowWaypointInput(false);
+      setStops([]);
       setSelectedMode(null);
       // Reset to 15 minutes in the future
       const futureDate = new Date();
@@ -696,6 +728,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
     setDestDescription("");
     setOriginCoords(null);
     setDestCoords(null);
+    setStops([]);
     setSelectedMode(null);
     setRole("solo");
     setAddressMountKey(k => k + 1); // Re-mount address inputs fresh
@@ -865,16 +898,16 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
             bottomOffset={ADDRESS_FIELD_OFFSET}
             contentContainerStyle={{ paddingBottom: keyboardOpen ? 24 : 120 }}
           >
-            {/* ── Role selector (top) — Solo, Driver, Rider are all handled
-                 inline in this sheet. ── */}
+            {/* ── Role selector (top) — Solo, Driver, Passenger are all handled
+                 inline in this sheet (Passenger is the "rider" role). ── */}
             <View style={styles.roleSelector}>
               {([
                 { key: "solo",   label: "Solo",   sub: "Just me",      Icon: Footprints },
                 { key: "driver", label: "Driver", sub: "Offer a ride", Icon: Car },
-                { key: "rider",  label: "Rider",  sub: "Get a ride",   Icon: Users },
+                { key: "rider",  label: "Passenger", sub: "Get a ride", Icon: Users },
               ] as const).map(({ key, label, sub, Icon }) => {
                 const active = role === key; // only Solo can be active in-planner
-                const tint = active ? COLORS.primary : COLORS.gray;
+                const tint = active ? COLORS.primary : COLORS.textMuted;
                 return (
                   <TouchableOpacity
                     key={key}
@@ -898,6 +931,7 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
               key={`origin-${addressMountKey}`}
               placeholder="Origin"
               icon={<Navigation2 size={20} color={COLORS.green} />}
+              zIndex={60}
               initialValue={originDescription}
               returnKeyType="next"
               onSubmitEditing={() => destInputRef.current?.focus()}
@@ -907,40 +941,49 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
               }}
             />
 
-            {/* Waypoint */}
-            {showWaypointInput ? (
-              <View>
-                <CustomAddressInput
-                  placeholder="School / Kindergarten stop"
-                  icon={<School size={20} color={COLORS.accent} />}
-                  near={originCoords}
-                  returnKeyType="next"
-                  onSubmitEditing={() => destInputRef.current?.focus()}
-                  onSelect={(data) => {
-                    setWaypointDescription(data.description);
-                    setWaypointCoords({ lat: data.location.lat, lng: data.location.lng });
-                  }}
-                />
+            {/* Stops on the way, in order (school, kindergarten…) */}
+            {stops.map((stop, i) => (
+              <View key={stop.key} style={[styles.stopRow, { zIndex: 50 - i }]}>
+                <View style={styles.stopField}>
+                  <CustomAddressInput
+                    placeholder={i === 0 ? "School / Kindergarten stop" : `Stop ${i + 1}`}
+                    icon={<School size={20} color={COLORS.accent} />}
+                    near={stops[i - 1]?.coords ?? originCoords}
+                    initialValue={stop.description}
+                    returnKeyType="next"
+                    onSubmitEditing={() => destInputRef.current?.focus()}
+                    onSelect={(data) =>
+                      setStops((prev) =>
+                        prev.map((s) =>
+                          s.key === stop.key
+                            ? { ...s, description: data.description, coords: { lat: data.location.lat, lng: data.location.lng } }
+                            : s,
+                        ),
+                      )
+                    }
+                  />
+                </View>
                 <TouchableOpacity
-                  onPress={() => {
-                    setShowWaypointInput(false);
-                    setWaypointCoords(null);
-                    setWaypointDescription("");
-                  }}
-                  style={styles.removeWaypointBtn}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  onPress={() => setStops((prev) => prev.filter((s) => s.key !== stop.key))}
+                  style={styles.removeStopBtn}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove stop ${i + 1}`}
                 >
-                  <X size={16} color={COLORS.red} />
-                  <Text style={styles.removeWaypointText}>Remove Stop</Text>
+                  <X size={18} color={COLORS.red} />
                 </TouchableOpacity>
               </View>
-            ) : (
+            ))}
+            {stops.length < MAX_STOPS && (
               <TouchableOpacity
-                onPress={() => setShowWaypointInput(true)}
+                onPress={() => setStops((prev) => [...prev, newStop()])}
                 style={styles.addWaypointBtn}
+                accessibilityRole="button"
               >
                 <Plus size={18} color={COLORS.primary} />
-                <Text style={styles.addWaypointText}>Add Kindergarten / School Stop</Text>
+                <Text style={styles.addWaypointText}>
+                  {stops.length === 0 ? "Add Kindergarten / School Stop" : "Add another stop"}
+                </Text>
               </TouchableOpacity>
             )}
 
@@ -962,21 +1005,6 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
               <>
                 {/* Divider */}
                 <View style={styles.modeSectionDivider} />
-
-                {/* AI Insight Banner (solo trips only) */}
-                {role === "solo" && routeDistance > 0 && (() => {
-                  const best = computeLocalModes(routeDistance, 1, userCarCO2)[0];
-                  if (!best) return null;
-                  return (
-                    <View style={styles.tripInsightBanner}>
-                      <TrendingDown size={16} color={COLORS.primary} />
-                      <Text style={styles.tripInsightText}>
-                        <Text style={{ fontWeight: "700" }}>{routeDistance.toFixed(1)} km trip. </Text>
-                        Best green option: {best.label} (saves ~{best.reductionPct}% CO₂, ~{best.timeMin} min)
-                      </Text>
-                    </View>
-                  );
-                })()}
 
                 {/* Solo: transport modes · Driver/Rider: inline carpool form */}
                 {role !== "solo" ? (
@@ -1096,26 +1124,30 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                       } else {
                         co2Display = `${totalCO2Kg.toFixed(1)} kg CO₂`;
                       }
+                      const isGreenest = m.id === greenestModeId;
                       return (
                         <TouchableOpacity
                           key={m.id}
-                          style={[styles.modeItem, isSelected && styles.modeItemActive]}
+                          style={[styles.modeItem, isGreenest && styles.modeItemGreenest, isSelected && styles.modeItemActive]}
                           onPress={() => {
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                             setSelectedMode(m);
                           }}
                           accessibilityRole="button"
                           accessibilityState={{ selected: isSelected }}
-                          accessibilityLabel={`${m.label}, ${co2Display}`}
+                          accessibilityLabel={`${m.label}, ${co2Display}${isGreenest ? ", greenest option" : ""}`}
                         >
                           <View style={[styles.iconBox, { backgroundColor: m.color + '20' }]}>
                             <IconComponent size={24} color={m.color} strokeWidth={1.6} />
                             {/* CO₂ intensity dot (PDF Stage 3) */}
                             <View style={[styles.co2Dot, { backgroundColor: co2DotColor(m.co2) }]} />
                           </View>
-                          <Text style={[styles.modeLabel, isSelected && { color: COLORS.primary, fontWeight: "700" }]}>
-                            {m.label}
-                          </Text>
+                          <View style={styles.modeLabelWrap}>
+                            <Text style={[styles.modeLabel, isSelected && { color: COLORS.primary, fontWeight: "700" }]}>
+                              {m.label}
+                            </Text>
+                            {isGreenest && <Text style={styles.greenestTag}>Greenest option</Text>}
+                          </View>
                           <Text style={styles.modeCo2}>{co2Display}</Text>
                         </TouchableOpacity>
                       );
@@ -1383,7 +1415,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     marginBottom: GAP,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.roleLayer,
+    borderWidth: 1.5,
+    borderColor: COLORS.roleLayerEdge,
     borderRadius: 20,
     padding: 5,
   },
@@ -1520,6 +1554,19 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary + "10",
     boxShadow: depth.selected,
   },
+  modeItemGreenest: {
+    backgroundColor: COLORS.greenestBg,
+    borderColor: COLORS.greenestEdge,
+  },
+  modeLabelWrap: {
+    flex: 1,
+  },
+  greenestTag: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.green,
+    marginTop: 2,
+  },
   iconBox: {
     width: 48,
     height: 48,
@@ -1541,7 +1588,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white,
   },
   modeLabel: {
-    flex: 1,
     fontSize: 16,
     fontWeight: "600",
     color: COLORS.dark,
@@ -1673,18 +1719,22 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.primary,
   },
-  removeWaypointBtn: {
+  // One stop: its address field and a remove button
+  stopRow: {
     flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  stopField: {
+    flex: 1,
+  },
+  removeStopBtn: {
+    width: 44,
+    height: 52,
     alignItems: "center",
     justifyContent: "center",
-    alignSelf: "center",
-    gap: 6,
-    marginBottom: GAP,
-  },
-  removeWaypointText: {
-    fontSize: 13,
-    color: COLORS.red,
-    fontWeight: "600",
+    borderRadius: 16,
+    backgroundColor: COLORS.lightGray,
   },
 
   // Divider between location section and mode section
@@ -1692,24 +1742,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#EEF6F7",
     marginBottom: GAP,
-  },
-
-  // Trip AI insight banner (top of Step 2)
-  tripInsightBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: "#E3FAFB",
-    borderRadius: 15,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: GAP,
-  },
-  tripInsightText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#0B2540",
-    lineHeight: 18,
   },
 });
 

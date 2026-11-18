@@ -39,7 +39,7 @@ const trip = (modeId: string, routePolyline: string | null) => ({
   rideId: "ride-1",
   origin: ORIGIN,
   destination: DESTINATION,
-  waypoint: null,
+  waypoints: [],
   mode: { id: modeId, label: modeId },
   role: "solo",
   routePolyline,
@@ -102,6 +102,23 @@ describe("Map screen, route of the planned trip", () => {
     await waitFor(() => expect(drawnRoute()).toHaveLength(3));
     expect(directionsCalls()).toHaveLength(1);
     expect(directionsCalls()[0][0]).toContain("/mapbox/driving/");
+  });
+
+  it("routes through every stop in order and marks each one", async () => {
+    const stops = [
+      { lat: 54.695, lng: 25.275, description: "School" },
+      { lat: 54.702, lng: 25.268, description: "Kindergarten" },
+    ];
+    mockPlanner.trip = { ...trip("bike", null), waypoints: stops };
+    render(<MapScreen />);
+    fireEvent.press(await screen.findByText("save trip"));
+
+    await waitFor(() => expect(directionsCalls()).toHaveLength(1));
+    expect(directionsCalls()[0][0]).toContain(
+      `/mapbox/cycling/${ORIGIN.lng},${ORIGIN.lat};25.275,54.695;25.268,54.702;${DESTINATION.lng},${DESTINATION.lat}?`,
+    );
+    const markers = screen.UNSAFE_getAllByProps({ testID: "mock-point-annotation" }).map((n) => n.props.id);
+    expect(markers).toEqual(expect.arrayContaining(["origin", "waypoint-0", "waypoint-1", "destination"]));
   });
 
   it("still routes a bike trip along cycling roads, ignoring any transit line", async () => {

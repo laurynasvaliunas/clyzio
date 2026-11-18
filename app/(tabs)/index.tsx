@@ -41,6 +41,12 @@ import { haversineKm } from "../../lib/commuteUtils";
 import { decodePolyline } from "../../lib/polyline";
 import { setAddressSearchBias } from "../../lib/addressSearch";
 import { seatSummary, seatsOpenLabel } from "../../lib/carpoolSeats";
+
+/** The planned trip's stops, in order (a single `waypoint` from older code still counts). */
+function tripStops(trip: any): Array<{ lat: number; lng: number }> {
+  const list = Array.isArray(trip?.waypoints) ? trip.waypoints : trip?.waypoint ? [trip.waypoint] : [];
+  return list.filter((p: any) => p && Number.isFinite(p.lat) && Number.isFinite(p.lng));
+}
 import { buildWebLink } from "../../lib/deepLinks";
 import { cancelRide } from "../../lib/cancelRide";
 import { co2Share } from "../../lib/completeTrip";
@@ -700,7 +706,7 @@ export default function MapScreen() {
 
         const waypoints = [
           `${activeTrip.origin.lng},${activeTrip.origin.lat}`,
-          ...(activeTrip.waypoint ? [`${activeTrip.waypoint.lng},${activeTrip.waypoint.lat}`] : []),
+          ...tripStops(activeTrip).map((p) => `${p.lng},${p.lat}`),
           `${activeTrip.destination.lng},${activeTrip.destination.lat}`,
         ].join(";");
 
@@ -1267,13 +1273,13 @@ export default function MapScreen() {
       setSearchStatus('idle');
     }
 
-    // Fit map to route (including waypoint if present)
+    // Fit map to route (including any stops)
     if (tripData.origin && tripData.destination) {
       const lats = [tripData.origin.lat, tripData.destination.lat];
       const lngs = [tripData.origin.lng, tripData.destination.lng];
-      if (tripData.waypoint) {
-        lats.push(tripData.waypoint.lat);
-        lngs.push(tripData.waypoint.lng);
+      for (const p of tripStops(tripData)) {
+        lats.push(p.lat);
+        lngs.push(p.lng);
       }
       // A public-transport route can swing wide of the straight line.
       if (tripData.mode?.id === "public") {
@@ -1504,15 +1510,16 @@ export default function MapScreen() {
           </PointAnnotation>
         )}
 
-        {/* Waypoint Marker */}
-        {activeTrip?.waypoint && (
+        {/* Stop markers, one per stop */}
+        {activeTrip && tripStops(activeTrip).map((p, i) => (
           <PointAnnotation
-            id="waypoint"
-            coordinate={[activeTrip.waypoint.lng, activeTrip.waypoint.lat]}
+            key={`waypoint-${i}`}
+            id={`waypoint-${i}`}
+            coordinate={[p.lng, p.lat]}
           >
             <View collapsable={false} style={[styles.markerDot, { backgroundColor: "#D97706" }]} />
           </PointAnnotation>
-        )}
+        ))}
 
         {/* Destination Marker */}
         {activeTrip?.destination && (

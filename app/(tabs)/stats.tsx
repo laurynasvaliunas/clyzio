@@ -15,7 +15,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import {
   TreeDeciduous,
   Award,
-  TrendingUp,
   Users,
   Crown,
   Star,
@@ -25,7 +24,6 @@ import {
   Trophy,
   Lock,
   Zap,
-  Target,
   X,
   Building2,
   User,
@@ -36,7 +34,7 @@ import CostSavingsCard from "../../components/CostSavingsCard";
 import { modeIconFor } from "../../components/ModeIcon";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getThemeColors, TAB_SCREEN_BOTTOM_PADDING } from "../../lib/theme";
-import { getLevelInfo, XP_PER_TRIP, TRIPS_PER_LEVEL, MAX_LEVEL, LEVEL_TITLES } from "../../lib/gamification";
+import { getLevelInfo } from "../../lib/gamification";
 import { co2Share } from "../../lib/completeTrip";
 import { DeptSkyline } from "../../components/three";
 import { AnimatedNumber, GlowBackdrop, TiltCard } from "../../components/ui";
@@ -437,7 +435,6 @@ export default function StatsScreen() {
   const levelInfo = useMemo(() => getLevelInfo(xpPoints), [xpPoints]);
   const treesPlanted = useMemo(() => Math.floor(stats.total_co2_saved / CO2_PER_TREE), [stats.total_co2_saved]);
   const treeProgress = useMemo(() => (stats.total_co2_saved % CO2_PER_TREE) / CO2_PER_TREE, [stats.total_co2_saved]);
-  const maxBar = useMemo(() => Math.max(stats.this_week_co2, stats.last_week_co2, 1), [stats.this_week_co2, stats.last_week_co2]);
 
   // Period summary (week / month / all) computed client-side from completed
   // rides — distance, CO₂ saved, and trip count for the selected window.
@@ -538,10 +535,11 @@ export default function StatsScreen() {
         )}
 
         {/* ============= PERSONAL VIEW =============
-            2026-07 redesign: the headline CO₂ number leads, followed by the
-            numbers that change week to week, then your part in the company's
-            success; gamification (level / trophies / how-XP-works) closes the
-            page. */}
+            Simplified 2026-11 (it repeated the same numbers in four places):
+            the headline CO₂ number with your trip count, one Week / Month /
+            All-time card, your part in the company, how you travel, money
+            saved, then level and badges. The colleague leaderboard is in the
+            Company view. */}
         {activeView === "personal" && (
           <>
         {/* Couldn't-load banner — previously a failed fetch just rendered as
@@ -600,6 +598,11 @@ export default function StatsScreen() {
                   minimumFontScale={0.5}
                 />
                 <Text style={styles.heroUnit}>kilograms</Text>
+                {stats.total_trips > 0 && (
+                  <Text style={styles.heroTrips}>
+                    from {stats.total_trips} trip{stats.total_trips === 1 ? "" : "s"}
+                  </Text>
+                )}
               </View>
               <Animated.View style={[styles.treeContainer, { transform: [{ scale: treeScale }] }]}>
                 <TreeDeciduous size={44} color={COLORS.white} />
@@ -623,31 +626,6 @@ export default function StatsScreen() {
             </View>
           </LinearGradient>
           </TiltCard>
-        </View>
-
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: TC.surface }]}>
-            <View style={[styles.statIcon, { backgroundColor: COLORS.primary + "14" }]}>
-              <Target size={20} color={COLORS.primary} />
-            </View>
-            <AnimatedNumber value={stats.total_trips} style={[styles.statValue, { color: TC.text }]} />
-            <Text style={[styles.statLabel, { color: TC.textSecondary }]}>Trips</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: TC.surface }]}>
-            <View style={[styles.statIcon, { backgroundColor: COLORS.green + "14" }]}>
-              <TrendingUp size={20} color={COLORS.green} />
-            </View>
-            <AnimatedNumber value={stats.this_week_co2} decimals={1} style={[styles.statValue, { color: TC.text }]} />
-            <Text style={[styles.statLabel, { color: TC.textSecondary }]}>This Week</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: TC.surface }]}>
-            <View style={[styles.statIcon, { backgroundColor: COLORS.accent + "1A" }]}>
-              <Zap size={20} color={COLORS.accentDark} />
-            </View>
-            <AnimatedNumber value={xpPoints} style={[styles.statValue, { color: TC.text }]} />
-            <Text style={[styles.statLabel, { color: TC.textSecondary }]}>XP</Text>
-          </View>
         </View>
 
         {/* Period summary — Weekly / Monthly / All-time (Stage 5 toggle) */}
@@ -734,30 +712,6 @@ export default function StatsScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Weekly Chart */}
-        <View style={[styles.chartCard, { backgroundColor: TC.surface }]}>
-          <Text style={[styles.chartTitle, { color: TC.text }]}>Weekly comparison</Text>
-          <View style={styles.chartContainer}>
-            <View style={styles.chartBar}>
-              <Text style={[styles.chartBarLabel, { color: TC.textSecondary }]}>This Week</Text>
-              <View style={styles.chartBarBg}>
-                <LinearGradient
-                  colors={["#00838F", "#00626D"]}
-                  style={[styles.chartBarFill, { width: `${(stats.this_week_co2 / maxBar) * 100}%` }]}
-                />
-              </View>
-              <Text style={[styles.chartBarValue, { color: TC.text }]}>{stats.this_week_co2.toFixed(1)} kg</Text>
-            </View>
-            <View style={styles.chartBar}>
-              <Text style={[styles.chartBarLabel, { color: TC.textSecondary }]}>Last Week</Text>
-              <View style={styles.chartBarBg}>
-                <View style={[styles.chartBarFillGray, { width: `${(stats.last_week_co2 / maxBar) * 100}%` }]} />
-              </View>
-              <Text style={[styles.chartBarValue, { color: TC.text }]}>{stats.last_week_co2.toFixed(1)} kg</Text>
-            </View>
-          </View>
-        </View>
-
         {/* Top Commuting Modes */}
         {topModes.length > 0 && (
           <View style={[styles.topModesCard, { backgroundColor: TC.surface }]}>
@@ -772,29 +726,6 @@ export default function StatsScreen() {
             </View>
           </View>
         )}
-
-        {/* Personal Leaderboard */}
-        <View style={[styles.leaderboardCard, { backgroundColor: TC.surface }]}>
-          <View style={styles.sectionHeader}>
-            <Users size={20} color={COLORS.dark} />
-            <Text style={[styles.sectionTitle, { color: TC.text }]}>Company Leaderboard</Text>
-          </View>
-
-          {leaderboard.length === 0 ? (
-            <Text style={[styles.emptyText, { color: TC.textSecondary }]}>No data yet. Start logging trips!</Text>
-          ) : (
-            leaderboard.map((user, index) => (
-              <LeaderboardRow
-                key={user.id}
-                user={user}
-                index={index}
-                isCurrentUser={user.is_current_user}
-                showDepartment={true}
-                TC={TC}
-              />
-            ))
-          )}
-        </View>
 
         {/* Cost Savings */}
         <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
@@ -869,30 +800,9 @@ export default function StatsScreen() {
               />
             ))}
           </View>
+          <Text style={[styles.badgesHint, { color: TC.textSecondary }]}>Tap a badge to see how to earn it.</Text>
         </View>
 
-        {/* How XP & badges work — reference material, so it closes the page */}
-        <View style={[styles.guideCard, { backgroundColor: TC.surface }]}>
-          <Text style={[styles.guideTitle, { color: TC.text }]}>How you earn XP & badges</Text>
-          <View style={styles.guideRow}>
-            <Zap size={16} color={COLORS.primary} style={styles.guideBullet} />
-            <Text style={[styles.guideText, { color: TC.textSecondary }]}>
-              +{XP_PER_TRIP} XP for every completed trip.
-            </Text>
-          </View>
-          <View style={styles.guideRow}>
-            <TrendingUp size={16} color={COLORS.primary} style={styles.guideBullet} />
-            <Text style={[styles.guideText, { color: TC.textSecondary }]}>
-              Every {TRIPS_PER_LEVEL} trips is a new level - {MAX_LEVEL} levels from {LEVEL_TITLES[0]} to {LEVEL_TITLES[MAX_LEVEL - 1]}.
-            </Text>
-          </View>
-          <View style={styles.guideRow}>
-            <Award size={16} color={COLORS.primary} style={styles.guideBullet} />
-            <Text style={[styles.guideText, { color: TC.textSecondary }]}>
-              Badges unlock at milestones: first trip, first carpool, 5 walks, 10 trips, 50 kg & 100 kg CO₂ saved. Tap a badge above to see its goal.
-            </Text>
-          </View>
-        </View>
           </>
         )}
         
@@ -965,6 +875,29 @@ export default function StatsScreen() {
               </View>
             )}
             
+            {/* Company Leaderboard (moved here from Personal: it only ever lists colleagues) */}
+            <View style={[styles.leaderboardCard, { backgroundColor: TC.surface }]}>
+              <View style={styles.sectionHeader}>
+                <Users size={20} color={COLORS.dark} />
+                <Text style={[styles.sectionTitle, { color: TC.text }]}>Company Leaderboard</Text>
+              </View>
+
+              {leaderboard.length === 0 ? (
+                <Text style={[styles.emptyText, { color: TC.textSecondary }]}>No data yet. Start logging trips!</Text>
+              ) : (
+                leaderboard.map((user, index) => (
+                  <LeaderboardRow
+                    key={user.id}
+                    user={user}
+                    index={index}
+                    isCurrentUser={user.is_current_user}
+                    showDepartment={true}
+                    TC={TC}
+                  />
+                ))
+              )}
+            </View>
+
             {/* Department Breakdown Chart */}
             <View style={[styles.breakdownCard, { backgroundColor: TC.surface }]}>
               <View style={styles.sectionHeader}>
@@ -1167,26 +1100,17 @@ const styles = StyleSheet.create({
   xpToNext: { fontSize: 12, color: COLORS.textMuted },
   
   // ===== XP & BADGES GUIDE =====
-  guideCard: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 25,
-    padding: 18,
-  },
-  guideTitle: {
-    fontWeight: "700",
-    fontSize: 22,
-    marginBottom: 12,
-  },
-  guideRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 10 },
-  guideBullet: { marginTop: 2 },
-  guideText: { flex: 1, fontSize: 13, lineHeight: 19 },
 
   // ===== BADGES SECTION =====
   badgesSection: { marginHorizontal: 16, marginTop: 20 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
   sectionTitle: { fontWeight: "700", fontSize: 17, color: COLORS.dark },
   badgesGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  badgesHint: {
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 4,
+  },
   badgeItem: { width: "30%", alignItems: "center", opacity: 0.5 },
   badgeItemUnlocked: { opacity: 1 },
   badgeCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: COLORS.light, alignItems: "center", justifyContent: "center", marginBottom: 8 },
@@ -1230,6 +1154,12 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     opacity: 0.85,
   },
+  heroTrips: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 2,
+  },
   treeContainer: {
     width: 64,
     height: 64,
@@ -1256,22 +1186,9 @@ const styles = StyleSheet.create({
   progressText: { fontSize: 12, color: COLORS.white, opacity: 0.8, marginTop: 8, textAlign: "center" },
   
   // ===== STATS ROW =====
-  statsRow: { flexDirection: "row", paddingHorizontal: 16, gap: 10, marginTop: 16 },
-  statCard: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-    borderRadius: 25,
-    padding: 16,
-    alignItems: "center",
-    boxShadow: ELEVATION.light.e2,
-  },
-  statIcon: { width: 38, height: 38, borderRadius: 24, alignItems: "center", justifyContent: "center" },
-  statValue: { fontSize: 24, fontWeight: "800", color: COLORS.dark, marginTop: 8, letterSpacing: -0.5 },
   skyline: { height: 190, marginHorizontal: -20, marginTop: -4, marginBottom: 8 },
-  statLabel: { fontSize: 11, color: COLORS.textMuted, marginTop: 4, textAlign: "center" },
   
   // ===== WEEKLY CHART =====
-  chartCard: { backgroundColor: COLORS.white, borderRadius: 30, padding: 20, marginHorizontal: 16, marginTop: 16, boxShadow: ELEVATION.light.e2 },
 
   // ── Period summary (week/month/all) ──
   periodCard: { backgroundColor: COLORS.white, borderRadius: 30, padding: 16, marginHorizontal: 16, marginTop: 16, boxShadow: ELEVATION.light.e2 },
@@ -1282,14 +1199,6 @@ const styles = StyleSheet.create({
   periodMetric: { flex: 1, alignItems: "center" },
   periodValue: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
   periodLabel: { fontSize: 11, fontWeight: "600", marginTop: 2 },
-  chartTitle: { fontSize: 17, fontWeight: "700", color: COLORS.dark, marginBottom: 16 },
-  chartContainer: { gap: 16 },
-  chartBar: { gap: 8 },
-  chartBarLabel: { fontSize: 13, color: COLORS.textMuted },
-  chartBarBg: { height: 24, backgroundColor: COLORS.light, borderRadius: 15, overflow: "hidden" },
-  chartBarFill: { height: 24, borderRadius: 15 },
-  chartBarFillGray: { height: 24, backgroundColor: COLORS.gray, borderRadius: 15, opacity: 0.3 },
-  chartBarValue: { fontSize: 14, fontWeight: "700", color: COLORS.dark },
   
   // ===== LEADERBOARD =====
   leaderboardCard: { backgroundColor: COLORS.white, borderRadius: 30, padding: 20, marginHorizontal: 16, marginTop: 16, boxShadow: ELEVATION.light.e2 },
