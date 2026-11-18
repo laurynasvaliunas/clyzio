@@ -285,25 +285,27 @@ function HistoryCard({ item, onPress, TC }: HistoryCardProps) {
 interface EmptyStateProps {
   isUpcoming: boolean;
   onPlanTrip: () => void;
+  /** Upcoming is empty: offer or find a carpool (Daily Commute). */
+  onOfferRide: () => void;
   TC: ReturnType<typeof getThemeColors>;
 }
 
-function EmptyState({ isUpcoming, onPlanTrip, TC }: EmptyStateProps) {
+function EmptyState({ isUpcoming, onPlanTrip, onOfferRide, TC }: EmptyStateProps) {
   return (
     <View style={styles.emptyState}>
       <View style={styles.emptyIcon}>
         <Leaf size={48} color={COLORS.primary} />
       </View>
       <Text style={[styles.emptyTitle, { color: TC.text }]}>
-        {isUpcoming ? "No commutes planned" : "No history yet"}
+        {isUpcoming ? "Nothing planned yet" : "No history yet"}
       </Text>
       <Text style={[styles.emptySubtitle, { color: TC.textSecondary }]}>
         {isUpcoming
-          ? "Tap the map to plan your next eco-friendly trip!"
+          ? "Share your route, and a colleague might join you"
           : "Complete some rides to see your impact here."}
       </Text>
-      <TouchableOpacity style={styles.emptyButton} onPress={onPlanTrip}>
-        <Text style={styles.emptyButtonText}>Plan your route</Text>
+      <TouchableOpacity style={styles.emptyButton} onPress={isUpcoming ? onOfferRide : onPlanTrip}>
+        <Text style={styles.emptyButtonText}>{isUpcoming ? "Offer / find a ride" : "Plan your route"}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -604,6 +606,7 @@ export default function ActivityScreen() {
           <EmptyState
             isUpcoming={activeTab === "upcoming"}
             onPlanTrip={() => router.push("/(tabs)")}
+            onOfferRide={() => router.push("/daily-commute")}
             TC={TC}
           />
         </ScrollView>
