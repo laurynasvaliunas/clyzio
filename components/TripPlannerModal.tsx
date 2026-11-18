@@ -112,6 +112,19 @@ const BASE_TRANSPORT_MODES = [
   { id: "wfh",     label: "Working from home",  icon: modeIconFor("wfh"),     co2: 0,     color: COLORS.primary },
 ];
 
+/** The Solo action button's words for each mode; "Go with <label>" for any mode not listed. */
+const MODE_ACTION_LABELS: Record<string, string> = {
+  public: "Take public transport",
+  my_car: "Drive to work",
+  bike: "Bike to work",
+  ebike: "Ride electric",
+  walking: "Walk to work",
+  taxi: "Take a taxi",
+  moto: "Ride your motorcycle",
+  nomotor: "Roll to work",
+  wfh: "Log a home day",
+};
+
 /**
  * CO₂ intensity → dot colour (PDF Stage 3: "each card shows a small CO₂
  * indicator — a colored dot green/yellow/orange — so the user associates
@@ -1297,7 +1310,9 @@ const TripPlannerModal: React.FC<TripPlannerModalProps> = ({ visible, onClose, o
                   disabled={!selectedMode}
                 >
                   <Text style={styles.btnText}>
-                    {selectedMode ? `Go with ${selectedMode.label}` : "Select a mode above"}
+                    {selectedMode
+                      ? MODE_ACTION_LABELS[selectedMode.id] ?? `Go with ${selectedMode.label}`
+                      : "Select a mode above"}
                   </Text>
                 </TouchableOpacity>
               )}

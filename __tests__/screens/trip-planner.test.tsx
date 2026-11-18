@@ -140,7 +140,7 @@ describe("Plan your route", () => {
     fireEvent.press(screen.getByText("Add another stop"));
 
     fireEvent.press(screen.getByText("Bike"));
-    fireEvent.press(await screen.findByText("Go with Bike"));
+    fireEvent.press(await screen.findByText("Bike to work"));
 
     await waitFor(() => expect(onTripStart).toHaveBeenCalled());
     const stops = [
@@ -155,7 +155,7 @@ describe("Plan your route", () => {
     const inserted = mockTables();
     const { onTripStart } = renderPlanner(FAR_DEST);
     fireEvent.press(await screen.findByText("Bike"));
-    fireEvent.press(await screen.findByText("Go with Bike"));
+    fireEvent.press(await screen.findByText("Bike to work"));
     await waitFor(() => expect(onTripStart).toHaveBeenCalled());
     expect(inserted[0].waypoints).toBeNull();
     expect(onTripStart.mock.calls[0][0].waypoints).toEqual([]);
@@ -220,6 +220,29 @@ describe("Plan your route", () => {
     expect(submitIntent).toHaveBeenCalledTimes(3);
     expect(alert).toHaveBeenCalledTimes(1);
     alert.mockRestore();
+  });
+
+  it("words the button for each way of travelling", async () => {
+    mockTables();
+    (supabase as any).functions = { invoke: jest.fn().mockResolvedValue({ data: { options: [] }, error: null }) };
+    renderPlanner(FAR_DEST);
+    const expected: Array<[string, string]> = [
+      ["Public transport", "Take public transport"],
+      ["Car", "Drive to work"],
+      ["Bike", "Bike to work"],
+      ["E-bike / E-scooter", "Ride electric"],
+      ["Walking", "Walk to work"],
+      ["Taxi", "Take a taxi"],
+      ["Motorcycle / Moped", "Ride your motorcycle"],
+      ["Other, no motor", "Roll to work"],
+      ["Working from home", "Log a home day"],
+    ];
+    await screen.findByText("Bike");
+    for (const [mode, action] of expected) {
+      fireEvent.press(screen.getByText(mode));
+      expect(await screen.findByText(action)).toBeTruthy();
+    }
+    expect(screen.queryByText(/^Go with /)).toBeNull();
   });
 
   it("highlights the greenest option for the distance instead of an insight banner", async () => {
