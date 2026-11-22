@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /Users/LaurynasValiunas/Documents/clyzio/clyzio-app && git add -A && (git diff --cached --quiet || git commit -m \"chore: save session changes\") && git push 2>&1 || true",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && git add -A && (git diff --cached --quiet || git commit -m \"chore: save session changes\") && git push 2>&1 || true",
             "timeout": 30,
             "statusMessage": "Pushing changes to git..."
           }
